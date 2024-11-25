@@ -1,0 +1,17 @@
+<dict>
+	<key>OpenSourceImportDate</key>
+	<string>2024-01-12</string>
+	<key>OpenSourceLicense</key>
+	<string>BSD</string>
+	<key>OpenSourceModifications</key>
+	<array>
+		<string>uniq.c: Disable Capsicum</string>
+		<string>uniq.c: Make stdout line-buffered when running under ATF</string>
+	</array>
+	<key>OpenSourceProject</key>
+	<string>uniq</string>
+	<key>OpenSourceVersion</key>
+	<string>2024-01-12</string>
+	<key>OpenSourceWebsiteURL</key>
+	<string>https://cgit.freebsd.org/src/tree/usr.bin/uniq?id=899837e8f5741f9a847b63d9e7c8b76ccc033ab5</string>
+</dict>
