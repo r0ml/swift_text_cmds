@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "0CF81148-D05B-4ED5-8D0E-A64339B5D4D8",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971722CF62C4800F3903F",
+        "name" : "headTest"
+      }
+    }
+  ],
+  "version" : 1
+}

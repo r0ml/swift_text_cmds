@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "606F5F61-2BDA-434B-946B-BD80A329F147",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73639882CFEBE8600D56A6B",
+        "name" : "colrmTest"
+      }
+    }
+  ],
+  "version" : 1
+}

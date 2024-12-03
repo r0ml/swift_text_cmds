@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "119C247B-E252-4FD5-9F2B-8D60F28065B2",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769719C2CF62C7800F3903F",
+        "name" : "rsTest"
+      }
+    }
+  ],
+  "version" : 1
+}

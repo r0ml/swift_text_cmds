@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "58CB261E-7794-47BB-925E-016685DFC81A",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76972382CF6358B00F3903F",
+        "name" : "joinTest"
+      }
+    }
+  ],
+  "version" : 1
+}

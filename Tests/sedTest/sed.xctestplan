@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "0B7ADCD0-3003-4B00-BCCF-0CA1F34E7E17",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971AA2CF62C8200F3903F",
+        "name" : "sedTest"
+      }
+    }
+  ],
+  "version" : 1
+}

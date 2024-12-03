@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "0D6D56C5-8365-4F48-9C80-734D2E6C58DD",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769721C2CF6355500F3903F",
+        "name" : "foldTest"
+      }
+    }
+  ],
+  "version" : 1
+}

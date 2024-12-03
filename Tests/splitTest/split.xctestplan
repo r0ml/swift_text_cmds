@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "E1D45585-EC2E-4029-B535-69C7F0316FEF",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971C62CF62C9000F3903F",
+        "name" : "splitTest"
+      }
+    }
+  ],
+  "version" : 1
+}

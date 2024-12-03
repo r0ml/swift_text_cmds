@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "568EAC93-E1BD-471E-8CF4-34E0E81F5E5A",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76972492CF6368100F3903F",
+        "name" : "jqTest"
+      }
+    }
+  ],
+  "version" : 1
+}

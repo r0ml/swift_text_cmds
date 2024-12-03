@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "008764D3-18D6-4A50-BCA4-855F7140DCEA",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769715C2CF62BF500F3903F",
+        "name" : "cutTest"
+      }
+    }
+  ],
+  "version" : 1
+}

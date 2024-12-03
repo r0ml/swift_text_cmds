@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD$");
 
 #ifdef __APPLE__
 #include <zlib.h>
-#include <lzma.h>
+// #include <lzma.h>
 #include <bzlib.h>
 #endif /* __APPLE__ */
 

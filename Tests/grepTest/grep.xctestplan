@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "B183E702-FBE5-4FB4-A0E6-C888F8BB22B1",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769722A2CF6355E00F3903F",
+        "name" : "grepTest"
+      }
+    }
+  ],
+  "version" : 1
+}

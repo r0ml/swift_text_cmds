@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "14183348-01B5-4CC3-B2BD-D289BC835487",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971FE2CF62CAF00F3903F",
+        "name" : "wcTest"
+      }
+    }
+  ],
+  "version" : 1
+}

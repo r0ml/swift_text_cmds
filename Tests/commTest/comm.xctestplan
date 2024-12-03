@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "8DBFEB11-A4F9-4369-A43B-1FED89B38918",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73639A22CFF5F3000D56A6B",
+        "name" : "commTest"
+      }
+    }
+  ],
+  "version" : 1
+}

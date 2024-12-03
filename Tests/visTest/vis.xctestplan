@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "CB090491-2538-41CA-A0F6-2136D099762F",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E7E6C4A22CFA6C3D000D0B42",
+        "name" : "visTest"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,169 @@
+{
+  "configurations" : [
+    {
+      "id" : "9E7D1CBD-F789-4AEC-B255-F849678DFF91",
+      "name" : "Original",
+      "options" : {
+        "environmentVariableEntries" : [
+          {
+            "key" : "TEST_ORIGINAL",
+            "value" : "1"
+          }
+        ]
+      }
+    },
+    {
+      "id" : "6528D620-2352-4DF3-9B2A-4B2E12A736DC",
+      "name" : "Swift",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769719C2CF62C7800F3903F",
+        "name" : "rsTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971AA2CF62C8200F3903F",
+        "name" : "sedTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971F02CF62CA200F3903F",
+        "name" : "uniqTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76970E62CF55D0200F3903F",
+        "name" : "catTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971FE2CF62CAF00F3903F",
+        "name" : "wcTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769715C2CF62BF500F3903F",
+        "name" : "cutTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76972382CF6358B00F3903F",
+        "name" : "joinTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769722A2CF6355E00F3903F",
+        "name" : "grepTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971B82CF62C8800F3903F",
+        "name" : "sortTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73639A22CFF5F3000D56A6B",
+        "name" : "commTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73639882CFEBE8600D56A6B",
+        "name" : "colrmTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971722CF62C4800F3903F",
+        "name" : "headTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769718E2CF62C5F00F3903F",
+        "name" : "prTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971E22CF62C9D00F3903F",
+        "name" : "trTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971672CF62C2700F3903F",
+        "name" : "colTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971C62CF62C9000F3903F",
+        "name" : "splitTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971D42CF62C9600F3903F",
+        "name" : "tailTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E769721C2CF6355500F3903F",
+        "name" : "foldTest"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E76971802CF62C5700F3903F",
+        "name" : "md5Test"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E7E6C4A22CFA6C3D000D0B42",
+        "name" : "visTest"
+      }
+    }
+  ],
+  "version" : 1
+}
