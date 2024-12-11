@@ -32,13 +32,9 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
-
-
 @Suite(.serialized) class md5Test {
 
-  let cl : AnyClass? =  orig ? nil : md5Test.self
-  let ex = orig ? "/sbin/md5" : "md5"
+  let ex = "md5"
 
   let n=8
   // algorithms="md5 sha1 sha224 sha256 sha384 sha512 sha512t224 sha512t256 rmd160 skein256 skein512 skein1024"
@@ -218,7 +214,8 @@ let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
 
   
   @Test("Test BSD md5", arguments: 0..<8) func bsd_md5(_ i : Int) async throws {
-      let (_, j, _) = try captureStdoutLaunch(cl, ex, [], inp[i])
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch(inp[i])
     #expect( j!.dropLast() == out_md5[i] )
     }
 

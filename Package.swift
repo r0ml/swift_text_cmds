@@ -24,7 +24,8 @@ import Foundation
 
 let package = Package(
   name: "text_cmds",
-  platforms: [.macOS(.v14)],
+  // Mutex is only available in v15 or newer
+  platforms: [.macOS(.v15)],
 //  products: [
 //    .executable(name: "apply", targets: ["apply"])
 //  ],

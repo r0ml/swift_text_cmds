@@ -10,40 +10,41 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
-
 @Suite(.serialized) class colTest {
 
-  let cl : AnyClass? =  orig ? nil : colTest.self
-  let ex = orig ? "/usr/bin/col" : "col"
+  let ex = "col"
 
   @Test("testing just newlines", arguments: ["nl", "nl2"]) func nl(_ arg : String) async throws {
-     let i = getFile("colTest", arg, withExtension: "in")
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [], i )
+     let i = getFile("colTest", arg, withExtension: "in")!
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch(i)
     let res = arg == "nl3" ? "a\n\nb\n\n" : "a\nb\n"
       #expect( j == res )
   }
   
   @Test("testing reverse line feed") func rlf() async throws {
     
-    let i2 = getFile("colTest", "rlf", withExtension: "in")
-    let (_, j2, _) = try captureStdoutLaunch(cl, ex, [], i2 )
+    let i2 = getFile("colTest", "rlf", withExtension: "in")!
+    let p = ShellProcess(ex)
+    let (_, j2, _) = try await p.captureStdoutLaunch( i2 )
     let res2 = "a b\n"
     #expect( j2 == res2 )
     
-    let i3 = getFile("colTest", "rlf2", withExtension: "in")
-    let (_, j3, _) = try captureStdoutLaunch(cl, ex, [], i3 )
+    let i3 = getFile("colTest", "rlf2", withExtension: "in")!
+    let p2 = ShellProcess(ex)
+    let (_, j3, _) = try await p2.captureStdoutLaunch( i3 )
     let res3 = "a\tb\n"
     #expect( j3 == res3 )
    
-    let i4 = getFile("colTest", "rlf2", withExtension: "in")
-    let (_, j4, _) = try captureStdoutLaunch(cl, ex, ["-x"], i4 )
+    let i4 = getFile("colTest", "rlf2", withExtension: "in")!
+    let p4 = ShellProcess(ex, "-x")
+    let (_, j4, _) = try await p4.captureStdoutLaunch( i4 )
     let res4 = "a       b\n"
     #expect( j4 == res4 )
 
-    let i5 = getFile("colTest", "rlf3", withExtension: "in")
-
-    let (_, j5, _) = try captureStdoutLaunch(cl, ex, ["-x"], i5 )
+    let i5 = getFile("colTest", "rlf3", withExtension: "in")!
+    let p5 = ShellProcess(ex, "-x")
+    let (_, j5, _) = try await p5.captureStdoutLaunch( i5 )
     
     let res5 = " b\na\n"
     #expect( j5 == res5 )
@@ -51,23 +52,27 @@ let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
   }
 
   @Test("testing half line feed") func hlf() async throws {
-    let i = getFile("colTest", "hlf", withExtension: "in")
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [], i )
+    let i = getFile("colTest", "hlf", withExtension: "in")!
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch( i )
     let res = "a f\naf\n"
     #expect( j == res )
 
-    let i2 = getFile("colTest", "hlf", withExtension: "in")
-    let (_, j2, _) = try captureStdoutLaunch(cl, ex, ["-f"], i2 )
+    let i2 = getFile("colTest", "hlf", withExtension: "in")!
+    let p2 = ShellProcess(ex, "-f")
+    let (_, j2, _) = try await p2.captureStdoutLaunch( i2 )
     let res2 = "a f\u{1b}9\r f\u{1b}9\ra\n"
     #expect( j2 == res2 )
 
-    let i3 = getFile("colTest", "hlf2", withExtension: "in")
-    let (_, j3, _) = try captureStdoutLaunch(cl, ex, [], i3 )
+    let i3 = getFile("colTest", "hlf2", withExtension: "in")!
+    let p3 = ShellProcess(ex)
+    let (_, j3, _) = try await p3.captureStdoutLaunch( i3 )
     let res3 = "a\n f\n"
     #expect( j3 == res3 )
 
-    let i4 = getFile("colTest", "hlf2", withExtension: "in")
-    let (_, j4, _) = try captureStdoutLaunch(cl, ex, ["-f"], i4 )
+    let i4 = getFile("colTest", "hlf2", withExtension: "in")!
+    let p4 = ShellProcess(ex, "-f")
+    let (_, j4, _) = try await p4.captureStdoutLaunch( i4 )
     let res4 = "a\u{1b}9\r f\n\u{1b}9"
     #expect( j4 == res4 )
   }

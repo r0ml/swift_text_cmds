@@ -34,45 +34,47 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
-
 @Suite(.serialized) class catTest {
   
-  let cl : AnyClass? =  orig ? nil : catTest.self
-  let ex = orig ? "/bin/cat" : "cat"
+  let ex = "cat"
 
   @Test func align() async throws {
     let x = getFile("catTest", "d_align", withExtension: "out")
     let res = inFile("catTest", "d_align", withExtension: "in")!
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-be", res] )
+    let p = ShellProcess(ex, "-be", res)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect( j == x )
   }
   
   @Test func b_output() async throws {
     let x = getFile("catTest", "d_b_output", withExtension: "out")
     let res = inFile("catTest", "d_b_output", withExtension: "in")!
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-b", res] )
+    let p = ShellProcess(ex, "-b", res)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect( j == x )
   }
 
   @Test func s_output() async throws {
     let x = getFile("catTest", "d_s_output", withExtension: "out")
     let res = inFile("catTest", "d_s_output", withExtension: "in")!
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-s", res] )
+    let p = ShellProcess(ex, "-s", res)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect( j == x )
   }
 
   @Test func se_output() async throws {
     let x = getFile("catTest", "d_se_output", withExtension: "out")
     let res = inFile("catTest", "d_se_output", withExtension: "in")!
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-se", res] )
+    let p = ShellProcess(ex, "-se", res)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect( j == x )
   }
 
   @Test func vt_output() async throws {
     let x = getFile("catTest", "d_vt_output", withExtension: "out")
     let res = inFile("catTest", "d_vt_output", withExtension: "in")!
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-vt", res] )
+    let p = ShellProcess(ex, "-vt", res)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect( j == x )
   }
 

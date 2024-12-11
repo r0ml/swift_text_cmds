@@ -23,16 +23,17 @@ import Foundation
 
 @Suite(.serialized) class visTest {
 
-  let c : AnyClass? = nil
-  let x = "/usr/bin/vis"
+  let ex = "vis"
   
     @Test func basic1() async throws {
-      let (_, o, _) = try captureStdoutLaunch(c, x, ["-w", "-t"], "\u{10}\n\t\n")
+      let p = ShellProcess(ex, "-w", "-t")
+      let (_, o, _) = try await p.captureStdoutLaunch("\u{10}\n\t\n")
       #expect(o == "\\^P\\012\\011\\012")
     }
 
   @Test func basic2() async throws {
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-w", "-t", "-l"], "\u{10}\n\t\n")
+    let p = ShellProcess(ex, "-w", "-t", "-l")
+    let (_, o, _) = try await p.captureStdoutLaunch("\u{10}\n\t\n")
     #expect(o == "\\^P\\$\n\\011\\$\n")
   }
   
@@ -41,39 +42,44 @@ import Foundation
 // ===========================================
 
 
-  @Test func testBasicEncoding() throws {
+  @Test func testBasicEncoding() async throws {
     let input = "Hello, World!"
     let expected = "Hello, World!"
-    let (_, o, _) = try captureStdoutLaunch(c, x, [], input)
+    let p = ShellProcess(ex)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func testNonPrintableCharacters() throws {
+  @Test func testNonPrintableCharacters() async throws {
         let input = "Hello,\nWorld!"
         let expected = "Hello,\\nWorld!"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-w", "-c"], input)
+    let p = ShellProcess(ex, "-w", "-c")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
     }
 
-  @Test func testEscapeCharacters() throws {
+  @Test func testEscapeCharacters() async throws {
     let input = "Hello\\World!"
     let expected = "Hello\\\\World!"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-c"], input)
+    let p = ShellProcess(ex, "-c")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func testMultibyteCharacters() throws {
+  @Test func testMultibyteCharacters() async throws {
     let input = "你好"
 //    let expected = "\\xE4\\xBD\\xA0\\xE5\\xA5\\xBD"
     let expected = "\\344\\275\\240\\345\\245\\275"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-o"], input)
+    let p = ShellProcess(ex, "-o")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func testMarkEndOfLine() throws {
+  @Test func testMarkEndOfLine() async throws {
     let input = "Hello,\nWorld!"
     let expected = "Hello,\\$\nWorld!"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-l"], input)
+    let p = ShellProcess(ex, "-l")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
@@ -88,24 +94,28 @@ import Foundation
 */
   
   
-  @Test func testFoldLines() throws {
+  @Test func testFoldLines() async throws {
     let input = "This is a very long line that exceeds the fold width."
     let expected = "This is a very lon\\\ng line that exceed\\\ns the fold width.\\\n"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-f", "-F", "20"], input)
+    let p = ShellProcess(ex, "-f", "-F", "20")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func testCombineOptions() throws {
+  @Test func testCombineOptions() async throws {
     let input = "Line 1\nLine 2"
     let expected = "Line\\s1\\nLine\\s2"
-    let (_, o, _) = try captureStdoutLaunch(c, x, ["-M", "-c"], input)
+    let p = ShellProcess(ex, "-M", "-c")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func testEmptyInput() throws {
+  @Test func testEmptyInput() async throws {
     let input = ""
     let expected = ""
-    let (_, o, _) = try captureStdoutLaunch(c, x, [], input)
+    let p = ShellProcess(ex)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 }
+

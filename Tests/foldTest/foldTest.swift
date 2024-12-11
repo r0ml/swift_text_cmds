@@ -33,33 +33,34 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
-
 @Suite(.serialized) class foldTest {
   
-  let cl : AnyClass? =  orig ? nil : foldTest.self
-  let ex = orig ? "/usr/bin/fold" : "fold"
+  let ex = "fold"
 
   @Test("Verify the usage of option 'b'") func b_flag() async throws {
 
-    let (r, j, _) = try captureStdoutLaunch(cl, ex, ["-b"])
+    let p = ShellProcess(ex, "-b")
+    let (r, j, _) = try await p.captureStdoutLaunch()
     #expect(r == 0 && j!.isEmpty)
   }
   
   @Test("Verify the usage of option 's'") func s_flag() async throws {
-    let (r, j, _) = try captureStdoutLaunch(cl, ex, ["-s"])
+    let p = ShellProcess(ex, "-s")
+    let (r, j, _) = try await p.captureStdoutLaunch()
     // Not yet implemented.
     #expect(r == 0 && j!.isEmpty)
   }
 
   @Test("Verify that an invalid usage with a supported option produces a valid error message") func invalid_usage() async throws {
-    let (r, j, e) = try captureStdoutLaunch(cl, ex, ["-w"])
-    let ee = ex + ": option requires an argument -- w\nusage: fold [-bs] [-w width] [file ...]\n"
-    #expect(r != 0 && e == ee )
+    let p = ShellProcess(ex, "-w")
+    let (r, j, e) = try await p.captureStdoutLaunch()
+    let mm = e!.matches(of: /.*: option requires an argument -- w\nusage: fold \[-bs\] \[-w width\] \[file ...\]\n/)
+    #expect(r != 0 && !mm.isEmpty )
   }
 
   @Test("Verify that fold(1) executes successfully and silently when invoked without any arguments") func no_arguments() async throws {
-    let (r, j, e) = try captureStdoutLaunch(cl, ex, [])
+    let p = ShellProcess(ex)
+    let (r, j, e) = try await p.captureStdoutLaunch()
     #expect(r == 0 && j!.isEmpty)
   }
 

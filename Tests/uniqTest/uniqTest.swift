@@ -12,112 +12,107 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil 
-
 @Suite(.serialized) class uniqTest {
-  let cl : AnyClass? =  orig ? nil : uniqTest.self
-  let ex = orig ? "/usr/bin/uniq" : "uniq"
+
+  let ex = "uniq"
   
-  @Test("basic test without options") func basic() throws {
+  @Test("basic test without options") func basic() async throws {
     let input = "a\na\nb\nb\na\na\n"
     let expected = "a\nb\na\n"
     
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [], input)
+    let p = ShellProcess(ex)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     // basic test without options
     #expect(o == expected)
   }
 
   @Test("basic test showing counts",
-        arguments: ["-c", "--count"]) func count(_ c : String) throws {
+        arguments: ["-c", "--count"]) func count(_ c : String) async throws {
     // basic test showing counts
     let input = "a\na\nb\nb\nb\na\na\na\na\n"
     let expected = "   2 a\n   3 b\n   4 a\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [c], input)
+    let p = ShellProcess(ex, c)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
   @Test("print repeated lines only",
-        arguments: ["-d", "--repeated"]) func repeated(_ c : String) throws {
+        arguments: ["-d", "--repeated"]) func repeated(_ c : String) async throws {
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [c], input)
+    let p = ShellProcess(ex, c)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test("count and print repeated lines only") func count_repeated() throws {
+  @Test("count and print repeated lines only") func count_repeated() async throws {
     let input = "a\na\nb\nb\na\n"
     let expected = "   2 a\n   2 b\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, ["--count", "--repeated"], input)
+    let p = ShellProcess(ex, "--count", "--repeated")
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o==expected)
   }
 
   @Test("print every instance of repeated lines",
-        arguments: ["-D", "--all-repeated"]) func all_repeated(_ c : String) throws {
+        arguments: ["-D", "--all-repeated"]) func all_repeated(_ c : String) async throws {
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\na\na\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [c], input)
+    let p = ShellProcess(ex, c)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test("skip fields", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields(_ a : [String]) throws {
+  @Test("skip fields", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields(_ a : [String]) async throws {
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
-    let (_, o, e) = try captureStdoutLaunch(cl, ex, a, input)
+    let p = ShellProcess(ex, a)
+    let (_, o, e) = try await p.captureStdoutLaunch(input)
     print(e)
     #expect(o == expected)
   }
 
-  @Test("skip fields (with tabs)", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields_tab(_ a : [String]) throws {
+  @Test("skip fields (with tabs)", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields_tab(_ a : [String]) async throws {
+    let p = ShellProcess(ex, a)
     let input = "1\ta\n2\ta\n3\tb\n4\tb\n5\ta\n6\ta\n"
     let expected = "1\ta\n3\tb\n5\ta\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, a, input)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test("ignore case", arguments: ["-i", "--ignore-case"]) func ignore_case(_ s : String) throws {
+  @Test("ignore case", arguments: ["-i", "--ignore-case"]) func ignore_case(_ s : String) async throws {
     let input = "a\nA\nb\nB\na\nA\n"
     let expected = "a\nb\na\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [s], input)
+    let p = ShellProcess(ex, s)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test("skip chars", arguments: [["+2"], ["-s", "2"], ["--skip-chars", "2"]] ) func skip_chars(_ a : [String]) throws {
+  @Test("skip chars", arguments: [["+2"], ["-s", "2"], ["--skip-chars", "2"]] ) func skip_chars(_ a : [String]) async throws {
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, a, input)
+    let p = ShellProcess(ex, a)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test("print non-repeated lines only", arguments: ["-u", "--unique"]) func unique(_ s : String) throws {
+  @Test("print non-repeated lines only", arguments: ["-u", "--unique"]) func unique(_ s : String) async throws {
     let input = "a\na\nb\n"
     let expected = "b\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [s], input)
+    let p = ShellProcess(ex, s)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
   @Test("print non-repeated lines with count",
         arguments: [["--unique", "--count"],
                    ["--count", "--unique"]])
-  func count_unique(_ a : [String]) throws {
+  func count_unique(_ a : [String]) async throws {
     let input = "a\na\nb\n"
     let expected = "   1 b\n"
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, a, input)
+    let p = ShellProcess(ex, a)
+    let (_, o, _) = try await p.captureStdoutLaunch(input)
     #expect(o == expected)
   }
 
-  @Test func interactive() throws {
-    // not yet implemented
-    #expect(Bool(false))
-  }
-
-  @Test func interactive_repeated() throws {
-    // not yet implemented
-    #expect(Bool(false))
-  }
-
-  @Test func stdout() throws {
-    // not yet implemented
-    #expect(Bool(false))
-  }
-
 }
+ 

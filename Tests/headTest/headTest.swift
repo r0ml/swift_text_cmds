@@ -31,63 +31,69 @@ import Testing
 import TestSupport
 import Foundation
 
-let orig = ProcessInfo.processInfo.environment["TEST_ORIGINAL"] != nil
-
 @Suite(.serialized) class headTest {
-  let cl : AnyClass? =  orig ? nil : headTest.self
-  let ex = orig ? "/usr/bin/head" : "head"
+  let ex = "head"
 
   @Test("Test head(1)'s handling of an empty file") func empty_file() async throws {
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [])
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch()
     #expect(j!.isEmpty)
   }
 
   @Test("Test head(1)'s default mode") func default_no_options() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [], i)
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch(i)
     #expect( j == Array(repeating: "test\n", count: 10).joined())
   }
 
   @Test("Test head(1)'s -n option") func line_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-n", "50"], i)
+    let p = ShellProcess(ex, "-n", "50")
+    let (_, j, _) = try await p.captureStdoutLaunch(i)
     #expect( j!.split(separator: "\n", omittingEmptySubsequences: true).count == 50)
   }
 
   @Test("Test head(1)'s -c option") func byte_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, ["-c", "50"], i)
+    let p = ShellProcess(ex, "-c", "50")
+    let (_, j, _) = try await p.captureStdoutLaunch(i)
     #expect( j!.count == 50)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the beginning of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup") ) func sparse_file_text_at_beginning() async throws {
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [])
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch()
       // Not yet implemented.
     #expect(false)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the end of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup")) func spare_file_text_at_end() async throws {
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [])
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch()
       // Not yet implemented.
     #expect(false)
   }
 
   @Test("Test head(1)'s handling of a missing line count arg") func missing_line_count() async throws {
-    let (r, j, e) = try captureStdoutLaunch(cl, ex, ["-n"])
+    let p = ShellProcess(ex, "-n")
+    let (r, j, e) = try await p.captureStdoutLaunch()
     let ee = "head: option requires an argument -- n\nusage: head [-n lines | -c bytes] [file ...]\n"
     #expect(r != 0)
     #expect(e == ee)
   }
 
   @Test("Test head(1)'s handling of an invalid line count arg") func invalid_line_count() async throws {
-    let (r, j, e) = try captureStdoutLaunch(cl, ex, ["-n", "-10"])
+    let p = ShellProcess(ex, "-n", "-10")
+    let (r, j, e) = try await p.captureStdoutLaunch()
     let ee = "head: illegal line count -- -10\n"
     #expect(r != 0)
     #expect(e == ee )
   }
 
   @Test("Test head(1)'s reading of stdin", .disabled("all of the tests read from stdin instead of creating temp files, so this test is no longer necessary")) func read_from_stdin() async throws {
-    let (_, j, _) = try captureStdoutLaunch(cl, ex, [])
+    let p = ShellProcess(ex)
+    let (_, j, _) = try await p.captureStdoutLaunch()
       // Not yet implemented.
     #expect(false)
   }

@@ -9,6 +9,7 @@
 
 import Testing
 import TestSupport
+import Foundation
 
 @Suite(.serialized) class wcTest {
   let tv="""
@@ -31,28 +32,31 @@ kom Terje Vigen nær.
   let tvcL=42
   let tvmL=39
 
-  let cl : AnyClass? = nil
-  let ex = "/usr/bin/wc"
-  
-  func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) throws {
-    let (_, o, _) = try captureStdoutLaunch(cl, ex, [], i)
+  let ex = "wc"
+
+  func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
+    let p1 = ShellProcess(ex)
+    let (_, o, _) = try await p1.captureStdoutLaunch(i)
     let k = o!.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
     #expect(k.count == 1 &&
             Int(k[0].output.1)! == a &&
             Int(k[0].output.2)! == b &&
             Int(k[0].output.3)! == c )
 
-    let (_, o1, _) = try captureStdoutLaunch(cl, ex, ["-l"], i)
+    let p2 = ShellProcess(ex, "-l")
+    let (_, o1, _) = try await p2.captureStdoutLaunch(i)
     let k1 = o1!.matches(of: /^ +(\d+)\n$/)
     #expect(k1.count == 1 &&
             Int(k1[0].output.1)! == a )
 
-    let (_, o2, _) = try captureStdoutLaunch(cl, ex, ["-w"], i)
+    let p3 = ShellProcess(ex, "-w")
+    let (_, o2, _) = try await p3.captureStdoutLaunch(i)
     let k2 = o2!.matches(of: /^ +(\d+)\n$/)
     #expect(k2.count == 1 &&
             Int(k2[0].output.1)! == b)
 
-    let (_, o3, _) = try captureStdoutLaunch(cl, ex, ["-c"], i)
+    let p4 = ShellProcess(ex, "-c")
+    let (_, o3, _) = try await p4.captureStdoutLaunch(i)
     let k3 = o3!.matches(of: /^ +(\d+)\n$/)
     #expect(k3.count == 1 &&
             Int(k3[0].output.1)! == c, "\(c)")
@@ -66,33 +70,47 @@ kom Terje Vigen nær.
   }
   
   @Test("Basic test case") func basic() async throws {
-    try check("a b\n", 1, 2, 4)
+    try await check("a b\n", 1, 2, 4)
 }
 
   @Test("Input containing only blank lines") func blank() async throws {
-    try check("\n\n\n", 3, 0, 3)
+    try await check("\n\n\n", 3, 0, 3)
   }
 
   @Test("Empty input") func empty() async throws {
-    try check("", 0, 0, 0)
+    try await check("", 0, 0, 0)
   }
 
   @Test("Invalid multibye input") func invalid() async throws {
-    try check("a\u{ff}b\n", 1, 2, 4)
+    let i = "a\u{ff}b\n".data(using: .isoLatin1)!
+    
+/*    let u = FileManager.default.temporaryDirectory.appendingPathComponent("foo")
+    try i!.write(to: u)
+    defer { try? FileManager.default.removeItem(at: u) }
+ */
+    let p = ShellProcess(ex, "-m", env: ["LC_ALL":"UTF-8"])
+    let (_, o, e) = try await p.captureStdoutLaunch(i)
+    let k = o!.matches(of: /^ +(\d+)\n$/)
+    #expect(k.count == 1)
+    
+    if k.count == 1 {
+      #expect(Int(k[0].output.1)! == 4)
+    }
+    #expect(e!.matches(of: /Illegal byte sequence/).count == 1)
   }
 
   @Test("Multiline, multibyte input") func multiline() async throws {
-    try check(tv+"\n", tvl, tvw, tvc, tvm)
+    try await check(tv+"\n", tvl, tvw, tvc, tvm)
   }
 
   @Test("Multiline input exceeding the input buffer size") func multiline_repeated() async throws {
     let c = 1000
     let tvx = Array(repeating: tv+"\n", count: c).joined()
-    try check(tvx, tvl * c, tvw * c, tvc * c, tvm * c)
+    try await check(tvx, tvl * c, tvw * c, tvc * c, tvm * c)
   }
 
   @Test("Input containing NUL") func nul() async throws {
-    try check("a\0b\n", 1, 1, 4)
+    try await check("a\0b\n", 1, 1, 4)
   }
 
   @Test("Multibyte sequence across buffer boundary") func poop() async throws {
@@ -100,25 +118,53 @@ kom Terje Vigen nær.
     let MAXBSIZE=1048576
     let c = MAXBSIZE / p.count
     let foo = Array(repeating: p, count: c).joined()
-    try check(foo, c, c, c * 80, c * 32 )
+    try await check(foo, c, c, c * 80, c * 32 )
   }
 
   @Test func total() async throws {
-      // Not yet implemented.
-    #expect(false)
+    let f =
+    FileManager.default.temporaryDirectory.appendingPathComponent("foo")
+    let f2 =
+    FileManager.default.temporaryDirectory.appendingPathComponent("bar")
+
+    try (tv.appending("\n")).write(to: f, atomically: true, encoding: .utf8)
+    try (tv.appending("\n")).write(to: f2, atomically: true, encoding: .utf8)
+
+    defer {
+      try? FileManager.default.removeItem(at: f)
+      try? FileManager.default.removeItem(at: f2)
+    }
+    
+    let p = ShellProcess(ex, f.path, f2.path)
+    let (_, j, _) = try await p.captureStdoutLaunch()
+    let ll = j!.split(separator: "\n", omittingEmptySubsequences: true).last
+    
+    // More than one line of output
+    #expect(ll != nil)
+    
+    if let ll {
+      let k = ll.matches(of: /^\s+(\d+)\s+(\d+)\s+(\d+)\s+total$/)
+      
+      #expect(!k.isEmpty)
+      #expect( Int((k.first!.output.1))! == 2 * tvl )
+      #expect( Int(k.first!.output.2)! == 2 * tvw )
+      #expect( Int(k.first!.output.3)! == 2 * tvc )
+    }
   }
 
   @Test("Input not ending in newline") func unterminated() async throws {
-    try check("a b", 0, 2, 3)
+    try await check("a b", 0, 2, 3)
   }
 
   @Test("Trigger usage message") func usage() async throws {
-      // Not yet implemented.
-    #expect(false)
+    let p = ShellProcess(ex, "-?")
+    let (r, j, e) = try await p.captureStdoutLaunch()
+    #expect(r == 1)
+    #expect( e!.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )
   }
 
   @Test("Input containing only whitespace and newlines") func whitespace() async throws {
-    try check("\n \n\t\n", 3, 0, 5)
+    try await check("\n \n\t\n", 3, 0, 5)
   }
 
 }
