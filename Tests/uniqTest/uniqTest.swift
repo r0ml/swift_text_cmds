@@ -21,7 +21,7 @@ import Foundation
     let expected = "a\nb\na\n"
     
     let p = ShellProcess(ex)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     // basic test without options
     #expect(o == expected)
   }
@@ -32,7 +32,7 @@ import Foundation
     let input = "a\na\nb\nb\nb\na\na\na\na\n"
     let expected = "   2 a\n   3 b\n   4 a\n"
     let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -41,7 +41,7 @@ import Foundation
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\n"
     let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -49,7 +49,7 @@ import Foundation
     let input = "a\na\nb\nb\na\n"
     let expected = "   2 a\n   2 b\n"
     let p = ShellProcess(ex, "--count", "--repeated")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o==expected)
   }
 
@@ -58,7 +58,7 @@ import Foundation
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\na\na\n"
     let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -66,7 +66,7 @@ import Foundation
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
     let p = ShellProcess(ex, a)
-    let (_, o, e) = try await p.captureStdoutLaunch(input)
+    let (_, o, e) = try await p.run(input)
     print(e)
     #expect(o == expected)
   }
@@ -75,7 +75,7 @@ import Foundation
     let p = ShellProcess(ex, a)
     let input = "1\ta\n2\ta\n3\tb\n4\tb\n5\ta\n6\ta\n"
     let expected = "1\ta\n3\tb\n5\ta\n"
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -83,7 +83,7 @@ import Foundation
     let input = "a\nA\nb\nB\na\nA\n"
     let expected = "a\nb\na\n"
     let p = ShellProcess(ex, s)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -91,7 +91,7 @@ import Foundation
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
     let p = ShellProcess(ex, a)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -99,7 +99,7 @@ import Foundation
     let input = "a\na\nb\n"
     let expected = "b\n"
     let p = ShellProcess(ex, s)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -110,7 +110,7 @@ import Foundation
     let input = "a\na\nb\n"
     let expected = "   1 b\n"
     let p = ShellProcess(ex, a)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 

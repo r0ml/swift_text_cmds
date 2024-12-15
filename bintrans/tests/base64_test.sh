@@ -43,8 +43,8 @@ encode_head()
 }
 encode_body()
 {
-	printf "%s\n" "$sampinp" >infile
-	atf_check -o inline:"$sampout\n" $cmd -i infile
+	printf "%s\n" "$sampinp" >try inFile
+	atf_check -o inline:"$sampout\n" $cmd -i try inFile
 }
 
 atf_test_case encode_b10
@@ -54,11 +54,11 @@ encode_b10_head()
 }
 encode_b10_body()
 {
-	printf "%s\n" "$sampinp" >infile
-	atf_check -o inline:"$sampoutb10\n" $cmd -b10 -i infile
-	atf_check -o inline:"$sampoutb10\n" $cmd --break 10 -i infile
-	atf_check -o inline:"$sampoutb10\n" $cmd -w10 -i infile
-	atf_check -o inline:"$sampoutb10\n" $cmd --wrap 10 -i infile
+	printf "%s\n" "$sampinp" >try inFile
+	atf_check -o inline:"$sampoutb10\n" $cmd -b10 -i try inFile
+	atf_check -o inline:"$sampoutb10\n" $cmd --break 10 -i try inFile
+	atf_check -o inline:"$sampoutb10\n" $cmd -w10 -i try inFile
+	atf_check -o inline:"$sampoutb10\n" $cmd --wrap 10 -i try inFile
 }
 
 atf_test_case encode_b20
@@ -68,11 +68,11 @@ encode_b20_head()
 }
 encode_b20_body()
 {
-	printf "%s\n" "$sampinp" >infile
-	atf_check -o inline:"$sampoutb20\n" $cmd -b20 -i infile
-	atf_check -o inline:"$sampoutb20\n" $cmd --break 20 -i infile
-	atf_check -o inline:"$sampoutb20\n" $cmd -w20 -i infile
-	atf_check -o inline:"$sampoutb20\n" $cmd --wrap 20 -i infile
+	printf "%s\n" "$sampinp" >try inFile
+	atf_check -o inline:"$sampoutb20\n" $cmd -b20 -i try inFile
+	atf_check -o inline:"$sampoutb20\n" $cmd --break 20 -i try inFile
+	atf_check -o inline:"$sampoutb20\n" $cmd -w20 -i try inFile
+	atf_check -o inline:"$sampoutb20\n" $cmd --wrap 20 -i try inFile
 }
 
 atf_test_case decode
@@ -82,10 +82,10 @@ decode_head()
 }
 decode_body()
 {
-	printf "%s\n" "$sampout" >infile
-	atf_check -o inline:"$sampinp\n" $cmd -D -i infile
-	atf_check -o inline:"$sampinp\n" $cmd -d -i infile
-	atf_check -o inline:"$sampinp\n" $cmd --decode -i infile
+	printf "%s\n" "$sampout" >try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -D -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -d -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd --decode -i try inFile
 }
 
 atf_test_case decode_b10
@@ -95,10 +95,10 @@ decode_b10_head()
 }
 decode_b10_body()
 {
-	printf "%s\n" "$sampoutb10" >infile
-	atf_check -o inline:"$sampinp\n" $cmd -D -i infile
-	atf_check -o inline:"$sampinp\n" $cmd -d -i infile
-	atf_check -o inline:"$sampinp\n" $cmd --decode -i infile
+	printf "%s\n" "$sampoutb10" >try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -D -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -d -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd --decode -i try inFile
 }
 
 atf_test_case decode_b20
@@ -108,10 +108,10 @@ decode_b20_head()
 }
 decode_b20_body()
 {
-	printf "%s\n" "$sampoutb20" >infile
-	atf_check -o inline:"$sampinp\n" $cmd -D -i infile
-	atf_check -o inline:"$sampinp\n" $cmd -d -i infile
-	atf_check -o inline:"$sampinp\n" $cmd --decode -i infile
+	printf "%s\n" "$sampoutb20" >try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -D -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -d -i try inFile
+	atf_check -o inline:"$sampinp\n" $cmd --decode -i try inFile
 }
 
 atf_test_case ex_usage
@@ -121,10 +121,10 @@ ex_usage_head()
 }
 ex_usage_body()
 {
-	printf "%s" "$sampinp\n" >infile
+	printf "%s" "$sampinp\n" >try inFile
 	atf_check -s exit:64 -e match:"requires an argument" $cmd -b
 	atf_check -s exit:64 -e match:"requires an argument" $cmd -w
-	atf_check -s exit:64 -e match:"invalid argument" $cmd infile
+	atf_check -s exit:64 -e match:"invalid argument" $cmd try inFile
 }
 
 atf_test_case in_out
@@ -134,16 +134,16 @@ in_out_head()
 }
 in_out_body()
 {
-	printf "%s\n" "$sampinp" >infile
+	printf "%s\n" "$sampinp" >try inFile
 	for o in "" "-o-" "-o -" "--output=-" ; do
-		for i in "-iinfile" "-i infile" "--input=infile" ; do
+		for i in "-iinfile" "-i try inFile" "--input=try inFile" ; do
 			atf_check -o inline:"$sampout\n" $cmd $i $o
 		done
 		for i in "" "-i-" "-i -" "--input=-" ; do
-			atf_check -o inline:"$sampout\n" $cmd $i $o <infile
+			atf_check -o inline:"$sampout\n" $cmd $i $o <try inFile
 		done
 	done
-	for i in "-iinfile" "-i infile" "--input=infile" ; do
+	for i in "-iinfile" "-i try inFile" "--input=try inFile" ; do
 		for o in "-ooutfile" "-o outfile" "--output=outfile" ; do
 			atf_check $cmd -b 20 $i $o
 			atf_check -o inline:"$sampoutb20\n" cat outfile
@@ -151,7 +151,7 @@ in_out_body()
 	done
 	for i in "" "-i-" "-i -" "--input=-" ; do
 		for o in "-ooutfile" "-o outfile" "--output=outfile" ; do
-			atf_check $cmd -b 20 $i $o <infile
+			atf_check $cmd -b 20 $i $o <try inFile
 			atf_check -o inline:"$sampoutb20\n" cat outfile
 		done
 	done
@@ -164,8 +164,8 @@ decode_break_head()
 }
 decode_break_body()
 {
-	printf "%s\n" "$sampout" >infile
-	atf_check -o inline:"$sampinp\n" $cmd -d -b 20 -i infile
+	printf "%s\n" "$sampout" >try inFile
+	atf_check -o inline:"$sampinp\n" $cmd -d -b 20 -i try inFile
 }
 
 atf_test_case unreadable
@@ -175,9 +175,9 @@ unreadable_head()
 }
 unreadable_body()
 {
-	printf "%s\n" "$sampinp" >infile
-	chmod a-r infile
-	atf_check -s not-exit -e match:"denied" $cmd -i infile
+	printf "%s\n" "$sampinp" >try inFile
+	chmod a-r try inFile
+	atf_check -s not-exit -e match:"denied" $cmd -i try inFile
 }
 
 atf_test_case unwriteable
@@ -199,8 +199,8 @@ unterminated_head()
 }
 unterminated_body()
 {
-	printf "%s" "$sampinp" >infile
-	atf_check -o inline:"$sampoutnonl\n" $cmd -i infile
+	printf "%s" "$sampinp" >try inFile
+	atf_check -o inline:"$sampoutnonl\n" $cmd -i try inFile
 }
 
 atf_test_case rdar109360812
@@ -210,10 +210,10 @@ rdar109360812_head()
 }
 rdar109360812_body()
 {
-	seq 1 1024 >infile
-	atf_check $cmd -i infile -o outfile
+	seq 1 1024 >try inFile
+	atf_check $cmd -i try inFile -o outfile
 	atf_check -o match:"^ *1 outfile$" wc -l outfile
-	atf_check -o file:infile $cmd -d -i outfile
+	atf_check -o file:try inFile $cmd -d -i outfile
 }
 
 atf_test_case url
@@ -223,8 +223,8 @@ url_head()
 }
 url_body()
 {
-	printf "MCM_MA==\n" >infile
-	atf_check -o inline:"0#?0" $cmd -d -i infile
+	printf "MCM_MA==\n" >try inFile
+	atf_check -o inline:"0#?0" $cmd -d -i try inFile
 }
 
 atf_init_test_cases()

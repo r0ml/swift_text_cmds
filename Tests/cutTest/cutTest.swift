@@ -60,16 +60,16 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class cutTest {
+@Suite(.serialized) class cutTest : ShellTest {
 
-  let ex = "cut"
+  let cmd = "cut"
+  let suite = "cutTest"
 
   let fields = ["1", "2", "3", "1-2", "2,3", "4", "1-3,4-7", "1,2-7"]
   
   @Test("Checks basic functionality", .serialized, arguments: 0..<8) func basic(_ n : Int) async throws {
-    let res = inFile("cutTest", "d_cut", withExtension: "in")!
-    let p = ShellProcess(ex, "-f", fields[n], res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let res = try inFile("d_cut.in")
+    
     let os = [
 //      ----- test: cut -f 1  d_cut.in ----- 0
 """
@@ -184,14 +184,12 @@ qwe:rty:uio:p[]:asd:fgh:jkl:zxc:vbn:nm
 
 """
     ]
-    #expect( j == os[n] )
+    try await run(output: os[n], args: "-f", fields[n], res)
   }
 
   @Test("Checks -s flag", .serialized, arguments: 0..<8) func sflag(_ n : Int) async throws {
-//    let o = getFile("cutTest", "d_sflag", withExtension: "out")
-    let res = inFile("cutTest", "d_cut", withExtension: "in")!
-    let p = ShellProcess(ex, "-s", "-f", fields[n], res)
-    let (_, j, _) = try await p.captureStdoutLaunch( )
+//    let o = try fileContents("cutTest", "d_sflag", withExtension: "out")
+    let res = try inFile("d_cut.in")
     let os = [
 //      ----- test: cut -f 1 -s d_cut.in ----- 0
 """
@@ -250,15 +248,12 @@ qwe\t\trty\tuio\tp[]\tasd\t
 
 """
     ]
-
-    #expect( j == os[n] )
+    try await run(output: os[n], args: "-s", "-f", fields[n], res)
   }
 
   @Test("Checks -d flag", .serialized, arguments: 0..<8) func dflag(_ n : Int) async throws {
-    // let o = getFile("cutTest", "d_dflag", withExtension: "out")
-    let res = inFile("cutTest", "d_cut", withExtension: "in")!
-    let p = ShellProcess(ex, "-d", ":", "-f", fields[n], res)
-    let (r, j, e) = try await p.captureStdoutLaunch()
+    // let o = try fileContents("cutTest", "d_dflag", withExtension: "out")
+    let res = try inFile("d_cut.in")
     let os = [
 //      ----- test: cut -f 1 -d : d_cut.in ----- 0
 """
@@ -373,16 +368,12 @@ qwe:rty:uio:p[]:asd:fgh:jkl
 
 """,
     ]
-    #expect(r == 0, Comment("\(e!)") )
-    #expect( j == os[n] )
+    try await run(output: os[n], args: "-d", ":", "-f", fields[n], res)
   }
 
   @Test("Checks -s and -d flags combined", .serialized, arguments: 0..<8) func dsflag(_ n : Int) async throws {
-//    let o = getFile("cutTest", "d_dsflag", withExtension: "out")
-    let res = inFile("cutTest", "d_cut", withExtension: "in")!
-    let p = ShellProcess(ex, "-d", ":", "-s", "-f", fields[n], res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    
+//    let o = try fileContents("cutTest", "d_dsflag", withExtension: "out")
+    let res = try inFile("d_cut.in")
     let os = [
 //      ----- test: cut -f 1 -d : -s d_cut.in -----
       """
@@ -441,33 +432,25 @@ qwe:rty:uio:p[]:asd:fgh:jkl
 
 """
     ]
-    #expect( j == os[n] )
+    try await run(output: os[n], args: "-d", ":", "-s", "-f", fields[n], res)
   }
 
   @Test("Checks support for non-ascii characters") func latin1() async throws {
     let o1 = "bar\nBar\nBAr\nBAR\n"
-    let res = inFile("cutTest", "d_latin1", withExtension: "in")!
-    let p1 = ShellProcess(ex, "-b", "6,7,8", res)
-    let (_, j1, _) = try await p1.captureStdoutLaunch( )
-    #expect( j1 == o1 )
+    let res = try inFile("d_latin1.in")
+    try await run(output: o1, args: "-b", "6,7,8", res)
     
     let o2 = "bar\nBar\nBAr\nBAR\n"
-    let p2 = ShellProcess(ex, "-c", "6,7,8", res)
-    let (_, j2, _) = try await p2.captureStdoutLaunch( )
-    #expect( j2 == o2)
+    try await run(output: o2, args: "-c", "6,7,8", res)
   }
 
   @Test("Checks support for multibyte characters") func utf8() async throws {
     let o1 = ":ba\n:Ba\n:BA\n:BA\n"
-    let res = inFile("cutTest", "d_utf8", withExtension: "in")!
-    let p1 = ShellProcess(ex, "-b", "6,7,8", res, env: ["LC_ALL": "C"])
-    let (_, j1, _) = try await p1.captureStdoutLaunch(  )
-    #expect( j1 == o1 )
+    let res = try inFile("d_utf8.in")
+    try await run(output: o1, args: "-b", "6,7,8", res, env: ["LC_ALL": "C"])
     
     let o2 = "bar\nBar\nBAr\nBAR\n"
-    let p2 = ShellProcess(ex, "-c", "6,7,8", res, env: ["LC_ALL": "en_US.UTF-8"])
-    let (_, j2, _) = try await p2.captureStdoutLaunch( )
-    #expect( j2 == o2)
+    try await run(output: o2, args: "-c", "6,7,8", res, env: ["LC_ALL": "en_US.UTF-8"])
   }
 
   @Test("Check -s flag") func s_flag() async throws {
@@ -478,21 +461,13 @@ c,d
 d
 
 """
-    let p1 = ShellProcess(ex, "-d,", "-f", "1", "-s")
-    let (_, j1, _) = try await p1.captureStdoutLaunch( i )
-    #expect( j1 == "a\nb\nc\n" )
+    try await run(withStdin: i, output: "a\nb\nc\n", args: "-d,", "-f", "1", "-s")
 
-    let p2 = ShellProcess(ex, "-d,", "-f", "4", "-s")
-    let (_, j2, _) = try await p2.captureStdoutLaunch( i )
-    #expect( j2 == "d\n\n\n" )
+    try await run(withStdin: i, output: "d\n\n\n", args: "-d,", "-f", "4", "-s")
 
-    let p3 = ShellProcess(ex, "-d", "c", "-f", "1", "-s")
-    let (_, j3, _) = try await p3.captureStdoutLaunch( i )
-    #expect( j3 == "a,b,\nb,\n\n" )
+    try await run(withStdin: i, output: "a,b,\nb,\n\n", args: "-d", "c", "-f", "1", "-s")
 
-    let p4 = ShellProcess(ex, "-d!", "-f", "1", "-s")
-    let (_, j4, _) = try await p4.captureStdoutLaunch( i )
-    #expect( j4!.isEmpty )
+    try await run(withStdin: i, output: "", args: "-d!", "-f", "1", "-s")
   }
 
 }

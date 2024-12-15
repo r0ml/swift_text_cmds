@@ -35,10 +35,10 @@ import Foundation
   let ex = "tail"
   
   @Test("Reverse an empty file") func empty_r() async throws {
-    let i = try tmpfile("infile", Data() )
+    let i = try tmpfile("try inFile", Data() )
     defer { rm(i) }
     let p = ShellProcess(ex, "-r", i.relativePath)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     #expect( j!.isEmpty )
   }
   
@@ -49,10 +49,10 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("infile", d)
+    let i = try tmpfile("try inFile", d)
     defer { rm(i) }
     let p = ShellProcess(ex, "-r", i.relativePath)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     #expect( j == d.split(separator: "\n").reversed().joined(separator: "\n").appending("\n") )
     
   }
@@ -64,7 +64,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("infile", d)
+    let i = try tmpfile("try inFile", d)
     let o = """
 This is the third line
 This is the second line
@@ -72,7 +72,7 @@ This is the second line
 """
     defer { rm(i) }
     let p = ShellProcess(ex, "-rn2", i.relativePath)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     #expect( j == o )
   }
   
@@ -84,7 +84,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("infile", d)
+    let i = try tmpfile("try inFile", d)
     let o = """
 This is the third line
 This is the second line
@@ -94,11 +94,11 @@ This is the first line
 """
     defer { rm(i) }
     let p = ShellProcess(ex, "-r", i.relativePath)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     #expect( j == o )
     
     let p2 = ShellProcess(ex, "-r")
-    let (_, j2, _) = try await p2.captureStdoutLaunch(d)
+    let (_, j2, _) = try await p2.run(d)
     #expect( j2 == o )
   }
   
@@ -109,7 +109,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("infile", d)
+    let i = try tmpfile("try inFile", d)
     let o = """
 This is the third line
 line
@@ -118,11 +118,11 @@ line
     defer { rm(i) }
 
     let p = ShellProcess(ex, "-rc28", i.relativePath)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     #expect( j == o )
     
     let p2 = ShellProcess(ex, "-rc28")
-    let (_, j2, _) = try await p2.captureStdoutLaunch(d)
+    let (_, j2, _) = try await p2.run(d)
     #expect( j2 == o )
     
   }
@@ -133,7 +133,7 @@ line
     k.formatWidth = 511
     let p = 0..<1030
     let d = (p.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
-    let i = try tmpfile("infile", d)
+    let i = try tmpfile("try inFile", d)
 
     let q = stride(from: 1029, through: 0, by: -1)
     let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
@@ -145,7 +145,7 @@ line
     let of = try tmpfile("outfile", Data())
     let ofh = try FileHandle(forWritingTo: of)
     await p2.setOutput(ofh)
-    let (_, _, _) = try await p2.captureStdoutLaunch()
+    let (_, _, _) = try await p2.run()
     let j = try String(contentsOf: of, encoding: .utf8)
     let bb = j == o
     #expect( j.count == o.count)
@@ -155,7 +155,7 @@ line
     let ofh2 = try FileHandle(forWritingTo: of2)
     let p3 = ShellProcess(ex, "-r")
     await p3.setOutput(ofh2)
-    let (_, _, _) = try await p3.captureStdoutLaunch(d)
+    let (_, _, _) = try await p3.run(d)
     let j2 = try String(contentsOf: of2, encoding: .utf8)
     let bb2 = j2 == o
     #expect( bb2 )
@@ -179,7 +179,7 @@ line
     let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
     
     let p4 = ShellProcess(ex, "-r")
-    let (r, j, _) = try await p4.captureStdoutLaunch(d)
+    let (r, j, _) = try await p4.run(d)
     #expect(r == 0)
     #expect( j == o )
   }
@@ -199,7 +199,7 @@ line
     let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
-    let (r, _, _) = try await p.captureStdoutLaunch( lines.joined() )
+    let (r, _, _) = try await p.run( lines.joined() )
     #expect(r == 0)
     let j = try String(contentsOf: of, encoding: .utf8)
     #expect( j == lines.reversed().joined() )
@@ -211,12 +211,12 @@ line
     k.formatWidth = 63
     let i = ((0 ..< 9000).map { k.string(from: NSNumber(value: $0))!+"\n" }).joined()
     /*
-     let inf = FileManager.default.temporaryDirectory.appendingPathComponent("infile")
+     let inf = FileManager.default.temporaryDirectory.appendingPathComponent("try inFile")
      try i.write(to: inf, atomically: true, encoding: .utf8)
      */
     // FIXME: doesnt work with pipe output -- would work with file
     let p = ShellProcess(ex, "-rc135782")
-    let (r, j, _) = try await p.captureStdoutLaunch(i)
+    let (r, j, _) = try await p.run(i)
     #expect(r == 0)
     let o = ((stride(from: 8999, to: 0, by: -1).prefix(2121)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined() + "0000000000000000000000000000000006878\n"
     print(j!.count, o.count)
@@ -242,7 +242,7 @@ line
     ]
     
     let p = ShellProcess(ex, "-rc145782")
-    let (r, j, _) = try await p.captureStdoutLaunch(lines.joined() )
+    let (r, j, _) = try await p.run(lines.joined() )
     #expect(r == 0)
     
 //    let ro = ((35778..<(35778+222)).map { k.string(from: NSNumber(value: $0) )!}).joined(separator: " ")+"\n"
@@ -265,7 +265,7 @@ line
     let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
-    let (r, _, _) = try await p.captureStdoutLaunch(i)
+    let (r, _, _) = try await p.run(i)
     let j = try String(contentsOf: of, encoding: .utf8)
     
     #expect(r == 0)
@@ -285,7 +285,7 @@ line
   }
   
   @Test("Basic regression test for -f") func follow() async throws {
-    let inf = try tmpfile("infile",  "1\n2\n3\n")
+    let inf = try tmpfile("try inFile",  "1\n2\n3\n")
     let inh = try FileHandle(forWritingTo: inf)
 
     let p = ShellProcess(ex, "-F", inf.relativePath)
@@ -309,11 +309,11 @@ line
   @Test("Verify that -f works with files piped to standard input") func follow_stdin() async throws {
     let p = ShellProcess(ex, "-f")
 
-    let inf = try tmpfile("infile", "1\n2\n3\n")
+    let inf = try tmpfile("try inFile", "1\n2\n3\n")
 
     Task.detached {
       let fh = try FileHandle(forReadingFrom: inf)
-      try await p.captureStdoutLaunch(fh)
+      try await p.run(fh)
       
       
 //        AsyncDataActor([ "1\n2\n3\n".data(using: .utf8)!, "4\n5\n".data(using: .utf8)!]).stream)
@@ -341,13 +341,13 @@ line
 
   @Test("Verify that -F works when a file is created") func follow_create() async throws {
 
-    let inf = try tmpfile("infile", Data())
+    let inf = try tmpfile("try inFile", Data())
     rm(inf)
     
     let p = ShellProcess(ex, "-F", inf.relativePath)
 
     Task.detached {
-       try await p.captureStdoutLaunch()
+       try await p.run()
     }
 
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
@@ -364,11 +364,11 @@ line
 
   @Test("Verify that -F works when a file is replaced") func follow_rename() async throws {
 
-    let inf = try tmpfile("infile", "1\n2\n3\n")
+    let inf = try tmpfile("try inFile", "1\n2\n3\n")
     let p = ShellProcess(ex, "-F", inf.relativePath)
 
     Task.detached {
-       try await p.captureStdoutLaunch()
+       try await p.run()
     }
 
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
@@ -400,7 +400,7 @@ line
     let inf2 = try tmpfile("file2", f2)
     
     let p = ShellProcess(ex, "-q", inf.relativePath, inf2.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect(j == String(f1.dropFirst(2)+f2.dropFirst(2)) )
     
@@ -414,7 +414,7 @@ line
     let inf = try tmpfile("file1", f1)
 
     let p = ShellProcess(ex, "-v", inf.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect(j == "==> \(inf.relativePath) <==\n"+f1.dropFirst(2) )
     
@@ -429,7 +429,7 @@ line
     let inf = try tmpfile("file1", f1)
 
     let p = ShellProcess(ex, "-c", "1k", inf.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect(j == Array(repeating: "aaaaaaa\n", count: 128).joined() )
     
@@ -437,7 +437,7 @@ line
     try f2.write(to: inf, atomically: true, encoding: .utf8)
     
     let p2 = ShellProcess(ex, "-n", "1k", inf.relativePath)
-    let (r2, j2, _) = try await p2.captureStdoutLaunch()
+    let (r2, j2, _) = try await p2.run()
     #expect(r2 == 0)
     #expect(j2 == ((2...1025).map { String($0)+"\n" }).joined() )
     
@@ -447,25 +447,25 @@ line
   @Test("File does not end in newline") func no_lf_at_eof() async throws {
     
     let f1 = "a\nb\nc"
-    let inf = try tmpfile("infile", f1)
+    let inf = try tmpfile("try inFile", f1)
 
     let p1 = ShellProcess(ex, "-1", inf.relativePath)
-    let (r1, j1, _) = try await p1.captureStdoutLaunch()
+    let (r1, j1, _) = try await p1.run()
     #expect(r1 == 0)
     #expect(j1 == "c")
     
     let p2 = ShellProcess(ex, "-2", inf.relativePath)
-    let (r2, j2, _) = try await p2.captureStdoutLaunch()
+    let (r2, j2, _) = try await p2.run()
     #expect(r2 == 0)
     #expect(j2 == "b\nc")
     
     let p3 = ShellProcess(ex, "-3", inf.relativePath)
-    let (r3, j3, _) = try await p3.captureStdoutLaunch()
+    let (r3, j3, _) = try await p3.run()
     #expect(r3 == 0)
     #expect(j3 == "a\nb\nc")
     
     let p4 = ShellProcess(ex, "-4", inf.relativePath)
-    let (r4, j4, _) = try await p4.captureStdoutLaunch()
+    let (r4, j4, _) = try await p4.run()
     #expect(r4 == 0)
     #expect(j4 == "a\nb\nc")
     
@@ -481,7 +481,7 @@ line
     let inf = try tmpfile("blkbof.in", f1)
 
     var buf : stat = stat()
-    let s = stat(inf.relativePath, &buf)
+    let s = stat(inf.path, &buf)
     
     let blksiz = buf.st_blksize
     let cursize = buf.st_size
@@ -494,7 +494,7 @@ line
     infh.write( f2.data(using: .utf8)!)
     
     let p = ShellProcess(ex, "-n", "3", inf.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect(j == f1 + f2)
     
@@ -521,7 +521,7 @@ line
     infh.write( f2.data(using: .utf8)!)
     
     let p = ShellProcess(ex, "-1", inf.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect( (j!.count { $0 == "\n"}) == 1)
     

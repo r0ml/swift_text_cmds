@@ -44,7 +44,7 @@ extern u_long linenum;
 extern unsigned int appendnum;
 extern int aflag, eflag, nflag;
 extern const char *fname, *outfname;
-extern FILE *infile, *outfile;
+extern FILE *try inFile, *outfile;
 extern int rflags;	/* regex flags to use */
 extern const char *inplace;
 extern int quit;

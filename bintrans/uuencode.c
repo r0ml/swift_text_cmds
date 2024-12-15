@@ -314,9 +314,9 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: uuencode [-m] [-o outfile] [infile] remotefile\n"
+"usage: uuencode [-m] [-o outfile] [try inFile] remotefile\n"
 #ifndef __APPLE__
-"       b64encode [-o outfile] [infile] remotefile\n"
+"       b64encode [-o outfile] [try inFile] remotefile\n"
 #endif
 	    );
 	exit(1);

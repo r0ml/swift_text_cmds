@@ -20,20 +20,17 @@
 
 @_exported import Foundation
 import Synchronization
+import Testing
 
 public actor ShellProcess {
-  //  var executable: String
-  //  var args: [String]
-  //  var env : [String:String]
   var process : Process = Process()
   var output : Pipe = Pipe()
   var stderrx : Pipe = Pipe()
-
+  
   var writeok = true
-//  var odat = Data()
   var edat : String? = nil
   
-  let ooo = Mutex(Data())
+  let odat = Mutex(Data())
   
   public func interrupt() {
     defer {
@@ -42,17 +39,16 @@ public actor ShellProcess {
     process.interrupt()
   }
   
-  public init(_ executable: String, _ args : String..., env: [String: String] = [:]) {
-    self.init(executable, args, env: env)
+  public init(_ executable: String, _ args : Arguable..., env: [String: String] = [:], cd: URL? = nil) {
+    self.init(executable, args, env: env, cd: cd)
   }
   
-  public init(_ ex: String, _ args : [String], env: [String:String] = [:]) {
-    //    self.executable = executable
-    //    self.args = args
+  public init(_ ex: String, _ args : [Arguable], env: [String:String] = [:], cd: URL? = nil) {
     var envx = ProcessInfo.processInfo.environment
     env.forEach { envx[$0] = $1 }
-
+    
     var execu : URL? = nil
+    // FIXME: test for TEST_ORIGINAL
     if true { // let _ = envx["TEST_ORIGINAL"] {
       let path = envx["PATH"]!.split(separator: ":", omittingEmptySubsequences: true)
       let f = FileManager.default
@@ -65,31 +61,42 @@ public actor ShellProcess {
     } else {
       let d = Bundle(for: Self.self).bundleURL
       let x1 = d.deletingLastPathComponent()
-      execu = x1.appending(path: ex, directoryHint: .notDirectory)
+      execu = URL(string: ex, relativeTo: x1)
     }
     
-    process.arguments = args
+
+    let cur = cd ?? FileManager.default.temporaryDirectory
+
+    let aargs = args.map {
+      switch $0 {
+        case is String: return $0 as! String
+        case is URL: let u = $0 as! URL
+          if u.baseURL == cur.absoluteURL {
+            return u.relativePath
+          } else {
+            return u.path
+          }
+        default: fatalError( "not possible")
+      }
+    }
+    
+    process.arguments = aargs
     process.environment = envx
-    process.currentDirectoryURL = FileManager.default.temporaryDirectory
+    process.currentDirectoryURL = cur
     process.executableURL = execu!
     process.standardOutput = output
   }
   
+/*  public func setDirectory(_ dir : URL) {
+    process.currentDirectoryURL = dir
+  }
+  */
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
   @discardableResult
-  public func   captureStdoutLaunch(_ input : String) async throws -> (Int32, String?, String?) {
-    return try await captureStdoutLaunch(input.data(using: .utf8)! )
+  public func   run(_ input : String?) async throws -> (Int32, String?, String?) {
+    return try await run( input?.data(using: .utf8)! )
   }
-  
-  /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
-  @discardableResult
-  public func captureStdoutLaunch(_ input : [String]) async throws -> (Int32, String?, String?) {
-    return try await captureStdoutLaunch(input.map { $0.data(using: .utf8)! } )
-  }
-  
-  
-
   
   // ============================================================
   // passing in bytes instead of strings ....
@@ -97,69 +104,58 @@ public actor ShellProcess {
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
   @discardableResult
-  public func captureStdoutLaunch( _ input : Data) async throws -> (Int32, String?, String?) {
-    let asi = AsyncDataActor([input]).stream
-    return try await captureStdoutLaunch(asi)
+  public func run( _ input : Data?) async throws -> (Int32, String?, String?) {
+    let asi = if let input { AsyncDataActor([input]).stream }
+    else { nil as AsyncStream<Data>?}
+    return try await run(asi)
   }
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
   @discardableResult
-  public func captureStdoutAsData( _ input : Data) async throws -> (Int32, Data, String) {
+  public func runBinary( _ input : Data) async throws -> (Int32, Data, String) {
     let asi = AsyncDataActor([input]).stream
-    return try await captureStdoutAsData(asi)
+    return try await runBinary(asi)
   }
-  
-  
-
-  // ==========================================================
-  
-  /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
-  @discardableResult
-  public func captureStdoutLaunch(_ input : [Data]) async throws -> (Int32, String?, String?) {
-    let asi = AsyncDataActor(input).stream
-    return try await captureStdoutLaunch(asi)
-  }
-  
   
   // ==========================================================
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
+  ///  The easiest way to generate the required AsyncStream is with:
+  ///      AsyncDataActor(input).stream // where input : [Data]
   @discardableResult
-  public func captureStdoutLaunch(_ input : AsyncStream<Data>? = nil) async throws -> (Int32, String?, String?) {
-    
+  public func run(_ input : AsyncStream<Data>? = nil) async throws -> (Int32, String?, String?) {
     try theLaunch(input)
     return await theCapture()
   }
-
+  
   @discardableResult
-  public func captureStdoutAsData(_ input : AsyncStream<Data>? = nil) async throws -> (Int32, Data, String) {
+  public func runBinary(_ input : AsyncStream<Data>? = nil) async throws -> (Int32, Data, String) {
     try theLaunch(input)
     return await theCaptureAsData()
   }
-
+  
   
   @discardableResult
-  public func captureStdoutLaunch(_ input : FileHandle) async throws -> (Int32, String?, String?) {
+  public func run(_ input : FileHandle) async throws -> (Int32, String?, String?) {
     
     try theLaunch(input)
     return await theCapture()
   }
-    
+
+  /*
   public func setOutput(_ o : FileHandle) {
     process.standardOutput = o
     try? output.fileHandleForWriting.close()
   }
-
+  */
+  
   public func theLaunch(_ input : FileHandle) throws {
-
+    
     process.standardInput = input
     process.standardError = stderrx
     
     output.fileHandleForReading.readabilityHandler = { x in
-//        let xx = x.availableData
-//        if xx.isEmpty { return }
-      self.ooo.withLock { $0.append(x.availableData) }
-//        self.append(xx)
+      self.odat.withLock { $0.append(x.availableData) }
     }
     
     process.terminationHandler = { x in
@@ -167,7 +163,7 @@ public actor ShellProcess {
         await self.doTermination()
       }
     }
-
+    
     do {
       try process.run()
     } catch(let e) {
@@ -180,27 +176,14 @@ public actor ShellProcess {
   
   
   public func theLaunch(_ input : AsyncStream<Data>? = nil) throws {
-
+    
     let inputs : Pipe? = if input != nil { Pipe() } else { nil }
-
+    
     process.standardInput = inputs
-
-
-/*
-    let p = self.process
-    Task.detached {
-      try await Task.sleep(nanoseconds: UInt64( Double(NSEC_PER_SEC) * 2 ) )
-      //    print("gonna interrupt")
-//      p.interrupt()
-    }
- */
     process.standardError = stderrx
     
     output.fileHandleForReading.readabilityHandler = { x in
-//      let xx = x.availableData
-//      if xx.isEmpty { return }
-//      Task.detached { await self.append(xx) }
-      self.ooo.withLock { $0.append(x.availableData) }
+      self.odat.withLock { $0.append(x.availableData) }
     }
     
     process.terminationHandler = { x in
@@ -208,18 +191,18 @@ public actor ShellProcess {
         await self.doTermination()
       }
     }
-
+    
     if let inputs, let input {
       Task.detached {
         for await d in input {
-            if await self.writeok {
-              do {
-                try inputs.fileHandleForWriting.write(contentsOf: d )
-              } catch(let e) {
-                print("writing \(e.localizedDescription)")
-                break
-              }
+          if await self.writeok {
+            do {
+              try inputs.fileHandleForWriting.write(contentsOf: d )
+            } catch(let e) {
+              print("writing \(e.localizedDescription)")
+              break
             }
+          }
         }
         try? inputs.fileHandleForWriting.close()
         try? inputs.fileHandleForReading.close()
@@ -254,21 +237,11 @@ public actor ShellProcess {
   }
   
   public func midCapture() -> Data {
- 
-//    let k = output.fileHandleForReading.availableData
-//    if k.count > 0 {
-//      append(k)
-//    }
-
-    return ooo.withLock { $0 }
-//    return odat
+    return odat.withLock { let r = $0; $0.removeAll(); return r }
   }
-
-//  let ooo = Mutex(Data())
   
   public func append(_ x : Data) {
-    // odat.append(x)
-    ooo.withLock { $0.append(x) }
+    odat.withLock { $0.append(x) }
   }
   
   public func setError(_ x : String?) {
@@ -276,21 +249,16 @@ public actor ShellProcess {
   }
   
   public func theCapture() async -> (Int32, String?, String?) {
-    //    process.waitUntilExit()
     await process.waitUntilExitAsync()
-//    let k1 = String(data: odat, encoding: .utf8)
-    let k1 = String(data: ooo.withLock { $0 }, encoding: .utf8)
+    let k1 = String(data: odat.withLock { $0 }, encoding: .utf8)
     return (process.terminationStatus, k1, edat)
   }
   
   public func theCaptureAsData() async -> (Int32, Data, String ) {
-    //    process.waitUntilExit()
     await process.waitUntilExitAsync()
-    let k1 = ooo.withLock { $0 }
+    let k1 = odat.withLock { $0 }
     return (process.terminationStatus, k1, edat ?? "")
   }
-
-  
   
   func cleanup() {
     try? output.fileHandleForWriting.close()
@@ -298,58 +266,152 @@ public actor ShellProcess {
     try? stderrx.fileHandleForReading.close()
     try? stderrx.fileHandleForWriting.close()
   }
+  
+  static public func run(_ ex : String, withStdin: Stdinable? = nil, status: Int = 0,  output: String? = nil, error: String? = nil, args: Arguable...) async throws {
+    try await run(ex, withStdin: withStdin, output: output, args: args)
+  }
+  
+  static public func run(_ ex : String, withStdin: Stdinable? = nil, status: Int = 0, output: String? = nil, error: Matchable? = nil, args: [Arguable], env: [String:String] = [:], cd: URL? = nil) async throws {
+    let p = ShellProcess(ex, args, env: env, cd: cd)
+    let (r, j, e) = switch withStdin {
+    case is String:
+      try await p.run(withStdin as? String)
+    case is Data:
+      try await p.run(withStdin as? Data)
+    case is FileHandle:
+      try await p.run(withStdin as! FileHandle)
+    case is AsyncStream<Data>:
+      try await p.run(withStdin as? AsyncStream<Data>)
+    case .none:
+      try await p.run()
+    default:
+      fatalError("not possible")
+    }
+    #expect(r == Int32(status), Comment(rawValue: e ?? ""))
+    if let output { #expect(j == output) }
+    if let error {
+      if let e {
+        switch error {
+          case is String:
+            #expect(e == error as? String)
+          case is Regex<String>:
+            let ee = error as! Regex<String>
+            #expect( e.matches(of: ee).count > 0, Comment(rawValue: "\(e) does not match expected error"))
+          case is Regex<Substring>:
+            let ee = error as! Regex<Substring>
+            #expect( e.matches(of: ee).count > 0, Comment(rawValue: "\(e) does not match expected error"))
+          default: fatalError("not possible")
+        }
+      }
+    }
+  }
+  
+  
+  static public func run(_ ex : String, withStdin: Stdinable? = nil, status: Int = 0, output: Data, error: Matchable? = nil, args: [Arguable], env: [String:String] = [:], cd: URL? = nil) async throws {
+    let p = ShellProcess(ex, args, env: env, cd: cd)
+    let (r, j, e) = switch withStdin {
+//    case is String:
+//      try await p.runBinary(withStdin as? String)
+    case is Data:
+      try await p.runBinary(withStdin as! Data)
+//    case is FileHandle:
+//      try await p.runBinary(withStdin as! FileHandle)
+    case is AsyncStream<Data>:
+      try await p.runBinary(withStdin as? AsyncStream<Data>)
+    case .none:
+      try await p.runBinary()
+    default:
+      fatalError("not possible")
+    }
+    #expect(r == Int32(status), Comment(rawValue: e ?? ""))
+    #expect(j == output)
+    if let error {
+        switch error {
+          case is String:
+            #expect(e == error as? String)
+          case is Regex<String>:
+            let ee = error as! Regex<String>
+            #expect( e.matches(of: ee).count > 0, Comment(rawValue: "\(e) does not match expected error"))
+          case is Regex<Substring>:
+            let ee = error as! Regex<Substring>
+            #expect( e.matches(of: ee).count > 0, Comment(rawValue: "\(e) does not match expected error"))
+          default: fatalError("not possible")
+      }
+    }
+  }
+
+  
+  
 }
   
-  
+public protocol Stdinable {}
+extension String : Stdinable {}
+extension Data : Stdinable {}
+extension FileHandle : Stdinable {}
+extension AsyncStream : Stdinable {}
+
+public protocol Arguable : Sendable {}
+extension String : Arguable {}
+extension URL : Arguable {}
+
+public protocol Matchable {}
+extension String : Matchable {}
+extension Regex : Matchable {}
+
   // ==========================================================
   
+public enum StringEncodingError: Error {
+    case only(String.Encoding)
+}
+
+public enum FileError: Error {
+  case notFound(String)
+}
+
 class Clem {}
 
-  /// getFile. Opens a file in the current bundle and return as data
+  /// try fileContents. Opens a file in the current bundle and return as data
   /// - Parameters:
   ///   - name: fileName
-  ///   - withExtension: extension name, i.e. "json"
   /// - Returns: Data of the contents of the file on nil if not found
-  public func getFile(_ suite: String, _ name: String, withExtension: String) -> String? {
-    //  print("gf")
-    //  print(Bundle(for: Clem.self))
-    //  guard let url = Bundle(for: Clem.self).url(forResource: name, withExtension: withExtension) else { return nil }
-    //  print(url)
-    
-    //  print(Bundle.allBundles)
-    
-    
-    //  let url = Bundle(for: Clem.self).bundleURL
-    //  print(Bundle(for: Clem.self).resourceURL)
-    //  print( Bundle(identifier: "software.tinker.applyTest")?.resourceURL )
-    
-    let url = geturl(suite, name, withExtension: withExtension)
-    guard let data = try? Data(contentsOf: url) else { return nil }
-    //  print("gf3")
-    return String(data: data, encoding: .utf8)
+  public func fileContents(_ suite: String, _ name: String) throws -> String {
+    let url = try geturl(suite, name)
+    let data = try Data(contentsOf: url)
+    guard let res = String(data: data, encoding: .utf8) else {
+      throw StringEncodingError.only(.utf8)
+    }
+    return res
   }
-  
+
+public func fileData(_ suite: String, _ name: String) throws -> Data {
+  let url = try geturl(suite, name)
+  let data = try Data(contentsOf: url)
+  return data
+}
+
   // returns the full name of a test resource file
-  public func inFile(_ suite : String, _ name : String, withExtension: String) -> String? {
-    let url = geturl(suite, name, withExtension: withExtension)
-    return url.path(percentEncoded: false)
+  public func inFile(_ suite : String, _ name : String) throws -> URL {
+    return try geturl(suite, name)
   }
   
-  func geturl(_ suite : String, _ name : String, withExtension : String) -> URL {
+  public func geturl(_ suite : String, _ name : String? = nil) throws -> URL {
     var url : URL?
     if let _ = ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] {
-      //    print("xctest identifier")
-      url = Bundle(for: Clem.self).url(forResource: name, withExtension: withExtension)
+      let ru = Bundle(for: Clem.self).resourceURL
+      if let name {
+        url = URL(fileURLWithPath: name, relativeTo: ru)
+      } else {
+        url = ru
+      }
     } else {
-      
       let b = Bundle(for: Clem.self)
-      //    print(b)
-      //    let bi = b.bundleIdentifier!.split(separator: ".").last!
-      //    print(bi)
       url = b.bundleURL.deletingLastPathComponent().appending(path: "text_cmds_\(suite).bundle").appending(path: "Resources")
-        .appending(path: name).appendingPathExtension(withExtension)
+      if let name {
+        url = url?.appending(path: name)
+      }
     }
-    return url!
+    if let url { return url }
+    throw FileError.notFound(name ?? "")
     
   }
   
@@ -388,7 +450,9 @@ public final actor AsyncDataActor {
 }
 
 public func tmpfile(_ s : String, _ data : Data? = nil) throws -> URL {
-  let j = FileManager.default.temporaryDirectory.appending(path: s, directoryHint: .notDirectory)
+  let j = URL(string: s, relativeTo: FileManager.default.temporaryDirectory)!
+
+  try FileManager.default.createDirectory(at: j.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
   if let data { try data.write(to: j) }
   return j
 }
@@ -431,3 +495,41 @@ func numberStream() -> AsyncStream<Int> {
     }
 }
 
+public protocol ShellTest {
+  var cmd : String { get }
+  var suite : String { get }
+}
+
+extension ShellTest {
+  
+  public func run(withStdin: Stdinable? = nil, status: Int = 0, output: String? = nil, error: Matchable? = nil, args: Arguable..., env: [String:String] = [:], cd: URL? = nil) async throws {
+    try await ShellProcess.run(cmd, withStdin: withStdin, status: status, output: output, error: error, args: args, env: env, cd: cd)
+  }
+
+  public func run(withStdin: Stdinable? = nil, status: Int = 0, output: String? = nil, error: Matchable? = nil, args: [Arguable], env: [String:String] = [:], cd: URL? = nil) async throws {
+    try await ShellProcess.run(cmd, withStdin: withStdin, status: status, output: output, error: error, args: args, env: env, cd: cd)
+  }
+
+
+  public func run(withStdin: Stdinable? = nil, status: Int = 0, output: Data, error: Matchable? = nil, args: Arguable..., env: [String:String] = [:], cd: URL? = nil) async throws {
+    try await ShellProcess.run(cmd, withStdin: withStdin, status: status, output: output, error: error, args: args, env: env, cd: cd)
+  }
+
+  public func run(withStdin: Stdinable? = nil, status: Int = 0, output: Data, error: Matchable? = nil, args: [Arguable], env: [String:String] = [:], cd: URL? = nil) async throws {
+    try await ShellProcess.run(cmd, withStdin: withStdin, status: status, output: output, error: error, args: args, env: env, cd: cd)
+  }
+
+
+  
+  
+  
+  
+  public func fileContents(_ name : String) throws -> String {
+    return try TestSupport.fileContents(suite, name)
+  }
+  
+  public func inFile(_ name : String) throws -> URL {
+    return try TestSupport.inFile(suite, name)
+  }
+
+}

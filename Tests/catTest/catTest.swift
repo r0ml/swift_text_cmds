@@ -34,50 +34,46 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class catTest {
+@Suite(.serialized) class catTest : ShellTest {
   
-  let ex = "cat"
+  let cmd = "cat"
+  let suite = "catTest"
 
   @Test func align() async throws {
-    let x = getFile("catTest", "d_align", withExtension: "out")
-    let res = inFile("catTest", "d_align", withExtension: "in")!
-    let p = ShellProcess(ex, "-be", res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    #expect( j == x )
+    let x = try fileContents("d_align.out")
+    let res = try inFile("d_align.in")
+    try await run(output: x, args: "-be", res)
   }
   
   @Test func b_output() async throws {
-    let x = getFile("catTest", "d_b_output", withExtension: "out")
-    let res = inFile("catTest", "d_b_output", withExtension: "in")!
-    let p = ShellProcess(ex, "-b", res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    #expect( j == x )
-  }
-
-  @Test func s_output() async throws {
-    let x = getFile("catTest", "d_s_output", withExtension: "out")
-    let res = inFile("catTest", "d_s_output", withExtension: "in")!
-    let p = ShellProcess(ex, "-s", res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    #expect( j == x )
+    let x = try fileContents("d_b_output.out")
+    let inp = try inFile("d_b_output.in")
+    try await run(output: x, args: "-b", inp)
   }
 
   @Test func se_output() async throws {
-    let x = getFile("catTest", "d_se_output", withExtension: "out")
-    let res = inFile("catTest", "d_se_output", withExtension: "in")!
-    let p = ShellProcess(ex, "-se", res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    #expect( j == x )
+    let x = try fileContents("d_se_output.out")
+    let inp = try inFile("d_se_output.in")
+    try await run(output: x, args: "-se", inp)
+  }
+
+  @Test func s_output() async throws {
+    let x = try fileContents("d_s_output.out")
+    let inp = try inFile("d_s_output.in")
+    try await run(output: x, args: "-s", inp)
+  }
+
+  @Test func e_output() async throws {
+    let x = try fileContents("d_e_output.out")
+    let inp = try inFile("d_e_output.in")
+    try await run(output: x, args: "-e", inp)
   }
 
   @Test func vt_output() async throws {
-    let x = getFile("catTest", "d_vt_output", withExtension: "out")
-    let res = inFile("catTest", "d_vt_output", withExtension: "in")!
-    let p = ShellProcess(ex, "-vt", res)
-    let (_, j, _) = try await p.captureStdoutLaunch()
-    #expect( j == x )
+    let x = try fileContents("d_vt_output.out")
+    let inp = try inFile("d_vt_output.in")
+    try await run(output: x, args: "-vt", inp)
   }
-
   
 }
 

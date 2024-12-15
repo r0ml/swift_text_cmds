@@ -27,13 +27,13 @@ import Foundation
   
     @Test func basic1() async throws {
       let p = ShellProcess(ex, "-w", "-t")
-      let (_, o, _) = try await p.captureStdoutLaunch("\u{10}\n\t\n")
+      let (_, o, _) = try await p.run("\u{10}\n\t\n")
       #expect(o == "\\^P\\012\\011\\012")
     }
 
   @Test func basic2() async throws {
     let p = ShellProcess(ex, "-w", "-t", "-l")
-    let (_, o, _) = try await p.captureStdoutLaunch("\u{10}\n\t\n")
+    let (_, o, _) = try await p.run("\u{10}\n\t\n")
     #expect(o == "\\^P\\$\n\\011\\$\n")
   }
   
@@ -46,7 +46,7 @@ import Foundation
     let input = "Hello, World!"
     let expected = "Hello, World!"
     let p = ShellProcess(ex)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -54,7 +54,7 @@ import Foundation
         let input = "Hello,\nWorld!"
         let expected = "Hello,\\nWorld!"
     let p = ShellProcess(ex, "-w", "-c")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
     }
 
@@ -62,7 +62,7 @@ import Foundation
     let input = "Hello\\World!"
     let expected = "Hello\\\\World!"
     let p = ShellProcess(ex, "-c")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -71,7 +71,7 @@ import Foundation
 //    let expected = "\\xE4\\xBD\\xA0\\xE5\\xA5\\xBD"
     let expected = "\\344\\275\\240\\345\\245\\275"
     let p = ShellProcess(ex, "-o")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -79,16 +79,16 @@ import Foundation
     let input = "Hello,\nWorld!"
     let expected = "Hello,\\$\nWorld!"
     let p = ShellProcess(ex, "-l")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
-  // FIXME: need to pass byte streams to captureStdoutLaunch
+  // FIXME: need to pass byte streams to run
   /*
   @Test func testInvalidMultibyteSequence() throws {
     let input = Data([0xC3, 0x28]) // Invalid UTF-8
     let expected = "\\xC3\\x28"
-    let (_, o, _) = try captureStdoutLaunch(c, x, [], input)
+    let (_, o, _) = try run(c, x, [], input)
     #expect(o == expected)
   }
 */
@@ -98,7 +98,7 @@ import Foundation
     let input = "This is a very long line that exceeds the fold width."
     let expected = "This is a very lon\\\ng line that exceed\\\ns the fold width.\\\n"
     let p = ShellProcess(ex, "-f", "-F", "20")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -106,7 +106,7 @@ import Foundation
     let input = "Line 1\nLine 2"
     let expected = "Line\\s1\\nLine\\s2"
     let p = ShellProcess(ex, "-M", "-c")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 
@@ -114,7 +114,7 @@ import Foundation
     let input = ""
     let expected = ""
     let p = ShellProcess(ex)
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == expected)
   }
 }

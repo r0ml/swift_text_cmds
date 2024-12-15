@@ -58,12 +58,35 @@
 
 
 import Testing
+import TestSupport
 
-struct prTest {
+class prTest : ShellTest {
 
-  @Test func placeHolder() async throws {
-      // Not yet implemented.
-    #expect(false)
+  let cmd = "pr"
+  let suite = "prTest"
+  
+  @Test("A basic test of pr(1) (cf. PR bin/41080)") func basic() async throws {
+    let inp = try inFile("d_basic.in")
+    let expected = try fileContents("d_basic.out")
+    try await run(output: expected, args: "-t", "-2", inp)
   }
 
+  @Test("Format columns in round-robin order with pr -a") func across() async throws {
+    let inp = try inFile("other.in")
+    let expected = try fileContents("across.out")
+    try await run(output: expected, args: "-t", "-a", "-2", inp)
+  }
+  
+  @Test("Merge two files with pr -m") func merge() async throws {
+    let inp1 = try inFile("d_basic.in")
+    let inp2 = try inFile("other.in")
+    let expected = try fileContents("merge.out")
+    try await run(output: expected, args: "-t", "-m", inp1, inp2)
+  }
+  
+  @Test("Format a file with three columns") func threecol() async throws {
+    let inp = try inFile("other.in")
+    let expected = try fileContents("threecol.out")
+    try await run(output: expected, args: "-t", "-3", inp)
+  }
 }

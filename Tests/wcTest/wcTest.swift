@@ -36,7 +36,7 @@ kom Terje Vigen nær.
 
   func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
     let p1 = ShellProcess(ex)
-    let (_, o, _) = try await p1.captureStdoutLaunch(i)
+    let (_, o, _) = try await p1.run(i)
     let k = o!.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
     #expect(k.count == 1 &&
             Int(k[0].output.1)! == a &&
@@ -44,25 +44,25 @@ kom Terje Vigen nær.
             Int(k[0].output.3)! == c )
 
     let p2 = ShellProcess(ex, "-l")
-    let (_, o1, _) = try await p2.captureStdoutLaunch(i)
+    let (_, o1, _) = try await p2.run(i)
     let k1 = o1!.matches(of: /^ +(\d+)\n$/)
     #expect(k1.count == 1 &&
             Int(k1[0].output.1)! == a )
 
     let p3 = ShellProcess(ex, "-w")
-    let (_, o2, _) = try await p3.captureStdoutLaunch(i)
+    let (_, o2, _) = try await p3.run(i)
     let k2 = o2!.matches(of: /^ +(\d+)\n$/)
     #expect(k2.count == 1 &&
             Int(k2[0].output.1)! == b)
 
     let p4 = ShellProcess(ex, "-c")
-    let (_, o3, _) = try await p4.captureStdoutLaunch(i)
+    let (_, o3, _) = try await p4.run(i)
     let k3 = o3!.matches(of: /^ +(\d+)\n$/)
     #expect(k3.count == 1 &&
             Int(k3[0].output.1)! == c, "\(c)")
 
 /*
-    let (_, o4, _) = try captureStdoutLaunch(cl, ex, ["-m"], i)
+    let (_, o4, _) = try run(cl, ex, ["-m"], i)
     let k4 = o4!.matches(of: /^ +(\d)\n$/)
     #expect(k4.count == 1 &&
            Int(k4[0].output.1)! == d ?? c)
@@ -89,7 +89,7 @@ kom Terje Vigen nær.
     defer { try? FileManager.default.removeItem(at: u) }
  */
     let p = ShellProcess(ex, "-m", env: ["LC_ALL":"UTF-8"])
-    let (_, o, e) = try await p.captureStdoutLaunch(i)
+    let (_, o, e) = try await p.run(i)
     let k = o!.matches(of: /^ +(\d+)\n$/)
     #expect(k.count == 1)
     
@@ -136,7 +136,7 @@ kom Terje Vigen nær.
     }
     
     let p = ShellProcess(ex, f.path, f2.path)
-    let (_, j, _) = try await p.captureStdoutLaunch()
+    let (_, j, _) = try await p.run()
     let ll = j!.split(separator: "\n", omittingEmptySubsequences: true).last
     
     // More than one line of output
@@ -158,7 +158,7 @@ kom Terje Vigen nær.
 
   @Test("Trigger usage message") func usage() async throws {
     let p = ShellProcess(ex, "-?")
-    let (r, j, e) = try await p.captureStdoutLaunch()
+    let (r, j, e) = try await p.run()
     #expect(r == 1)
     #expect( e!.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )
   }

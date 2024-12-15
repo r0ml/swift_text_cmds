@@ -33,33 +33,25 @@
 import TestSupport
 import Testing
 
-@Suite("t_sed") class tSedTest {
-  let ex = "sed"
+@Suite("t_sed") class tSedTest : ShellTest {
+  let cmd = "sed"
+  let suite = "sedTest"
   
   @Test("Test that sed(1) does not fail when the 2048'th character is a backslash (PR bin/25899)")
   func c2048() async throws {
-    let f = inFile("sedTest", "d_c2048", withExtension: "in")!
-    let p = ShellProcess(ex, "-f", f)
-    let (r, j, _) = try await p.captureStdoutLaunch("foo\n")
-    #expect(r == 0)
-    #expect(j! == "foo\n")
+    let f = try inFile("d_c2048.in")
+    try await run(withStdin: "foo\n", output: "foo\n", args: "-f", f)
   }
   
   @Test("Test that sed(1) handles empty back references (PR bin/28126)")
   func emptybackref() async throws {
-    let p = ShellProcess(ex, "-ne", "/foo\\(.*\\)bar\\1/p")
-    let (r, j, _) = try await p.captureStdoutLaunch("foo1bar1\n")
-    #expect(r == 0)
-    #expect(j! == "foo1bar1\n")
+    try await run(withStdin: "foo1bar1\n", output: "foo1bar1\n", args: "-ne", "/foo\\(.*\\)bar\\1/p")
   }
 
   @Test("Test that sed(1) handles long lines correctly (PR bin/42261)")
   func longlines() async throws {
     let str = String(repeating: "x", count: 2043)
-    let p = ShellProcess(ex, "s,x,\(str),g")
-    let (r, j, _) = try await p.captureStdoutLaunch("x\n")
-    #expect(r == 0)
-    #expect(j! == str+"\n")
+    try await run(withStdin: "x\n", output: str+"\n", args: "s,x,\(str),g")
   }
   
   
@@ -89,26 +81,21 @@ import Testing
   ])
   
   func rangeselection(_ range : String, _ input: String, _ expected: String) async throws {
-    let p = ShellProcess(ex, range)
-    let (r, j, _) = try await p.captureStdoutLaunch(input)
-    #expect(r == 0)
-    #expect(j! == expected)
+    try await run(withStdin: input, output: expected, args: range)
   }
 
   @Test("Test that sed(1) preserves leading whitespace in insert and append (PR bin/49872)")
   func preserve_leading_ws_ia() async throws {
-    let p = ShellProcess(ex, "-e", "/^$/i\\\n    1 2 3\\\n4 5 6\\\n    7 8 9")
-    let (r, j, _) = try await p.captureStdoutLaunch("\n")
-    #expect(r == 0)
-    #expect(j! == "    1 2 3\n4 5 6\n    7 8 9\n\n")
+    let res = "    1 2 3\n4 5 6\n    7 8 9\n\n"
+    try await run(withStdin: "\n", output: res, args: "-e", "/^$/i\\\n    1 2 3\\\n4 5 6\\\n    7 8 9")
   }
   
   // FIXME: is this monstrosity of encoding really what was intended?
   @Test("Test that sed(1) handles zero length matches correctly")
   func zerolen() async throws {
     let str = "H\u{c3}\u{82}Bnc\n".data(using: .isoLatin1)!
-    let p = ShellProcess(ex, "-E", "s/[A-Z]*/\\`&\\`/g", env: ["LANG":"C", "LC_CTYPE":"en_US.UTF-8"])
-    let (r, j, _) = try await p.captureStdoutLaunch(str)
+    let p = ShellProcess(cmd, "-E", "s/[A-Z]*/\\`&\\`/g", env: ["LANG":"C", "LC_CTYPE":"en_US.UTF-8"])
+    let (r, j, _) = try await p.run(str)
     #expect(r == 0)
     let res = "`H`\u{c3}\u{82}`B`n``c``\n" // .data(using: .isoLatin1)
     #expect(j!.data(using: .utf8) == res.data(using: .isoLatin1))

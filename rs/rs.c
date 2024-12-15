@@ -95,7 +95,7 @@ static char	blank[] = "";
 static int	owidth = 80, gutter = 2;
 
 static void	  getargs(int, char *[]);
-static void	  getfile(void);
+static void	  try fileContents(void);
 static int	  get_line(void);
 static char	 *getlist(short **, char *);
 static char	 *getnum(int *, char *, int);
@@ -114,7 +114,7 @@ int
 main(int argc, char *argv[])
 {
 	getargs(argc, argv);
-	getfile();
+	try fileContents();
 	if (flags & SHAPEONLY) {
 		printf("%d %d\n", irows, icols);
 		exit(0);
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
 }
 
 static void
-getfile(void)
+try fileContents(void)
 {
 	char *p;
 	char *endp;

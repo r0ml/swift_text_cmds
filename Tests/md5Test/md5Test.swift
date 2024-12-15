@@ -215,7 +215,7 @@ import Foundation
   
   @Test("Test BSD md5", arguments: 0..<8) func bsd_md5(_ i : Int) async throws {
     let p = ShellProcess(ex)
-    let (_, j, _) = try await p.captureStdoutLaunch(inp[i])
+    let (_, j, _) = try await p.run(inp[i])
     #expect( j!.dropLast() == out_md5[i] )
     }
 

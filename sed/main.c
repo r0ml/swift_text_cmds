@@ -97,7 +97,7 @@ struct s_flist {
  */
 static struct s_flist *files, **fl_nextp = &files;
 
-FILE *infile;			/* Current input file */
+FILE *try inFile;			/* Current input file */
 FILE *outfile;			/* Current output file */
 
 int aflag, eflag, nflag;
@@ -361,12 +361,12 @@ mf_fgets(SPACE *sp, enum e_spflag spflag)
 	int c;
 	static int firstfile;
 
-	if (infile == NULL) {
+	if (try inFile == NULL) {
 		/* stdin? */
 		if (files->fname == NULL) {
 			if (inplace != NULL)
 				errx(1, "-I or -i may not be used with stdin");
-			infile = stdin;
+			try inFile = stdin;
 			fname = "stdin";
 			outfile = stdout;
 			outfname = "stdout";
@@ -375,17 +375,17 @@ mf_fgets(SPACE *sp, enum e_spflag spflag)
 	}
 
 	for (;;) {
-		if (infile != NULL && (c = getc(infile)) != EOF && !quit) {
-			(void)ungetc(c, infile);
+		if (try inFile != NULL && (c = getc(try inFile)) != EOF && !quit) {
+			(void)ungetc(c, try inFile);
 			break;
 		}
 		/* If we are here then either eof or no files are open yet */
-		if (infile == stdin) {
+		if (try inFile == stdin) {
 			sp->len = 0;
 			return (0);
 		}
-		if (infile != NULL) {
-			fclose(infile);
+		if (try inFile != NULL) {
+			fclose(try inFile);
 			if (*oldfname != '\0') {
 				/* if there was a backup file, remove it */
 				unlink(oldfname);
@@ -470,21 +470,21 @@ mf_fgets(SPACE *sp, enum e_spflag spflag)
 			outfile = stdout;
 			outfname = "stdout";
 		}
-		if ((infile = fopen(fname, "r")) == NULL) {
+		if ((try inFile = fopen(fname, "r")) == NULL) {
 			warn("%s", fname);
 			rval = 1;
 			continue;
 		}
 	}
 	/*
-	 * We are here only when infile is open and we still have something
+	 * We are here only when try inFile is open and we still have something
 	 * to read from it.
 	 *
 	 * Use getline() so that we can handle essentially infinite input
 	 * data.  The p and plen are static so each invocation gives
 	 * getline() the same buffer which is expanded as needed.
 	 */
-	len = getline(&p, &plen, infile);
+	len = getline(&p, &plen, try inFile);
 	if (len == -1)
 		err(1, "%s", fname);
 	if (len != 0 && p[len - 1] == '\n') {
@@ -568,16 +568,16 @@ lastline(void)
 {
 	int ch;
 
-	if (feof(infile)) {
+	if (feof(try inFile)) {
 		return !(
 		    (inplace == NULL || ispan) &&
 		    next_files_have_lines());
 	}
-	if ((ch = getc(infile)) == EOF) {
+	if ((ch = getc(try inFile)) == EOF) {
 		return !(
 		    (inplace == NULL || ispan) &&
 		    next_files_have_lines());
 	}
-	ungetc(ch, infile);
+	ungetc(ch, try inFile);
 	return (0);
 }

@@ -36,8 +36,9 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite("sed multi_test", .serialized) class sedMultiTest {
-  let ex = "sed"
+@Suite("sed multi_test", .serialized) class sedMultiTest : ShellTest {
+  let cmd = "sed"
+  let suite = "sedTest"
   
   let lines1 = ((1...14).map { "l1_\($0)\n" })
   let lines2 = ((1...9).map { "l2_\($0)\n"})
@@ -60,20 +61,20 @@ import Foundation
   }
   
   func check( _ p : ShellProcess, _ f : String, _ inp : Data) async throws {
-    let (r, j, e) = try await p.captureStdoutLaunch(inp)
+    let res = try fileContents("\(f).out")
+    let (r, j, e) = try await p.run(inp)
     #expect(r == 0, Comment(rawValue: e ?? ""))
-    let res = getFile("sedTest", f, withExtension: "out" )
     #expect(j! == res)
   }
 
   func check( _ p : ShellProcess, _ f : String, _ inp : String? = nil) async throws {
     let (r, j, e) = if let inp {
-      try await p.captureStdoutLaunch(inp)
+      try await p.run(inp)
     } else {
-      try await p.captureStdoutLaunch()
+      try await p.run()
     }
     #expect(r == 0, Comment(rawValue: e ?? ""))
-    let res = getFile("sedTest", f, withExtension: "out" )
+    let res = try fileContents("\(f).out" )
     #expect(j! == res)
   }
   
@@ -81,87 +82,88 @@ import Foundation
     ("1.1", ["s/^/e1_/p"]),
     ("1.2", ["-n", "s/^/e1_/p"]),
   ]) func test_args_1(_ f : String, _ p : [String]) async throws {
-    let p = ShellProcess(ex, p + [ flines1.relativePath ] )
-    try await check(p, f)
+    let res = try fileContents("\(f).out")
+    try await run(output: res, args: p + [ flines1 ] )
   }
 
   @Test("Argument parsing - first type", arguments: [
     ("1.3", ["s/^/e1_/p"]),
     ("1.4", ["-n", "s/^/e1_/p"]),
   ]) func test_args_1p(_ f : String, _ p : [String]) async throws {
-    let p = ShellProcess(ex, p )
-    try await check(p, f, lines1.joined())
+    let res = try fileContents("\(f).out")
+    try await run(withStdin: lines1.joined(), output: res, args: p)
   }
 
   
   @Test("Argument parsing - second type (1.4)") func test_args_141() async throws {
-    let p = ShellProcess(ex, "-e", "")
-    try await check(p, "1.4.1", lines1.joined() )
+    let res = try fileContents("1.4.1.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-e", "")
   }
 
   @Test("Argument parsing (1.5)") func test_args_15() async throws {
-    let p = ShellProcess(ex, "-f", fscript1.relativePath, flines1.relativePath)
-    try await check(p, "1.5")
+    let res = try fileContents("1.5.out")
+    try await run(output: res, args: "-f", fscript1, flines1)
   }
 
   @Test("Argument parsing (1.6)") func test_args_16() async throws {
-    let p = ShellProcess(ex, "-f", fscript1.relativePath)
-    try await check(p, "1.6", lines1.joined() )
+    let res = try fileContents("1.6.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-f", fscript1)
   }
 
   @Test("Arguments parsing (1.7)") func test_args_17() async throws {
-    let p = ShellProcess(ex, "-e", "s/^/e1_/p",  flines1.relativePath)
-    try await check(p, "1.7" )
+    let res = try fileContents("1.7.out")
+    try await run(output: res, args: "-e", "s/^/e1_/p",  flines1)
   }
 
   @Test("Argument parsing (1.8)") func test_args_18() async throws {
-    let p = ShellProcess(ex, "-e", "s/^/e1_/p")
-    try await check(p, "1.8", lines1.joined() )
+    let res = try fileContents("1.8.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-e", "s/^/e1_/p")
   }
 
   @Test("Argument parsing (1.9)") func test_args_19() async throws {
-    let p = ShellProcess(ex, "-n", "-f", fscript1.relativePath, flines1.relativePath)
-    try await check(p, "1.9")
+    let res = try fileContents("1.9.out")
+    try await run(output: res, args: "-n", "-f", fscript1, flines1)
   }
 
   @Test("Argument parsing (1.10)") func test_args_110() async throws {
-    let p = ShellProcess(ex, "-n", "-f", fscript1.relativePath)
-    try await check(p, "1.10", lines1.joined() )
+    let res = try fileContents("1.10.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-n", "-f", fscript1)
   }
 
   @Test("Argument parsing (1.11)") func test_args_111() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "s/^/e1_/p", flines1.relativePath)
-    try await check(p, "1.11")
+    let res = try fileContents("1.11.out")
+    try await run(output: res, args: "-n", "-e", "s/^/e1_/p", flines1)
   }
 
   @Test("Argument parsing (1.12)") func test_args_112() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "s/^/e1_/p")
-    try await check(p, "1.12", lines1.joined() )
+    let res = try fileContents("1.12.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-n", "-e", "s/^/e1_/p")
   }
 
   @Test("Argument parsing (1.13)") func test_args_113() async throws {
-    let p = ShellProcess(ex, "-e", "s/^/e1_/p", "-e", "s/^/e2_/p", flines1.relativePath)
-    try await check(p, "1.13" )
+    let res = try fileContents("1.13.out")
+    try await run(output: res, args: "-e", "s/^/e1_/p", "-e", "s/^/e2_/p", flines1)
   }
 
   @Test("Argument parsing (1.14)") func test_args_114() async throws {
-    let p = ShellProcess(ex, "-f", fscript1.relativePath, "-f", fscript2.relativePath, flines1.relativePath)
-    try await check(p, "1.14" )
+    let res = try fileContents("1.14.out")
+    try await run(output: res, args: "-f", fscript1, "-f", fscript2, flines1)
   }
 
   @Test("Argument parsing (1.15)") func test_args_115() async throws {
-    let p = ShellProcess(ex, "-e", "s/^/e1_/p", "-f", fscript1.relativePath, flines1.relativePath)
-    try await check(p, "1.15")
+    let res = try fileContents("1.15.out")
+    try await run(output: res, args: "-e", "s/^/e1_/p", "-f", fscript1, flines1)
+
   }
 
   @Test("Argument parsing (1.16)") func test_args_116() async throws {
-    let p = ShellProcess(ex, "-e", "s/^/e1_/p", flines1.relativePath, flines1.relativePath)
-    try await check(p, "1.16")
+    let res = try fileContents("1.16.out")
+    try await run(output: res, args: "-e", "s/^/e1_/p", flines1, flines1)
   }
 
   @Test("Argument parsing (1.17)") func test_args_117() async throws {
-    let p = ShellProcess(ex, "p", flines1.relativePath)
-    try await check(p, "1.17", lines1.joined() )
+    let res = try fileContents("1.17.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "p", flines1)
   }
 
   @Test("Argument parsing (1.18)") func test_args_118() async throws {
@@ -171,139 +173,140 @@ import Foundation
 
 p
 """)
-    let p = ShellProcess(ex, "-f",  fs1.relativePath, flines1.relativePath)
-    try await check(p, "1.18", lines1.joined() )
+    let res = try fileContents("1.18.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "-f",  fs1, flines1)
   }
 
   
   @Test("Address ranges (2.1)") func test_addr_21() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "4p", flines1.relativePath)
-    try await check(p, "2.1")
+    let res = try fileContents("2.1.out")
+    try await run(output: res, args: "-n", "-e", "4p", flines1)
   }
   
   @Test("Address ranges (2.2)") func test_addr_22() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "20p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.2")
+    let res = try fileContents("2.2.out")
+    try await run(output: res, args: "-n", "-e", "20p", flines1, flines2)
   }
   
   @Test("Address ranges (2.3)") func test_addr_23() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "$p", flines1.relativePath)
-    try await check(p, "2.3")
+    let res = try fileContents("2.3.out")
+    try await run(output: res, args: "-n", "-e", "$p", flines1)
   }
   
   @Test("Address ranges (2.4)") func test_addr_24() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "$p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.4")
+    let res = try fileContents("2.4.out")
+    try await run(output: res, args: "-n", "-e", "$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.5)") func test_addr_25() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "$a\\\nhello", "/dev/null")
-    try await check(p, "2.5")
+    let res = try fileContents("2.5.out")
+    try await run(output: res, args: "-n", "-e", "$a\\\nhello", "/dev/null")
   }
   
   @Test("Address ranges (2.6)") func test_addr_26() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "$p", flines1.relativePath, "/dev/null", flines2.relativePath)
-    try await check(p, "2.6")
+    let res = try fileContents("2.6.out")
+    try await run(output: res, args: "-n", "-e", "$p", flines1, "/dev/null", flines2)
   }
   
   @Test("Address ranges (2.7)") func test_addr_27() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "20p", flines1.relativePath)
-    try await check(p, "2.7")
+    let res = try fileContents("2.7.out")
+    try await run(output: res, args: "-n", "-e", "20p", flines1)
   }
   
   @Test("Address ranges (2.8)") func test_addr_28() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "/NOTFOUND/p", flines1.relativePath)
-    try await check(p, "2.8")
+    let res = try fileContents("2.8.out")
+    try await run(output: res, args: "-n", "-e", "/NOTFOUND/p", flines1)
   }
   
   @Test("Address ranges (2.9)") func test_addr_29() async throws {
-    let p = ShellProcess(ex, "-n", "/l1_7/p", flines1.relativePath)
-    try await check(p, "2.9")
+    let res = try fileContents("2.9.out")
+    try await run(output: res, args: "-n", "/l1_7/p", flines1)
   }
   
   @Test("Address ranges (2.10)") func test_addr_210() async throws {
-    let p = ShellProcess(ex, "-n", " /l1_7/p", flines1.relativePath)
-    try await check(p, "2.10")
+    let res = try fileContents("2.10.out")
+    try await run(output: res, args: "-n", " /l1_7/p", flines1)
   }
   
   @Test("Address ranges (2.11)") func test_addr_211() async throws {
-    let p = ShellProcess(ex, "-n", "\\_l1\\_7_p", flines1.relativePath)
-    try await check(p, "2.11")
+    let res = try fileContents("2.11.out")
+    try await run(output: res, args: "-n", "\\_l1\\_7_p", flines1)
   }
   
   @Test("Address ranges (2.12)") func test_addr_212() async throws {
-    let p = ShellProcess(ex, "-n", "1,4p", flines1.relativePath)
-    try await check(p, "2.12")
+    let res = try fileContents("2.12.out")
+    try await run(output: res, args: "-n", "1,4p", flines1)
   }
   
   @Test("Address ranges (2.13)") func test_addr_213() async throws {
-    let p = ShellProcess(ex, "-n", "1,$p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.13")
+    let res = try fileContents("2.13.out")
+    try await run(output: res, args: "-n", "1,$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.14)") func test_addr_214() async throws {
-    let p = ShellProcess(ex, "-n", "1,/l2_9/p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.14")
+    let res = try fileContents("2.14.out")
+    try await run(output: res, args: "-n", "1,/l2_9/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.15)") func test_addr_215() async throws {
-    let p = ShellProcess(ex, "-n", "/4/,$p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.15")
+    let res = try fileContents("2.15.out")
+    try await run(output: res, args: "-n", "/4/,$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.16)") func test_addr_216() async throws {
-    let p = ShellProcess(ex, "-n", "/4/,20p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.16")
+    let res = try fileContents("2.16.out")
+    try await run(output: res, args: "-n", "/4/,20p", flines1, flines2)
   }
   
   @Test("Address ranges (2.17)") func test_addr_217() async throws {
-    let p = ShellProcess(ex, "-n", "/4/,/10/p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.17")
+    let res = try fileContents("2.17.out")
+    try await run(output: res, args: "-n", "/4/,/10/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.18)") func test_addr_218() async throws {
-    let p = ShellProcess(ex, "-n", "/l2_3/,/l1_8/p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.18")
+    let res = try fileContents("2.18.out")
+    try await run(output: res, args: "-n", "/l2_3/,/l1_8/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.19)") func test_addr_219() async throws {
-    let p = ShellProcess(ex, "-n", "12,3p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.19")
+    let res = try fileContents("2.19.out")
+    try await run(output: res, args: "-n", "12,3p", flines1, flines2)
   }
   
   @Test("Address ranges (2.20)") func test_addr_220() async throws {
-    let p = ShellProcess(ex, "-n", "/l1_7/,3p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.20")
+    let res = try fileContents("2.20.out")
+    try await run(output: res, args: "-n", "/l1_7/,3p", flines1, flines2)
   }
   
   @Test("Address ranges (2.21)") func test_addr_221() async throws {
-    let p = ShellProcess(ex, "-n", "13,+4p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.21")
+    let res = try fileContents("2.21.out")
+    try await run(output: res, args: "-n", "13,+4p", flines1, flines2)
   }
   
   @Test("Address ranges (2.22)") func test_addr_222() async throws {
-    let p = ShellProcess(ex, "-n", "/l1_6/,+2p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.22")
+    let res = try fileContents("2.22.out")
+    try await run(output: res, args: "-n", "/l1_6/,+2p", flines1, flines2)
   }
   
   @Test("Address ranges (2.23)") func test_addr_223() async throws {
-    let p = ShellProcess(ex, "-n", "12,+1p", flines1.relativePath, flines2.relativePath)
-    try await check(p, "2.23")
+    let res = try fileContents("2.23.out")
+    try await run(output: res, args: "-n", "12,+1p", flines1, flines2)
   }
   
   @Test("Brance and other grouping (3.1)") func test_group_31() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("3.1.out")
+    try await run(output: res, args: "-e", """
 4,12 {
   s/^/^/
   s/$/$/
   s/_/T/
 }
-""", flines1.relativePath)
-    try await check(p, "3.1")
+""", flines1)
   }
   
   @Test("Brance and other grouping (3.2)") func test_group_32() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("3.2.out")
+    try await run(output: res, args: "-e", """
 4,12 {
   s/^/^/
   /6/,/10/ {
@@ -311,12 +314,12 @@ p
     /8/ s/_/T/
   }
 }
-""", flines1.relativePath)
-    try await check(p, "3.2")
+""", flines1)
   }
   
   @Test("Brance and other grouping (3.3)") func test_group_33() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("3.3.out")
+    try await run(output: res, args: "-e", """
 4,12 !{
   s/^/^/
   /6/,/10/ !{
@@ -324,87 +327,87 @@ p
     /8/ !s/_/T/
   }
 }
-""", flines1.relativePath)
-    try await check(p, "3.3")
+""", flines1)
   }
   
   @Test("Brance and other grouping (3.4)") func test_group_34() async throws {
-    let p = ShellProcess(ex, "-e", "4,12!s/^/^/", flines1.relativePath)
-    try await check(p, "3.4")
+    let res = try fileContents("3.4.out")
+    try await run(output: res, args: "-e", "4,12!s/^/^/", flines1)
   }
   
   @Test("Commands a c d and i (4.1)") func test_acid_41() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.1.out")
+    try await run(output: res, args: "-n", "-e", """
 s/^/before_i/p
 20i\\
 inserted
 s/^/after_i/p
-""", flines1.relativePath, flines2.relativePath)
-    try await check(p, "4.1")
+""", flines1, flines2)
   }
   
   @Test("Commands a c d and i (4.2)") func test_acid_42() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.2.out")
+    try await run(output: res, args: "-n", "-e", """
 5,12s/^/5-12/
 s/^/before_a/p
 /5-12/a\\
 appended
 s/^/after_a/p
-""", flines1.relativePath, flines2.relativePath)
-    try await check(p, "4.2")
+""", flines1, flines2)
   }
   
   @Test("Commands a c d and i (4.3)") func test_acid_43() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.3.out")
+    try await run(output: res, args: "-n", "-e", """
 s/^/^/p
 /l1_/a\\
 appended
 8,10N
 s/$/$/p
-""", flines1.relativePath, flines2.relativePath)
-    try await check(p, "4.3")
+""", flines1, flines2)
   }
   
   @Test("Commands a c d and i (4.4)") func test_acid_44() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.4.out")
+    try await run(output: res, args: "-n", "-e", """
 c\\
 hello
-""", flines1.relativePath)
-    try await check(p, "4.4")
+""", flines1)
   }
   
   @Test("Commands a c d and i (4.5)") func test_acid_45() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.5.out")
+    try await run(output: res, args: "-n", "-e", """
 8c\\
 hello
-""", flines1.relativePath)
-    try await check(p, "4.5")
+""", flines1)
   }
   
   @Test("Commands a c d and i (4.6)") func test_acid_46() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.6.out")
+    try await run(output: res, args: "-n", "-e", """
 3,14c\\
 hello
-""", flines1.relativePath)
-    try await check(p, "4.6")
+""", flines1)
   }
   
   @Test("Commands a c d and i (4.7)") func test_acid_47() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("4.7.out")
+    try await run(output: res, args: "-n", "-e", """
 8,3c\\
 hello
-""", flines1.relativePath)
-    try await check(p, "4.7")
+""", flines1)
   }
   
   @Test("Commands a c d and i (4.8)") func test_acid_48() async throws {
-    let p = ShellProcess(ex, "d")
-    try await check(p, "4.8", lines1.joined())
+    let res = try fileContents("4.8.out")
+    try await run(withStdin: lines1.joined(), output: res, args: "d")
   }
   
 
   @Test("Labels and branching (5.1)") func test_branch_51() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("5.1.out")
+    try await run(output: res, args: "-n", "-e", """
 b label4
 :label3
 s/^/label3_/p
@@ -419,35 +422,35 @@ b
 s/^/label2_/p
 b label3
 :end
-""", flines1.relativePath)
-    try await check(p, "5.1")
+""", flines1)
   }
   
   @Test("Labels and branching (5.2)") func test_branch_52() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("5.2.out")
+    try await run(output: res, args: "-n", "-e", """
 s/l1_/l2_/
 t ok
 b
 :ok
 s/^/tested /p
-""", flines1.relativePath, flines2.relativePath)
-    try await check(p, "5.2")
+""", flines1, flines2)
   }
   
   @Test("Labels and branching (5.3)") func test_branch_53() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("5.3.out")
+    try await(output: res, args: "-n", "-e", """
 5,8b inside
 1,5 {
   s/^/^/p
   :inside
   s/$/$/p
 }
-""", flines1.relativePath)
-    try await check(p, "5.3")
+""", flines1)
   }
   
   @Test("Labels and branching (5.4)") func test_branch_54() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("5.4.out")
+    try await run(output: res, args: "-n", "-e", """
 1,8s/^/^/
 t l1
 :l1
@@ -456,72 +459,72 @@ s/$/$/p
 b
 :l2
 s/^/ERROR/
-""", flines1.relativePath)
-    try await check(p, "5.4")
+""", flines1)
   }
   
   @Test("Labels and branching (5.5)") func test_branch_55() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("5.5.out")
+    try await run(output: res, args: "-n", "-e", """
 t l2
 1,8s/^/^/p
 2,7N
 b
 :l2
 s/^/ERROR/p
-""", flines1.relativePath)
-    try await check(p, "5.5")
+""", flines1)
   }
   
   @Test("Labels and branching (5.6)") func test_branch_56() async throws {
-    let p = ShellProcess(ex, "5q", flines1.relativePath)
-    try await check(p, "5.6")
+    let res = try fileContents("5.6.out")
+    try await run(output: res, args: "5q", flines1)
   }
   
   @Test("Labels and branching (5.7)") func test_branch_57() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("5.7.out")
+    try await run(output: res, args: "-e", """
 5i\\
 hello
 5q
-""", flines1.relativePath)
-    try await check(p, "5.7")
+""", flines1)
   }
   
   @Test("Labels and branching (5.8)") func test_branch_58() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("5.8.out")
+    try await run(output: res, args: "-e", """
 {
 :b
 }
 s/l/m/
 tb
-""", flines1.relativePath)
-    try await check(p, "5.8")
+""", flines1)
   }
   
 
   @Test("Pattern space commands (6.1)") func test_pattern_61() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("6.1.out")
+    try await run(output: res, args: "-n", "-e", """
 c\\
 changed
 p
-""", flines1.relativePath)
-    try await check(p, "6.1")
+""", flines1)
   }
         
   @Test("Pattern space commands (6.2)") func test_pattern_62() async throws {
-    let p = ShellProcess(ex, "-n", "-e", """
+    let res = try fileContents("6.2.out")
+    try await run(output: res, args: "-n", "-e", """
 4d
 p
-""", flines1.relativePath)
-    try await check(p, "6.2")
+""", flines1)
   }
         
   @Test("Pattern space commands (6.3)") func test_pattern_63() async throws {
-    let p = ShellProcess(ex, "-e", "N;N;N;D", flines1.relativePath)
-    try await check(p, "6.3")
+    let res = try fileContents("6.3.out")
+    try await run(output: res, args: "-e", "N;N;N;D", flines1)
   }
         
   @Test("Pattern space commands (6.4)") func test_pattern_64() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("6.4.out")
+    try await run(output: res, args: "-e", """
 2h
 3H
 4g
@@ -530,84 +533,81 @@ p
 6p
 6x
 6p
-""", flines1.relativePath)
-    try await check(p, "6.4")
+""", flines1)
   }
         
   @Test("Pattern space commands (6.5)") func test_pattern_65() async throws {
-    let p = ShellProcess(ex, "-e", "4n", flines1.relativePath)
-    try await check(p, "6.5")
+    let res = try fileContents("6.5.out")
+    try await run(output: res, args: "-e", "4n", flines1)
   }
         
   @Test("Pattern space commands (6.6)") func test_pattern_66() async throws {
-    let p = ShellProcess(ex, "-n", "-e", "4n", flines1.relativePath)
-    try await check(p, "6.6")
+    let res = try fileContents("6.6.out")
+    try await run( output: res, args: "-n", "-e", "4n", flines1)
   }
         
-
   @Test("Print and file routines (7.1)") func test_print_71() async throws {
+    let res = try fileContents("7.1.out")
     var lines3 = Data(repeating: 0, count: 257)
     for i in 1..<256 { lines3[i-1] = UInt8(i) }
     lines3[255] = 10
     lines3[256] = 10
-    
-    let p = ShellProcess(ex, "-n", "l")
-    try await check(p, "7.1", lines3)
+    try await run(withStdin: lines3, output:res, args: "-n", "l")
   }
   
   @Test("Print and file routines (7.2)") func test_print_72() async throws {
-    let p = ShellProcess(ex, "-e", "/l2_/=", flines1.relativePath, flines2.relativePath)
-    try await check(p, "7.2")
+    let res = try fileContents("7.2.out")
+    try await run(output: res, args: "-e", "/l2_/=", flines1, flines2)
   }
   
   @Test("Print and file routines (7.3)") func test_print_73() async throws {
-    let p = ShellProcess(ex, "-e", "3,12w lines4", flines1.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let res = try fileContents("7.3.out")
+    let (r, j, _) = try await ShellProcess(cmd, "-e", "3,12w lines4", flines1).run()
     #expect(r == 0)
     let k = try String(contentsOf: URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory), encoding: .utf8)
-    let res = getFile("sedTest", "7.3", withExtension: "out" )!
     #expect(j! + k == res)
   }
   
   @Test("Print and file routines (7.4)") func test_print_74() async throws {
-    let p = ShellProcess(ex, "-e", "4r lines2", flines1.relativePath)
-    try await check(p, "7.4")
+    let res = try fileContents("7.4.out")
+    try await run(output: res, args: "-e", "4r lines2", flines1)
   }
   
   @Test("Print and file routines (7.5)") func test_print_75() async throws {
-    let p = ShellProcess(ex, "-e", "5r /dev/dds", flines1.relativePath)
-    try await check(p, "7.5")
+    let res = try fileContents("7.5.out")
+    try await run(output: res, args: "-e", "5r /dev/dds", flines1)
   }
   
   @Test("Print and file routines (7.6)") func test_print_76() async throws {
-    let p = ShellProcess(ex, "-e", "6r /dev/null", flines1.relativePath)
-    try await check(p, "7.6")
+    let res = try fileContents("7.6.out")
+    try await run(output: res, args: "-e", "6r /dev/null", flines1)
   }
   
   @Test("Print and file routines (7.7)") func test_print_77() async throws {
+    let res = try fileContents("7.7.out")
     let d = URL(filePath: "/usr/share/dict/words")
     let wwo = try await d.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
 
     // FIXME: the original test failed because some dictionary entries are
     // duplicates if ignoring case, and the file system is not case sensitive.
     let ww = Set(wwo.map { $0.lowercased() })
-    let p = ShellProcess(ex, "s$.*$s/^/&/w tmpdir/&$")
-    let (r, j, _) = try await p.captureStdoutLaunch( (ww.map { $0+"\n" } ).joined() )
+    let p = ShellProcess(cmd, "s$.*$s/^/&/w tmpdir/&$")
+    let (r, j, _) = try await p.run( (ww.map { $0+"\n" } ).joined() )
     #expect(r == 0)
     let tt = FileManager.default.temporaryDirectory.appending(path: "tmpdir", directoryHint: .isDirectory)
     rm(tt)
     try FileManager.default.createDirectory(at: tt, withIntermediateDirectories: true)
 
     let script1 = try tmpfile("script1", j!)
-    let p2 = ShellProcess(ex,  "-f", script1.relativePath, flines1.relativePath)
-    let (r2, j2, _) = try await p2.captureStdoutLaunch()
+    let p2 = ShellProcess(cmd,  "-f", script1, flines1)
+    let (r2, j2, _) = try await p2.run()
     #expect(r2 == 0)
     let kk = try FileManager.default.contentsOfDirectory(at: tt, includingPropertiesForKeys: nil)
     #expect( kk.count == ww.count)
     
 //  FIXME: the stored result file 7.7 depends on the contents of
 //      /usr/share/dict/words -- which varies across versions
-//    let res = getFile("sedTest", "7.7", withExtension: "out" )
+//    let res = try fileContents("sedTest", "7.7", withExtension: "out" )
 //    let jj = (try kk.map { try String(contentsOf: $0, encoding: .utf8) }).joined()
 //    #expect(jj == res)
 
@@ -616,14 +616,12 @@ p
   }
   
   @Test("Print and file routines (7.8)") func test_print_78() async throws {
+    let res = try fileContents("7.8.out")
     let flines3 = try tmpfile("lines3", lines1.joined()+"\n")
-    let p = ShellProcess(ex, "-n", "-e", "$p", flines3.relativePath, "/dev/null")
-    try await check(p, "7.8")
+    try await run(output: res, args: "-n", "-e", "$p", flines3, "/dev/null")
     rm(flines3)
   }
-  
 
-  
   @Test("Substitution commands (8.1-8.10)",
         arguments: [
           ("8.1", "s/./X/g"),
@@ -643,23 +641,24 @@ p
           ("8.17", "s/[/]/Q/"),
           ("8.18", "s[_[X[")
         ]) func test_subst_81(_ f : String, _ s : String) async throws {
-    let p = ShellProcess(ex, "-e", s, flines1.relativePath)
-    try await check(p, f)
+          let res = try fileContents("\(f).out")
+          try await run(output: res, args: "-e", s, flines1)
   }
   
   @Test("Substitution command (8.11") func test_subst_811() async throws {
     let l4 = URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory)
     rm(l4)
-    let p = ShellProcess(ex, "-e", "s/1/X/w lines4", flines1.relativePath)
-    let (r, j, e) = try await p.captureStdoutLaunch()
+    let p = ShellProcess(cmd, "-e", "s/1/X/w lines4", flines1)
+    let (r, j, e) = try await p.run()
     #expect(r == 0)
-    let res = getFile("sedTest", "8.11", withExtension: "out" )
+    let res = try fileContents("8.11.out" )
     let jj = try String(contentsOf: l4, encoding: .utf8)
     #expect(j! + jj == res)
   }
   
   @Test("Substitution command (8.16)") func test_subst_816() async throws {
-    let p = ShellProcess(ex, "-e", """
+    let res = try fileContents("8.16.out")
+    try await run(withStdin: "eeefff\n", output: res, args: "-e", """
     p
     s/e/X/p
     :x
@@ -675,38 +674,38 @@ p
     x 
     /f/bx
 """)
-    try await check(p, "8.16", "eeefff\n")
   }
   
   @Test("Substitution command (8.19)") func test_subst_819() async throws {
-    let p = ShellProcess(ex, "-e", "s/l/[/", flines1.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let res = try fileContents("8.19.out")
+    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1)
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
-    let p2 = ShellProcess(ex, "-e", "s[\\[.[X[")
-    try await check(p2, "8.19", j!)
+    try await run(withStdin: j!, output: res, args: "-e", "s[\\[.[X[")
   }
   
   @Test("Substitution command (8.20)") func test_subst_820() async throws {
-    let p = ShellProcess(ex, "-e", "s/l/[/", flines1.relativePath)
-    let (r, j, _) = try await p.captureStdoutLaunch()
+    let res = try fileContents("8.20.out")
+    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1.relativePath)
+    let (r, j, _) = try await p.run()
     #expect(r == 0)
-    let p2 = ShellProcess(ex, "-e", "s[\\[.[X\\[[")
-    try await check(p2, "8.20", j!)
+    try await run(withStdin: j!, output: res, args: "-e", "s[\\[.[X\\[[")
   }
+  
   @Test("Substitution command (8.21)") func test_subst_821() async throws {
-    let p = ShellProcess(ex, "y%ABCDEFGHIJKLMNOPQRSTUVWXYZ, /\\\\()\"%abcdefghijklmnopqrstuvwxyz,------%")
-    try await check(p, "8.21","a\\b(c\n")
+    let res = try fileContents("8.21.out")
+    try await run(withStdin: "a\\b(c\n", output: res, args: "y%ABCDEFGHIJKLMNOPQRSTUVWXYZ, /\\\\()\"%abcdefghijklmnopqrstuvwxyz,------%")
   }
 
   @Test("Substitution command (8.22)",
         .disabled("this test fails in macOS 15.1")) func test_subst_822() async throws {
-    let p = ShellProcess(ex, "-n", "1{;N;s/[\\n]/X/;p;}")
-    try await check(p, "8.22", "1\n2\n")
+          let res = try fileContents("8.22.out")
+          try await run(output: res, args: "-n", "1{;N;s/[\\n]/X/;p;}")
   }
 
   @Test("Substitution command (8.23)") func test_subst_823() async throws {
-    let p = ShellProcess(ex, "-n", "1{;N;s/\\n/X/;p;}")
-    try await check(p, "8.23", "1\n2\n")
+    let res = try fileContents("8.23.out")
+    try await run(withStdin: "1\n2\n", output: res, args: "-n", "1{;N;s/\\n/X/;p;}")
   }
 
   @Test("Error cases", arguments: [
@@ -716,9 +715,7 @@ p
     "y/aa/", "y/a/b", "y/a/b/c/d", "!",
     "supercalifrangolisticexprialidociussupercalifrangolisticexcius",
   ]) func test_error(_ s : String) async throws {
-    let p = ShellProcess(ex, s)
-    let (r, _, _) = try await p.captureStdoutLaunch()
-    #expect(r != 0)
+    try await run(status: 1, args: s)
   }
   
   @Test("Error cases", arguments: [
@@ -728,9 +725,7 @@ p
     ["-e", "-5p"],
 //    ["", "/dev/null"], // this succeeds on macOS 15.1
   ]) func test_error(_ s : [String]) async throws {
-    let p = ShellProcess(ex, s)
-    let (r, _, _) = try await p.captureStdoutLaunch()
-    #expect(r != 0)
+    try await run(status: 1, args: s as [Arguable])
   }
 
 }

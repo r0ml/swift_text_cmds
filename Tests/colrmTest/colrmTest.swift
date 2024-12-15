@@ -12,21 +12,21 @@ import Foundation
   @Test func basic() async throws {
     let input = "abcdefgh\n12345678"
     let p = ShellProcess(ex, "3", "5")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == "abfgh\n12678")
   }
 
   @Test func large() async throws {
     let input = "abcdefgh\n12345678"
     let p = ShellProcess(ex, "108")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == input)
   }
 
   @Test func one() async throws {
     let input = "abcdefgh\n12345678"
     let p = ShellProcess(ex, "1")
-    let (_, o, _) = try await p.captureStdoutLaunch(input)
+    let (_, o, _) = try await p.run(input)
     #expect(o == "\n")
   }
 

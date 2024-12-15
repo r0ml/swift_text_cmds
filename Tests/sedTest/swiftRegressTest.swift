@@ -7,45 +7,41 @@ import Foundation
 import Testing
 import TestSupport
 
-@Suite("sedRegress", .serialized) struct sedRegressTest {
-  let ex = "sed"
+@Suite("sedRegress", .serialized) class sedRegressTest : ShellTest {
+
+  let cmd = "sed"
+  let suite = "sedTest"
   
-  let i = getFile("sed", "regress", withExtension: "in")!
+  var i : String!
+  
+  init() {
+    i = try! self.fileContents("regress.in")
+  }
   
   @Test(arguments: ["G", "P"]) func GP(_ s : String) async throws {
-    let p = ShellProcess(ex, s)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.\(s)", withExtension: "out"))
+    let expected = try fileContents("regress.\(s).out")
+    try await run(withStdin: i, output: expected, args: s)
   }
   
   @Test func psl() async throws {
-    let p = ShellProcess(ex, "$!g;P;D")
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.psl", withExtension: "out"))
+    let expected = try fileContents("regress.psl.out")
+    try await run(withStdin: i, output: expected, args: "$!g;P;D")
   }
   
   @Test func bcb() async throws {
     let k = String(repeating: "x", count: 2043)
-    let p = ShellProcess(ex, "s/X/\(k)\\\\zz/")
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.bcb", withExtension: "out"))
+    let expected = try fileContents("regress.bcb.out")
+    try await run(withStdin: i, output: expected, args: "s/X/\(k)\\\\zz/")
   }
   
   @Test func y() async throws {
-    let p = ShellProcess(ex, "y/o/O/")
-    let (r,j, _) = try await p.captureStdoutLaunch("foo")
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.y", withExtension: "out"))
+    let expected = try fileContents("regress.y.out")
+    try await run(withStdin: "foo", output: expected, args: "y/o/O/")
   }
   
   @Test(arguments: ["g", "3", "4", "5"]) func sg(_ s : String) async throws {
-    let p = ShellProcess(ex, "s/,*/,/\(s)")
-    let (r,j, _) = try await p.captureStdoutLaunch("foo\n")
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.s\(s)", withExtension: "out"))
+    let expected = try fileContents("regress.s\(s).out")
+    try await run(withStdin: "foo\n", output: expected, args: "s/,*/,/\(s)")
   }
   
   @Test func c0() async throws {
@@ -54,10 +50,9 @@ c\\
 foo
 
 """
-    let p = ShellProcess(ex, k)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.c0", withExtension: "out"))
+    
+    let expected = try fileContents("regress.c0.out")
+    try await run(withStdin: i, output: expected, args: k)
   }
   
   @Test func c1() async throws {
@@ -66,10 +61,8 @@ foo
 foo
 
 """
-    let p = ShellProcess(ex, k)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.c1", withExtension: "out"))
+    let expected = try fileContents("regress.c1.out")
+    try await run( withStdin: i, output: expected, args: k)
   }
   
   @Test func c2() async throws {
@@ -78,10 +71,8 @@ foo
 foo
 
 """
-    let p = ShellProcess(ex, k)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.c2", withExtension: "out"))
+    let expected = try fileContents("regress.c2.out")
+    try await run(withStdin: i, output: expected, args: k)
   }
   
   @Test func c3() async throws {
@@ -90,18 +81,14 @@ foo
 foo
 
 """
-    let p = ShellProcess(ex, k)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.c3", withExtension: "out"))
+    let expected = try fileContents("regress.c3.out")
+    try await run(withStdin: i, output: expected, args: k)
   }
   
   @Test func b2a() async throws {
     let k = "2,3b\n1,2d"
-    let p = ShellProcess(ex, k)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.b2a", withExtension: "out"))
+    let expected = try fileContents("regress.b2a.out")
+    try await run(withStdin: i, output: expected, args: k)
   }
   
   // must be serialized -- file names get reused
@@ -117,8 +104,8 @@ foo
     var _inns = [URL]()
     for n in 1...5 {
       let k = "1\(n)_9\n"
-      let p = ShellProcess(ex, expr)
-      let (_, j, _) = try await p.captureStdoutLaunch(k)
+      let p = ShellProcess(cmd, expr)
+      let (_, j, _) = try await p.run(k)
       linesin.append(k)
       let u = try tmpfile("lines.in.\(n)", k)
       inns.append(u)
@@ -127,15 +114,15 @@ foo
       linesout.append(j!)
     }
     
-    let p = ShellProcess(ex, [expr]+inns.map { $0.relativePath} )
-    let (r, lo, _) = try await p.captureStdoutLaunch()
+    let p = ShellProcess(cmd, [expr]+inns.map { $0.relativePath} )
+    let (r, lo, _) = try await p.run()
     #expect(r == 0)
     
-    let p2 = ShellProcess(ex, ["-i", "", expr] + inns.map { $0.relativePath})
-    let (_, _, _) = try await p2.captureStdoutLaunch()
+    let p2 = ShellProcess(cmd, ["-i", "", expr] + inns)
+    let (_, _, _) = try await p2.run()
     
-    let p3 = ShellProcess(ex, ["-I", "", expr] + _inns.map { $0.relativePath})
-    let (_, _, _) = try await p3.captureStdoutLaunch()
+    let p3 = ShellProcess(cmd, ["-I", "", expr] + _inns)
+    let (_, _, _) = try await p3.run()
 
     var li = [String]()
     for n in inns.indices {
@@ -156,33 +143,24 @@ foo
                     ("3", "s/SED/Foo/"),
                     ("4", "s/SED/Foo/i"),
                    ]) func icase(_ n : String, s : String) async throws {
-    let p = ShellProcess(ex, s)
-    let (r,j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.icase\(n)", withExtension: "out"))
-    
+    let expected = try fileContents("regress.icase\(n).out")
+    try await run(withStdin: i, output: expected, args: s)
   }
   
   @Test func hanoi() async throws {
-    let inf = inFile("sed", "hanoi", withExtension: "sed")!
-    let p = ShellProcess(ex, "-f", inf)
-    let (r,j, _) = try await p.captureStdoutLaunch(":abcd: : :\n")
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.hanoi", withExtension: "out"))
+    let inf = try inFile("hanoi.sed")
+    let expected = try fileContents("regress.hanoi.out")
+    try await run(withStdin: ":abcd: : :\n", output: expected, args: "-f", inf)
   }
   
   @Test func math() async throws {
-    let inf = inFile("sed", "math", withExtension: "sed")!
-    let p = ShellProcess(ex, "-f", inf)
-    let (r,j, _) = try await p.captureStdoutLaunch("4+7*3+2^7/3\n")
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.math", withExtension: "out"))
+    let inf = try inFile("math.sed")
+    let expected = try fileContents("regress.math.out")
+    try await run(withStdin: "4+7*3+2^7/3\n", output: expected, args: "-f", inf)
   }
   
   @Test func not() async throws {
-    let p = ShellProcess(ex, "1!!s/foo/bar/")
-    let (r,j, _) = try await p.captureStdoutLaunch("foo\n")
-    #expect(r == 0)
-    #expect(j == getFile("sed", "regress.not", withExtension: "out"))
+    let expected = try fileContents("regress.not.out")
+    try await run(withStdin: "foo\n", output: expected, args: "1!!s/foo/bar/")
   }
 }

@@ -88,7 +88,7 @@ static long	 nfiles;	/* Number of files output so far */
 static long	 maxfiles;	/* Maximum number of files we can create */
 static char	 currfile[PATH_MAX]; /* Current output file */
 static const char *infn;	/* Name of the input file */
-static FILE	*infile;	/* Input file handle */
+static FILE	*try inFile;	/* Input file handle */
 static FILE	*overfile;	/* Overflow file for toomuch() */
 static off_t	 truncofs;	/* Offset this file should be truncated at */
 static int	 doclean;	/* Should cleanup() remove output? */
@@ -169,9 +169,9 @@ main(int argc, char *argv[])
 	if ((infn = *argv++) == NULL)
 		usage();
 	if (strcmp(infn, "-") == 0) {
-		infile = stdin;
+		try inFile = stdin;
 		infn = "stdin";
-	} else if ((infile = fopen(infn, "r")) == NULL)
+	} else if ((try inFile = fopen(infn, "r")) == NULL)
 		err(1, "%s", infn);
 
 	if (!kflag) {
@@ -224,7 +224,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Copy the rest into a new file. */
-	if (!feof(infile)) {
+	if (!feof(try inFile)) {
 		ofp = newfile();
 		while ((p = get_line()) != NULL && fputs(p, ofp) != EOF)
 			;
@@ -322,11 +322,11 @@ get_line(void)
 	static char lbuf[LINE_MAX];
 	FILE *src;
 
-	src = overfile != NULL ? overfile : infile;
+	src = overfile != NULL ? overfile : try inFile;
 
 again: if (fgets(lbuf, sizeof(lbuf), src) == NULL) {
 		if (src == overfile) {
-			src = infile;
+			src = try inFile;
 			goto again;
 		}
 		return (NULL);

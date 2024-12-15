@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "9B78FA99-A96A-4C4D-9106-E0BCD7479F4D",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E754C6332D0E4EFA00D5A3D7",
+        "name" : "edTest"
+      }
+    }
+  ],
+  "version" : 1
+}

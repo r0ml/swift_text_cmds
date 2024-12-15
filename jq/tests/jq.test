@@ -448,7 +448,7 @@ null
 
 %%FAIL IGNORE MSG
 . as [] | null
-jq: error: syntax error, unexpected ']', expecting '$' or '[' or '{' (Unix shell quoting issues?) at <top-level>, line 1:
+jq: error: syntax error, unexpected ']', output '$' or '[' or '{' (Unix shell quoting issues?) at <top-level>, line 1:
 
 %%FAIL IGNORE MSG
 . as {} | null
@@ -1510,11 +1510,11 @@ modulemeta | .deps |= length
 
 %%FAIL IGNORE MSG
 import "syntaxerror" as e; .
-jq: error: syntax error, unexpected ';', expecting $end (Unix shell quoting issues?) at /home/nico/ws/jq/tests/modules/syntaxerror/syntaxerror.jq, line 1:
+jq: error: syntax error, unexpected ';', output $end (Unix shell quoting issues?) at /home/nico/ws/jq/tests/modules/syntaxerror/syntaxerror.jq, line 1:
 
 %%FAIL IGNORE MSG
 %::wat
-jq: error: syntax error, unexpected '%', expecting $end (Unix shell quoting issues?) at <top-level>, line 1:
+jq: error: syntax error, unexpected '%', output $end (Unix shell quoting issues?) at <top-level>, line 1:
 
 import "test_bind_order" as check; check::check
 null
@@ -1574,7 +1574,7 @@ null
 
 %%FAIL IGNORE MSG
 }
-jq: error: syntax error, unexpected INVALID_CHARACTER, expecting $end (Unix shell quoting issues?) at <top-level>, line 1:
+jq: error: syntax error, unexpected INVALID_CHARACTER, output $end (Unix shell quoting issues?) at <top-level>, line 1:
 
 (.[{}] = 0)?
 null

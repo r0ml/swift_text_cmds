@@ -33,8 +33,9 @@ import Testing
 import TestSupport
 import Foundation
 
-struct sortTest {
-  let ex = "sort"
+class sortTest : ShellTest {
+  let cmd = "sort"
+  let suite = "sortTest"
   
   @Test("Basic functionality test") func basic() async throws {
     let i = """
@@ -51,28 +52,13 @@ y c o e
 z b m f
 
 """
-    let p = ShellProcess(ex)
-    let (r, j, _) = try await p.captureStdoutLaunch(i)
-    #expect(r  == 0)
-    #expect(j! == o)
+    try await run(withStdin: i, output: o)
   }
   
   @Test("Tests sorting an empty file") func empty() async throws {
-    let p = ShellProcess(ex)
-    let (r, j, _) = try await p.captureStdoutLaunch("")
-    #expect(r == 0)
-    #expect(j!.isEmpty)
-    
-    let p2 = ShellProcess(ex, "-c")
-    let (r2, j2, _) = try await p2.captureStdoutLaunch("")
-    #expect(r2 == 0)
-    #expect(j2!.isEmpty)
-    
-    let p3 = ShellProcess(ex, "-c", "-u")
-    let (r3, j3, _) = try await p3.captureStdoutLaunch("")
-    #expect(r3 == 0)
-    #expect(j3!.isEmpty)
-    
+    try await run(output: "")
+    try await run(output: "", args: "-c")
+    try await run(output: "", args: "-c", "-u")
   }
   
   @Test("Determination of end of option list", .disabled("need to figure out how to test this")) func end_of_options() async throws {
@@ -84,45 +70,46 @@ z b m f
   
   @Test("Tests with missing new line in input file")
   func missing_newline() async throws {
-    let p = ShellProcess(ex)
-    let (r, j, _) = try await p.captureStdoutLaunch("x")
-    #expect(r == 0)
-    #expect(j! == "x\n")
+    try await run(withStdin: "x", output: "x\n")
   }
   
   @Test("Tests the behavior of null bytes")
   func null_bytes() async throws {
-    let p = ShellProcess(ex)
-    let (r, j, _) = try await p.captureStdoutLaunch("\0b\n\0a\n")
-    #expect(r == 0)
-    #expect(j! == "\0a\n\0b\n")
+    try await run(withStdin: "\0b\n\0a\n", output: "\0a\n\0b\n")
   }
   
   @Test("Tests long lines and keys")
   func long_records() async throws {
     let ip = String(repeating: "x", count: 4096)
     let i = ((15...25).map { ip+String($0)+"\n" })
-    let p = ShellProcess(ex, "-r")
-    let (r, j, _) = try await p.captureStdoutLaunch(i.joined())
-    #expect(r == 0)
-    #expect(j! == i.reversed().joined())
+    try await run(withStdin: i.joined(), output: i.reversed().joined(), args: "-r")
     
     // FIXME: when input passed through pipe, fails
     let inf = try tmpfile("in", i.joined())
-    let p2 = ShellProcess(ex, "-k", "1,1r", "-k", "1", inf.relativePath)
-    let (r2, j2, _) = try await p2.captureStdoutLaunch()
-    #expect(r2 == 0)
-    #expect(j2! == i.reversed().joined())
-    
-    
+    try await run(output: i.reversed().joined(), args: "-k", "1,1r", "-k", "1", inf)
   }
   
   @Test("Tests with a long file to try to force intermediate files")
   func long_file() async throws {
+    let dat = (1...20000).map {_ in String(Int.random(in: 1...20000)) + "\n" }
+    let inf = try tmpfile("in", dat.joined() )
+    let dats = dat.sorted()
+    let datu = Array(Set(dat)).sorted()
+    try await run(output: dats.reversed().joined(), args: "-r", inf)
+    try await run(output: datu.reversed().joined(), args: "-u", "-r", inf)
   }
   
   @Test("Tests with files containing non-printable/extended characters")
   func any_char() async throws {
+    let a = try inFile("d_any_char_in.txt")
+    let b = try fileData(suite, "d_any_char_dflag_out.txt")
+    try await run(output:b, args: "-d", "-k", "2", a)
+    
+    let c = try fileData(suite, "d_any_char_fflag_out.txt")
+    try await run(output: c, args: "-f", "-k", "2", a)
+    
+    let d = try fileData(suite, "d_any_char_iflag_out.txt")
+    try await run(output: d, args: "-i", "-k", "2", a)
   }
   
   @Test("Tests the -b flag")

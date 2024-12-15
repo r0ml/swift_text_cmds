@@ -10,71 +10,43 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class colTest {
+@Suite(.serialized) class colTest : ShellTest {
 
-  let ex = "col"
+  let cmd = "col"
+  let suite = "colTest"
 
   @Test("testing just newlines", arguments: ["nl", "nl2"]) func nl(_ arg : String) async throws {
-     let i = getFile("colTest", arg, withExtension: "in")!
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.captureStdoutLaunch(i)
-    let res = arg == "nl3" ? "a\n\nb\n\n" : "a\nb\n"
-      #expect( j == res )
+    let i = try fileContents("\(arg).in")
+    try await run(withStdin: i, output: arg == "nl3" ? "a\n\nb\n\n" : "a\nb\n" )
   }
   
   @Test("testing reverse line feed") func rlf() async throws {
+    let i2 = try fileContents("rlf.in")
+    try await run(withStdin: i2, output: "a b\n")
     
-    let i2 = getFile("colTest", "rlf", withExtension: "in")!
-    let p = ShellProcess(ex)
-    let (_, j2, _) = try await p.captureStdoutLaunch( i2 )
-    let res2 = "a b\n"
-    #expect( j2 == res2 )
-    
-    let i3 = getFile("colTest", "rlf2", withExtension: "in")!
-    let p2 = ShellProcess(ex)
-    let (_, j3, _) = try await p2.captureStdoutLaunch( i3 )
-    let res3 = "a\tb\n"
-    #expect( j3 == res3 )
+    let i3 = try fileContents("rlf2.in")
+    try await run(withStdin: i3, output: "a\tb\n")
    
-    let i4 = getFile("colTest", "rlf2", withExtension: "in")!
-    let p4 = ShellProcess(ex, "-x")
-    let (_, j4, _) = try await p4.captureStdoutLaunch( i4 )
-    let res4 = "a       b\n"
-    #expect( j4 == res4 )
+    let i4 = try fileContents("rlf2.in")
+    try await run(withStdin: i4, output: "a       b\n",  args: "-x")
 
-    let i5 = getFile("colTest", "rlf3", withExtension: "in")!
-    let p5 = ShellProcess(ex, "-x")
-    let (_, j5, _) = try await p5.captureStdoutLaunch( i5 )
-    
-    let res5 = " b\na\n"
-    #expect( j5 == res5 )
-
+    let i5 = try fileContents("rlf3.in")
+    try await run(withStdin: i5, output: " b\na\n", args: "-x")
   }
 
   @Test("testing half line feed") func hlf() async throws {
-    let i = getFile("colTest", "hlf", withExtension: "in")!
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.captureStdoutLaunch( i )
-    let res = "a f\naf\n"
-    #expect( j == res )
+    let i = try fileContents("hlf.in")
+    try await run(withStdin: i, output: "a f\naf\n")
 
-    let i2 = getFile("colTest", "hlf", withExtension: "in")!
-    let p2 = ShellProcess(ex, "-f")
-    let (_, j2, _) = try await p2.captureStdoutLaunch( i2 )
     let res2 = "a f\u{1b}9\r f\u{1b}9\ra\n"
-    #expect( j2 == res2 )
+    try await run(withStdin: i, output: res2, args: "-f")
 
-    let i3 = getFile("colTest", "hlf2", withExtension: "in")!
-    let p3 = ShellProcess(ex)
-    let (_, j3, _) = try await p3.captureStdoutLaunch( i3 )
-    let res3 = "a\n f\n"
-    #expect( j3 == res3 )
+    let i3 = try fileContents("hlf2.in")
+    try await run(withStdin: i3, output: "a\n f\n")
 
-    let i4 = getFile("colTest", "hlf2", withExtension: "in")!
-    let p4 = ShellProcess(ex, "-f")
-    let (_, j4, _) = try await p4.captureStdoutLaunch( i4 )
+    let i4 = try fileContents("hlf2.in")
     let res4 = "a\u{1b}9\r f\n\u{1b}9"
-    #expect( j4 == res4 )
+    try await run(withStdin: i4, output: res4, args: "-f")
   }
 
 }

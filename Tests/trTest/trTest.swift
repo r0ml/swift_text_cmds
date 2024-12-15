@@ -35,68 +35,48 @@ import Testing
 import Foundation
 import TestSupport
 
-@Suite(.serialized) class trTest {
+@Suite(.serialized) class trTest : ShellTest {
 
-  let ex = "tr"
+  let cmd = "tr"
+  let suite = "trTest"
 
   @Test("Tests for tr -d", arguments: [
     ("x", "abcde"), ("c", "abde"), ("bd", "ace"),
     ("b-d", "ae"), ("ac-e", "b"), ("a-ce", "d")
   ]) func dopt(_ x : String, _ y : String) async throws {
-    let p = ShellProcess(ex, "-d", x)
-    let (_, j, _) = try await p.captureStdoutLaunch("abcde\n")
-    #expect( j == y + "\n")
+    try await run(withStdin: "abcde\n", output: y+"\n", args: "-d", x)
   }
 
   @Test("More tests for tr -d") func dopt2() async throws {
-    let p = ShellProcess(ex, "-d", "b-df-h")
-    let (_, j, _) = try await p.captureStdoutLaunch("abcdefghi\n")
-    #expect( j == "aei\n")
-    
-    let p2 = ShellProcess(ex, "-c", "-d", "b-df-h")
-    let (_, j2, _) = try await p2.captureStdoutLaunch("abcdefghi\n")
-    #expect( j2 == "bcdfgh")
+    try await run(withStdin: "abcdefghi\n", output: "aei\n", args: "-d", "b-df-h")
+
+    try await run(withStdin: "abcdefghi\n", output: "bcdfgh", args: "-c", "-d", "b-df-h")
   }
 
   @Test("Even more tests for tr -d", arguments: [
     ("x", ""), ("c", "c"), ("bd", "bd"),
     ("b-d", "bcd"), ("ac-e", "acde"), ("a-ce", "abce")
   ]) func dopt3(_ x : String, _ y : String) async throws {
-    let p = ShellProcess(ex, "-c", "-d", x)
-    let (_, j, _) = try await p.captureStdoutLaunch("abcde\n")
-    #expect( j == y)
+    try await run(withStdin: "abcde\n", output: y, args: "-c", "-d", x)
   }
 
-  @Test("Escape codes with tr -d") func dopt4() async throws {
-    let p = ShellProcess(ex, "-d", "'\\n'")
-    let (_, j, _) = try await p.captureStdoutLaunch("spl\nice")
-    #expect( j == "splice")
-    let p2 = ShellProcess(ex, "-d", "'\\012'")
-    let (_, j2, _) = try await p2.captureStdoutLaunch("spl\nice")
-    #expect( j2 == "splice")
-    
-    let p3 = ShellProcess(ex, "-d", "'\n'p")
-    let (_, j3, _) = try await p3.captureStdoutLaunch("spl\nice")
-    #expect( j3 == "slice")
-    let p4 = ShellProcess(ex, "-d", "'\\012'p")
-    let (_, j4, _) = try await p4.captureStdoutLaunch("spl\nice")
-    #expect( j4 == "slice")
+  @Test("Escape codes with tr -d",
+        arguments: [
+          ("splice", "'\\n'"),
+          ("splice", "'\\012'"),
+          ("slice", "'\n'p"),
+          ("slice", "'\\012'p"),
+        ]) func dopt4(_ output: String, _ pattern: String) async throws {
+    try await run(withStdin: "spl\nice", output: output, args: "-d", pattern)
   }
   
   @Test("=x= with tr -d") func dopt5() async throws {
-    let p = ShellProcess(ex, "-d", "[=c=]")
-    let (_, j, _) = try await p.captureStdoutLaunch("abcde\n")
-    #expect( j == "abde\n")
-    
-    let p2 = ShellProcess(ex, "-d", "'[=c=]'a")
-    let (_, j2, _) = try await p2.captureStdoutLaunch("abcde\n")
-    #expect( j2 == "bde\n")
+    try await run(withStdin: "abcde\n", output: "abde\n", args: "-d", "[=c=]")
+    try await run(withStdin: "abcde\n", output: "bde\n", args: "-d", "'[=c=]'a")
   }
 
   @Test("make sure 0 works with tr -d") func dopt6() async throws {
-    let p = ShellProcess(ex, "-d", "'\\0'")
-    let (_, j, _) = try await p.captureStdoutLaunch("a\0\0\0b\n")
-    #expect( j == "ab\n")
+    try await run(withStdin: "a\0\0\0b\n", output: "ab\n", args: "-d", "'\\0'")
   }
 
   @Test("test posix classes with tr -d", .serialized, arguments: [
@@ -113,9 +93,7 @@ import TestSupport
     ("'[:upper:]'", "aAzZ.123\n", "az.123\n"),
     ("'[:xdigit:]'", "aAzZ.123\n", "zZ.\n")
   ]) func dopt7(_ x : String, _ y : String, _ z : String) async throws {
-    let p = ShellProcess(ex, "-d", x)
-    let (_, j, _) = try await p.captureStdoutLaunch(y)
-    #expect( j == z)
+    try await run( withStdin: y, output: z, args: "-d", x)
   }
 
   
@@ -128,9 +106,7 @@ import TestSupport
     ("c", "acac", "acac"),
     ("c", "accacc", "acac"),
   ]) func sopt(_ x : String, _ y : String, _ z : String) async throws {
-    let p = ShellProcess(ex, "-s", x)
-    let (_, j, _) = try await p.captureStdoutLaunch(y)
-    #expect(j == z)
+    try await run(withStdin: y, output: z, args: "-s", x)
   }
   
   @Test("Tests for tr -c -s", .serialized, arguments: [
@@ -141,13 +117,9 @@ import TestSupport
     ("b-d", "abbbcccddde", "abbbcccddde"),
     ("b-d", "aaabcccde", "abcccde"),
   ]) func sopt2(_ x : String, _ y : String, _ z : String) async throws {
-    let p = ShellProcess(ex, "-c", "-s", x)
-    let (_, j, _) = try await p.captureStdoutLaunch(y)
-    #expect(j == z)
+    try await run(withStdin: y, output: z, args: "-c", "-s", x)
   }
   
-
-
   @Test("Tests for ts -ds", .serialized, arguments: [
     ("x", "y", "abcde", "abcde"),
     ("c", "x", "abcde", "abde"),
@@ -157,9 +129,7 @@ import TestSupport
     ("x", "c", "abcccde", "abcde"),
     ("c", "c", "abcccde", "abde"),
   ]) func dsopt(_ x : String, _ y : String, _ z : String, _ r : String) async throws {
-    let p = ShellProcess(ex, "-ds", x, y)
-    let (_, j, _) = try await p.captureStdoutLaunch(z)
-    #expect( j == r)
+    try await run(withStdin: z, output: r, args: "-ds", x, y)
   }
   
   @Test("Tests for ts -c -ds", .serialized, arguments: [
@@ -171,9 +141,7 @@ import TestSupport
     ("x", "c", "abcccde", ""),
     ("c", "c", "abcccde", "c"),
   ]) func dsopt2(_ x : String, _ y : String, _ z : String, _ r : String) async throws {
-    let p = ShellProcess(ex, "-c", "-ds", x, y)
-    let (_, j, _) = try await p.captureStdoutLaunch(z)
-    #expect( j == r)
+    try await run(withStdin: z, output: r, args: "-c", "-ds", x, y)
   }
   
 
@@ -191,9 +159,7 @@ import TestSupport
     ("a-z", "bozo", "abcde", "bozoo"),
     ("a-z", "qa", "abcde", "qaaaa"),
   ]) func subst(_ x : String, _ y : String, _ z : String, _ r : String) async throws {
-    let p = ShellProcess(ex, x, y)
-    let (_, j, _) = try await p.captureStdoutLaunch(z)
-    #expect( j == r)
+    try await run(withStdin: z, output: r, args: x, y)
   }
 
   @Test("You can use -s with substitution", arguments: [
@@ -201,83 +167,59 @@ import TestSupport
     ("a-c", "cba", "aabbccddee", "cbaddee"),
   ])
   func subst2(_ x : String, _ y : String, _ z : String, _ r : String) async throws {
-    let p = ShellProcess(ex, "-s", x, y)
-    let (_, j, _) = try await p.captureStdoutLaunch(z)
-   #expect( j == r)
+    try await run(withStdin: z, output: r, args: "-s", x, y)
  }
   
   @Test("Tests for tr substitution with -c") func csubst() async throws {
-    let p = ShellProcess(ex, "-c", "'\\0-ac-\\377'", "b")
-    let (_, j, _) = try await p.captureStdoutLaunch("abcde\n")
-    #expect(j == "abcde\n")
-
-    let p2 = ShellProcess(ex, "-c", "'\\0-ad-\\377'", "bc")
-    let (_, j2, _) = try await p2.captureStdoutLaunch("abcde\n")
-    #expect(j2 == "abcde\n")
-
-    let p3 = ShellProcess(ex, "-c", "'\\0-@'", "QUACK")
-    let (_, j3, _) = try await p3.captureStdoutLaunch("ABCDE\n")
-    #expect(j3 == "QUACK\n")
+    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ac-\\377'", "b")
+    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ad-\\377'", "bc")
+    try await run(withStdin: "AGCDE\n", output: "QUACK\n", args: "-c", "'\\0-@'", "QUACK")
   }
   
   @Test("Legacy tests") func legacy() async throws {
-    let p = ShellProcess(ex, "abcde", "12345")
-    let i = getFile("trTest", "regress", withExtension: "in" )!
-    let i2 = getFile("trTest", "regress2", withExtension: "in" )!
-    
-    let (_, j1, _) = try await p.captureStdoutLaunch(i)
-    #expect( j1 == getFile("trTest", "regress.00", withExtension: "out"))
+    let i = try fileContents("regress.in" )
+    let i2 = try fileContents("regress2.in" )
+    let expected1 = try fileContents("regress.00.out")
+    try await run(withStdin: i, output: expected1, args: "abcde", "12345")
 
-    let p2 = ShellProcess(ex, "12345", "abcde")
-    let (_, j2, _) = try await p2.captureStdoutLaunch(i)
-    #expect( j2 == getFile("trTest", "regress.01", withExtension: "out"))
+    let expected2 = try fileContents("regress.01.out")
+    try await run(withStdin: i, output: expected2, args: "12345", "abcde")
 
-    let p3 = ShellProcess(ex, "-d", "aceg")
-    let (_, j3, _) = try await p3.captureStdoutLaunch(i)
-    #expect( j3 == getFile("trTest", "regress.02", withExtension: "out"))
+    let expected3 = try fileContents("regress.02.out")
+    try await run(withStdin: i, output: expected3, args: "-d", "aceg")
 
-    let p4 = ShellProcess(ex, "[[:lower:]]", "[[:upper:]]" )
-    let (_, j4, _) = try await p4.captureStdoutLaunch(i)
-    #expect( j4 == getFile("trTest", "regress.03", withExtension: "out"))
+    let expected4 = try fileContents("regress.03.out")
+    try await run(withStdin: i, output: expected4, args: "[[:lower:]]", "[[:upper:]]" )
 
-    let p5 = ShellProcess(ex, "[[:alpha:]]", ".")
-    let (_, j5, _) = try await p5.captureStdoutLaunch(i)
-    #expect( j5 == getFile("trTest", "regress.04", withExtension: "out"))
+    let expected5 = try fileContents("regress.04.out")
+    try await run(withStdin: i, output: expected5, args: "[[:alpha:]]", ".")
 
-//    let (_, j6, _) = try captureStdoutLaunch(cl, ex, ["abcde", "12345"], i)
-//    #expect( j6 == getFile("trTest", "regress.05", withExtension: "out"))
+//    let (_, j6, _) = try run(cl, ex, ["abcde", "12345"], i)
+//    #expect( j6 == try fileContents("trTest", "regress.05", withExtension: "out"))
 
-    let p7 = ShellProcess(ex, "[[:digit:]]", "?")
-    let (_, j7, _) = try await p7.captureStdoutLaunch(i2)
-    #expect( j7 == getFile("trTest", "regress.06", withExtension: "out"))
+    let expected7 = try fileContents("regress.06.out")
+    try await run(withStdin: i, output: expected7, args: "[[:digit:]]", "?")
 
-    let p8 = ShellProcess(ex, "[[:alnum:]]", "#")
-    let (_, j8, _) = try await p8.captureStdoutLaunch(i2)
-    #expect( j8 == getFile("trTest", "regress.07", withExtension: "out"))
+    let expected8 = try fileContents("regress.07.out")
+    try await run(withStdin: i2, output: expected8, args: "[[:alnum:]]", "#")
 
-//    let (_, j9, _) = try captureStdoutLaunch(cl, ex, ["abcde", "12345"], i)
-//    #expect( j9 == getFile("trTest", "regress.08", withExtension: "out"))
+//    let (_, j9, _) = try run(cl, ex, ["abcde", "12345"], i)
+//    #expect( j9 == try fileContents("trTest", "regress.08", withExtension: "out"))
 
-    let pa = ShellProcess(ex, "\\014\\r", "?#")
-    let (_, ja, _) = try await pa.captureStdoutLaunch("\u{0c}\r\n")
-    #expect( ja == getFile("trTest", "regress.09", withExtension: "out"))
+    let expecteda = try fileContents("regress.09.out")
+    try await run(withStdin: "\u{0c}\r\n", output: expecteda, args: "\\014\\r", "?#")
 
-    let pb = ShellProcess(ex, "x[[:xdigit:]]", "?\\$" )
-    let (_, jb, _) = try await pb.captureStdoutLaunch("0xdeadbeef")
-    #expect( (jb!+"\n") == getFile("trTest", "regress.0a", withExtension: "out"))
+    let expectedb = try fileContents("regress.0a.out")
+    try await run(withStdin: "0xdeadbeef\n", output: expectedb, args: "x[[:xdigit:]]", "?\\$" )
 
-    let pc = ShellProcess(ex, "-cd", "[[:xdigit:]]")
-    let (_, jc, _) = try await pc.captureStdoutLaunch(i2)
-    #expect( (jc!+"\n") == getFile("trTest", "regress.0b", withExtension: "out"))
+    let expectedc = try fileContents("regress.0b.out")
+    let exc = String(expectedc.dropLast())
+    try await run(withStdin: i2, output: exc, args: "-cd", "[[:xdigit:]]")
 
-    let pd = ShellProcess(ex, "-d", "[=]=]" )
-    let (_, jd, _) = try await pd.captureStdoutLaunch("[[[[]]]]]\n")
-    #expect( jd == getFile("trTest", "regress.0c", withExtension: "out"))
+    let expectedd = try fileContents("regress.0c.out")
+    try await run(withStdin: "[[[[]]]]]\n", output: expectedd, args: "-d", "[=]=]" )
 
-    let pe = ShellProcess(ex, "-d", "[=]" )
-    let (_, je, _) = try await pe.captureStdoutLaunch( "]=[\n")
-    #expect( je == getFile("trTest", "regress.0d", withExtension: "out"))
-
-
+    let expectede = try fileContents("regress.0e.out")
+    try await run(withStdin: "]=[\n", output: expectede, args: "-d", "[=]" )
   }
 }
