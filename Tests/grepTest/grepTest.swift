@@ -120,7 +120,7 @@ import TestSupport
   
   @Test("Checks displaying context with -A, -B and -C flags") func context() async throws {
     let dd = try geturl("grepTest")
-    let inf = URL(filePath: "d_context_a.in", relativeTo: dd)
+    let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
     let expected = try fileContents("d_context_a.out")
     try await run(output: expected, args: "-C2", "bamboo", inf)
     

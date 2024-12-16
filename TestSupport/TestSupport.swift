@@ -28,13 +28,14 @@ public actor ShellProcess {
   var stderrx : Pipe = Pipe()
   
   var writeok = true
-  var edat : String? = nil
+//  var edat : String? = nil
   
   let odat = Mutex(Data())
+  let edat = Mutex(Data())
   
   public func interrupt() {
     defer {
-      cleanup()
+      Task { await cleanup() }
     }
     process.interrupt()
   }
@@ -79,7 +80,7 @@ public actor ShellProcess {
         default: fatalError( "not possible")
       }
     }
-    
+  
     process.arguments = aargs
     process.environment = envx
     process.currentDirectoryURL = cur
@@ -142,12 +143,10 @@ public actor ShellProcess {
     return await theCapture()
   }
 
-  /*
   public func setOutput(_ o : FileHandle) {
     process.standardOutput = o
     try? output.fileHandleForWriting.close()
   }
-  */
   
   public func theLaunch(_ input : FileHandle) throws {
     
@@ -158,6 +157,9 @@ public actor ShellProcess {
       self.odat.withLock { $0.append(x.availableData) }
     }
     
+    stderrx.fileHandleForReading.readabilityHandler = { x in
+      self.edat.withLock { $0.append(x.availableData) }
+    }
     process.terminationHandler = { x in
       Task {
         await self.doTermination()
@@ -185,7 +187,11 @@ public actor ShellProcess {
     output.fileHandleForReading.readabilityHandler = { x in
       self.odat.withLock { $0.append(x.availableData) }
     }
-    
+
+    stderrx.fileHandleForReading.readabilityHandler = { x in
+      self.edat.withLock { $0.append(x.availableData) }
+    }
+
     process.terminationHandler = { x in
       Task {
         await self.doTermination()
@@ -221,7 +227,7 @@ public actor ShellProcess {
     self.stopWriting()
     do {
       if let d = try self.stderrx.fileHandleForReading.readToEnd() {
-        self.setError( String(data: d, encoding: .utf8) )
+        self.appendError(d)
       }
       if let k3 = try self.output.fileHandleForReading.readToEnd() {
         self.append(k3)
@@ -229,7 +235,7 @@ public actor ShellProcess {
     } catch(let e) {
       print("doTermination: ",e.localizedDescription)
     }
-    self.cleanup()
+    await  self.cleanup()
   }
   
   func stopWriting() {
@@ -244,27 +250,30 @@ public actor ShellProcess {
     odat.withLock { $0.append(x) }
   }
   
-  public func setError(_ x : String?) {
-    edat = x
+  public func appendError(_ x : Data) {
+    edat.withLock { $0.append(x) }
   }
   
   public func theCapture() async -> (Int32, String?, String?) {
     await process.waitUntilExitAsync()
     let k1 = String(data: odat.withLock { $0 }, encoding: .utf8)
-    return (process.terminationStatus, k1, edat)
+    let k2 = String(data: edat.withLock { $0 }, encoding: .utf8)
+    return (process.terminationStatus, k1, k2)
   }
   
   public func theCaptureAsData() async -> (Int32, Data, String ) {
     await process.waitUntilExitAsync()
     let k1 = odat.withLock { $0 }
-    return (process.terminationStatus, k1, edat ?? "")
+    let k2 = String(data: edat.withLock { $0 }, encoding: .utf8) ?? "unable to convert error to utf8"
+    return (process.terminationStatus, k1, k2 )
   }
   
-  func cleanup() {
+  func cleanup() async {
     try? output.fileHandleForWriting.close()
+    try? stderrx.fileHandleForWriting.close()
+    await Task.yield()
     try? output.fileHandleForReading.close()
     try? stderrx.fileHandleForReading.close()
-    try? stderrx.fileHandleForWriting.close()
   }
   
   static public func run(_ ex : String, withStdin: Stdinable? = nil, status: Int = 0,  output: String? = nil, error: String? = nil, args: Arguable...) async throws {
@@ -405,7 +414,8 @@ public func fileData(_ suite: String, _ name: String) throws -> Data {
       }
     } else {
       let b = Bundle(for: Clem.self)
-      url = b.bundleURL.deletingLastPathComponent().appending(path: "text_cmds_\(suite).bundle").appending(path: "Resources")
+      // Doens't work without the directory hint!
+      url = b.bundleURL.deletingLastPathComponent().appending(path: "text_cmds_\(suite).bundle").appending(path: "Resources", directoryHint: .isDirectory)
       if let name {
         url = url?.appending(path: name)
       }

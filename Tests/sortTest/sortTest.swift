@@ -33,7 +33,7 @@ import Testing
 import TestSupport
 import Foundation
 
-class sortTest : ShellTest {
+@Suite(.serialized) class sortTest : ShellTest {
   let cmd = "sort"
   let suite = "sortTest"
   
@@ -112,177 +112,652 @@ z b m f
     try await run(output: d, args: "-i", "-k", "2", a)
   }
   
-  @Test("Tests the -b flag")
+  @Test("Tests the -b flag"
+    , .disabled("Behavior differs from NetBSD")
+  )
   func bflag() async throws {
-    
+    let inp = "  b\n a\n"
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: "-b", inf)
+    try await run(withStdin: inp, output: inp, args: "-b")
+    let (r, j, _) = try await ShellProcess(cmd, inf).run()
+    try await run(withStdin: j!, status: 1, error: /disorder/, args: "-c", "-r")
+    rm(inf)
   }
   
   @Test("Tests the -c flag")
   func cflag() async throws {
-    
+    let inf = try tmpfile("in", "b\na\n")
+    try await run(status: 1, error: /disorder/, args: "-c", inf)
   }
   
   
   @Test("Tests the -k flag with one field")
   func kflag_one_field() async throws {
+    let inf = try tmpfile("in", """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""")
+    let outp = """
+x a n g
+x a n h
+z b m f
+y c o e
+
+"""
     
+    try await run(output: outp, args: "-k2.1", inf)
+    rm(inf)
   }
   
   @Test("Test the -k flag with two fields")
   func kflag_two_fields() async throws {
+    let inf = try tmpfile("in", """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""")
+    let outp = """
+x a n g
+x a n h
+z b m f
+y c o e
+
+"""
     
+    try await run(output: outp, args: "-k2.1,2.0", inf)
+    rm(inf)
   }
   
   @Test("Test the -k flag with many fields")
   func kflag_many_fields() async throws {
+    let inf = try tmpfile("in", """
+0:2:3:4:5:6:7:8:9
+1:1:3:4:5:6:7:8:9
+1:2:2:4:5:6:7:8:9
+1:2:3:3:5:6:7:8:9
+1:2:3:4:4:6:7:8:9
+1:2:3:4:5:5:7:8:9
+1:2:3:4:5:6:6:8:9
+1:2:3:4:5:6:7:7:9
+1:2:3:4:5:6:7:8:8
+
+""")
+    let outp = """
+1:2:3:4:5:6:7:8:8
+1:2:3:4:5:6:7:7:9
+1:2:3:4:5:6:6:8:9
+1:2:3:4:5:5:7:8:9
+1:2:3:4:4:6:7:8:9
+1:2:3:3:5:6:7:8:9
+1:2:2:4:5:6:7:8:9
+1:1:3:4:5:6:7:8:9
+0:2:3:4:5:6:7:8:9
+
+"""
     
+    try await run(output: outp, args: "-t:", "-k9", "-k8", "-k7", "-k6", "-k5", "-k4", "-k3", "-k2", "-k1", inf)
+    rm(inf)
   }
   
   @Test("Test the -k flag with out of bounds fields")
   func kflag_outofbounds() async throws {
-    
+      let inp = """
+0 5
+1 4
+2 3
+3 2
+4 1
+5 0
+
+"""
+    let inf = try tmpfile("in", inp)
+    try await run(output:inp, args: "-k2.2,2.1", "-k2.3,2.4", inf)
+    rm(inf)
   }
   
   @Test("Test the -k flag with apparently nonmonotone field specs")
   func kflag_nonmonotone() async throws {
-    
+    let inp = """
+aaaa c
+x a
+0 b
+
+"""
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: "-k2,1.3", "-k2.5,2.5", inf)
   }
   
   @Test("Test the -k flag field limits")
   func kflag_limits() async throws {
-    
+    let inf = try tmpfile("in", """
+a 2
+a 1
+b 2
+b 1
+
+""")
+    let outp = """
+b 2
+b 1
+a 2
+a 1
+
+"""
+    try await run(output: outp, args: "-r", "-k1,1", "-k2nr", inf)
+    rm(inf)
   }
   
-  @Test("Test the -k flag with various alpha fields")
-  func kflag_alpha() async throws {
-    
+  @Test("Test the -k flag with various alpha fields", arguments: [
+    (2, ["-k2b", "-k2"]),
+    (3, ["-k2,2.1b", "-k2"]),
+    (4, ["-k2.3", "-k2"]),
+    (5, ["-k2b,2.3", "-k2"]),
+    (6, ["-k2.3,2.1b", "-k2"]),
+    (7, ["-k2,2.1b", "-k2r"]),
+    (8, ["-b", "-k2,2", "-k2"]),
+  ])
+  func kflag_alpha(_ n : Int, _ cols : [String]) async throws {
+    let inf = try tmpfile("in", """
+01:04:19:01:16:01:21:01 a
+02:03:13:15:13:19:15:02  a
+03:02:07:09:07:13:09:03   a
+04:01:01:03:01:07:03:04    a
+05:08:20:16:17:02:20:05 aa
+06:07:14:18:14:20:14:06  aa
+07:06:08:10:08:14:08:07   aa
+08:05:02:04:02:08:02:08    aa
+09:16:22:02:22:04:24:13 b
+10:15:16:20:19:22:18:14  b
+11:14:10:12:10:16:12:15   b
+12:13:04:06:04:10:06:16    b
+13:24:24:22:24:06:22:21 bb
+14:23:18:24:21:24:16:22  bb
+15:22:12:14:12:18:10:23   bb
+16:21:06:08:06:12:04:24    bb
+17:12:21:21:18:03:19:09 ab
+18:11:15:19:15:21:13:10  ab
+19:10:09:11:09:15:07:11   ab
+20:09:03:05:03:09:01:12    ab
+21:20:23:17:23:05:23:17 ba
+22:19:17:23:20:23:17:18  ba
+23:18:11:13:11:17:11:19   ba
+24:17:05:07:05:11:05:20    ba
+
+""")
+    let (r, xx, _) = try await ShellProcess(cmd, cols + [inf]).run()
+    #expect(r == 0)
+    try await run(withStdin: xx!, args: "-c", "-t:", "-k\(n)n")
   }
   
   @Test("Test the -k flag with a field without end")
   func kflag_no_end() async throws {
-    
+    let inp = """
+a-B
+a+b
+a b
+A+b
+a b
+
+"""
+    let outp = """
+a b
+a b
+A+b
+a-B
+a+b
+
+"""
+    try await run(withStdin: inp, output: outp, args: "-df", "-k", "1", "-k", "1d")
   }
   
   @Test("Tests the -m flag")
   func mflag() async throws {
-    
+      let in1 = try tmpfile("in1", """
+a
+ab
+ab
+bc
+ca
+
+""")
+    let in2 = try tmpfile("in2", """
+Z
+a
+aa
+ac
+c
+
+""")
+    let outp = """
+Z
+a
+a
+aa
+ab
+ab
+ac
+bc
+c
+ca
+
+"""
+    try await run(output: outp, args: "-m", in1, in2)
+    rm(in1, in2)
   }
   
   
   @Test("Tests the -m flag together with -u")
   func mflag_uflag() async throws {
-    
+    let inp = """
+a
+b
+c
+d
+
+"""
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: "-m", "-u", inf)
+    rm(inf)
   }
   
   @Test("Tests that the -m flag together with -u picks the first among equals")
   func mflag_uflag_first() async throws {
-    
+    let inf = try tmpfile("in", """
+3B
+3b
+3B2
+~3B2
+4.1
+41
+5
+5.
+
+""")
+    let outp = """
+3B
+3B2
+4.1
+5
+
+"""
+    try await run(output:outp, args: "-mudf", inf)
+    try await run(output:outp, args: "-mudf", "-k1", inf)
+    rm(inf)
   }
   
   @Test("Tests the -n flag")
   func nflag() async throws {
-    
+    let inf = try tmpfile("in", """
+-99.0
+-99.1
+-.0002
+-10
+2
+0010.000000000000000000000000000000000001
+10
+3x
+x
+
+""")
+    let outp = """
+-99.1
+-99.0
+-10
+-.0002
+x
+2
+3x
+10
+0010.000000000000000000000000000000000001
+
+"""
+    try await run(output: outp, args: "-n", inf)
+    rm(inf)
   }
   
   @Test("Tests the -n and -r flag combination")
   func nflag_rflag() async throws {
-    
+    let inf = try tmpfile("in", """
+1
+123
+2
+
+""")
+    let outp = """
+123
+2
+1
+
+"""
+    try await run(output: outp, args: "-rn", inf)
+    rm(inf)
   }
   
   @Test("Tests the -o flag")
   func oflag() async throws {
-    
+    let inf = try tmpfile("in", """
+1
+1
+2
+2
+3
+3
+4
+4
+
+""")
+    let outp = """
+1
+2
+3
+4
+
+"""
+    try await run(args: "-u", "-o", inf, inf)
+    let zz = try String(contentsOf: inf, encoding: .utf8)
+    #expect(zz == outp)
   }
   
   @Test("Tests the -o flag after the file names")
   func oflag_displaced() async throws {
-    
+    let oo = try tmpfile("out", "")
+    rm(oo)
+    try await run(args: "/dev/null", "-o", oo)
+    #expect(FileManager.default.fileExists(atPath: oo.path))
   }
   
   @Test("Tests the -r flag")
   func rflag() async throws {
-    
+    let inf = try tmpfile("in", """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""")
+    let outp = """
+z b m f
+y c o e
+x a n h
+x a n g
+
+"""
+    try await run(output: outp, args: "-r", inf)
+    rm(inf)
   }
   
   @Test("Tests the -s flag")
   func sflag() async throws {
-    
+    let inf = try tmpfile("in", """
+a 2
+b 1
+c 2
+a 1
+b 2
+c 1
+
+""")
+      let outp = """
+a 2
+a 1
+b 1
+b 2
+c 2
+c 1
+
+"""
+    try await run(output: outp, args: "-s", "-k1,1", inf)
+    rm(inf)
   }
   
   @Test("Tests the -s flag with multiple files")
   func sflag_many_files() async throws {
-    
+      let in1 = try tmpfile("in1", "c 2\na 2\n")
+    let in2 = try tmpfile("in2", "c 1\nb 1\na 1\n")
+    let outp = "c 2\nb 1\na 2\n"
+    try await run(output: outp, args: "-smru", "-k1,1", in1, in1, in2, in2)
+    rm(in1, in2)
   }
   
-  @Test("Tests the -t flag")
-  func tflag() async throws {
-    
+  @Test("Tests the -t flag",
+        arguments: [
+          ["-r", "+0"],
+          ["+0", "-1"],
+          ["-r", "-k", "1"],
+          ["-k", "1,1"],
+        ])
+  func tflag(_ a : [String]) async throws {
+    let inp = "a:\na!\n"
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: ["-t", ":"] + a + [inf] )
+    rm(inf)
   }
   
   @Test("Tests the -t flag with a character as the delimiter")
   func tflag_alphabetic() async throws {
-    
+    let inp =  "zXa\nyXa\nzXb\n"
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: "-tX", "-k2", "-k1r,1", inf)
+    rm(inf)
   }
   
-  @Test("Tests the -t flag with character positions if fields")
-  func tflag_char_pos() async throws {
-    
+  @Test("Tests the -t flag with character positions if fields", arguments: [
+    ["-b", "-t:", "+1.1"],
+    ["-t:", "+1.1r"],
+    ["-b", "-t:", "-k", "2.2"],
+    ["-t:", "-k", "2.2r"],
+  ])
+  func tflag_char_pos(_ a : [String]) async throws {
+    let inf = try tmpfile("in", ": ab\n:bac\n")
+    let outp = ":bac\n: ab\n"
+    try await run(output: outp, args: a + [inf])
+    rm(inf)
   }
   
   @Test("Tests the -t flag with spaces and tabs as the delimiter")
   func tflag_whitespace() async throws {
+    let inp = """
+ b c
+ b\tc
+\tb c
+
+"""
+    let inf = try tmpfile("in", inp)
     
+    try await run(output: inp, args: "-t", " ", "-k2,2", inf)
+    try await run(output: inp, args: "-t", " ", "-k2.1,2.0", inf)
+    
+    var outp = """
+ b c
+\tb c
+ b\tc
+
+"""
+    try await run(output: outp, args: "-t", "\t", "-k2,2", inf)
+    try await run(output: outp, args: "-t", "\t", "-k2.1,2.0", inf)
+    
+    outp = """
+ b\tc
+\tb c
+ b c
+
+"""
+    try await run(withStdin: inp, output: outp, args: "-k2")
+    
+    outp = """
+\tb c
+ b\tc
+ b c
+
+"""
+    try await run(withStdin: inp, output: outp, args: "-k2b")
+    rm(inf)
   }
   
   
   @Test("Tests the -u flag")
   func uflag() async throws {
-    
+    let inf = try tmpfile("in", """
+a
+aa
+aaa
+aa
+
+""")
+    let outp = """
+a
+aa
+aaa
+
+"""
+    try await run(output: outp, args: "-u", inf)
+    rm(inf)
   }
   
   @Test("Tests the -u and -r flag combination")
   func uflag_rflag() async throws {
-    
+      let inf = try tmpfile("in", """
+a
+aa
+aaa
+aa
+
+""")
+    let outp = """
+aaa
+aa
+a
+
+"""
+    try await run(output: outp, args: "-ru", inf)
+    rm(inf)
   }
   
-  @Test("Tests +- addressing: +1 should become -k2.1")
+  @Test("Tests +- addressing: +1 should become -k2.1" )
   func plus_one() async throws {
-    
+    let inf = try tmpfile("in", """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""")
+    let outp = """
+x a n g
+x a n h
+z b m f
+y c o e
+
+"""
+    try await run(output: outp, args: "+1", inf)
+    rm(inf)
   }
   
   @Test("Tests +- addressing: +1 -2 should become -k2.1,2.0")
   func plus_one_minus_two() async throws {
-    
+    let inf = try tmpfile("in", """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""")
+    let outp = """
+x a n h
+x a n g
+z b m f
+y c o e
+
+"""
+    try await run(output: outp, args: "-s", "+1", "-2", inf)
+    rm(inf)
+
   }
   
   @Test("Tests +- addressing: -- +0 raised a '-k1.1: No such file or directory' error")
   func plus_zero() async throws {
-    
+    let inp = "good contents\n"
+    let inf = try tmpfile("+0", inp)
+    try await run(output: inp, args: "--", "+0")
+    rm(inf)
   }
   
   @Test("Tests +- addressing: apparently nonmonotone field specs")
   func plus_monotone() async throws {
-    
+    let inp = """
+aaaa c
+x a
+0 b
+
+"""
+    let inf = try tmpfile("in", inp)
+    try await run(output: inp, args: "+1", "-0.3", "+1.4", "-1.5", inf)
+    rm(inf)
   }
   
-  @Test("Tests +- addressing: intermediate wrong behavior that raised a '+0: No such file or directory' error")
+  @Test("Tests +- addressing: intermediate wrong behavior that raised a '+0: No such file or directory' error"
+    , .disabled("Behavior differs from NetBSD")
+  )
   func plus_bad_tempfile() async throws {
-    
+   let inp = "good contents\n"
+    let p = "more contents\n"
+   let inf = try tmpfile("+0", inp)
+    let f = try tmpfile("in", p)
+    try await run(output: inp+p, args: f, inf)
+    rm(inf, f)
   }
   
-  @Test("Tests +- addressing: invalid record delimiter")
+  @Test("Tests +- addressing: invalid record delimiter"
+        , .disabled("-R flag not available")
+  )
   func plus_rflag_invalid() async throws {
-    
+    let inp = """
+z b m f
+y c o e
+x a n h
+x a n g
+
+""".replacingOccurrences(of:"\n", with: "+")
+    let inf = try tmpfile("in", inp)
+    try await run(output: "x a n g+z a n h+z b m f+y c o e+", args: "-R", "+", "-k2", inf)
+    rm(inf)
   }
   
   @Test("Tests +- addressing: using -T caused a 'No such file or directory' error")
   func plus_tflag() async throws {
-    
+    let t = FileManager.default.temporaryDirectory
+    let tp = URL(fileURLWithPath: "+", relativeTo: t)
+    try FileManager.default.createDirectory(at: tp, withIntermediateDirectories: true)
+    try await run(withStdin: Array(repeating: "y\n", count: 200000).joined(), args: "-T", "+" )
+    rm(tp)
   }
-  
+    
   @Test("Tests +- addressing: field without end")
   func plus_no_end() async throws {
-    
+    let inf = try tmpfile("in", """
+a-B
+a+b
+a b
+A+b
+a  b
+
+""")
+    let outp = """
+a  b
+a b
+A+b
+a-B
+a+b
+
+"""
+    try await run(output: outp, args: "-df", "+0", "+0d", inf)
+    rm(inf)
   }
   
 }

@@ -64,15 +64,19 @@ import Foundation
   }
 
   @Test func e_output() async throws {
-    let x = try fileContents("d_e_output.out")
-    let inp = try inFile("d_e_output.in")
+    let x = try fileContents("d_se_output.out")
+    let inp = try inFile("d_se_output.in")
     try await run(output: x, args: "-e", inp)
   }
 
   @Test func vt_output() async throws {
     let x = try fileContents("d_vt_output.out")
     let inp = try inFile("d_vt_output.in")
-    try await run(output: x, args: "-vt", inp)
+    try await run(output: x, args: "-vt", inp
+//                  , env: ["LC_ALL":"en_US:CLEM", "LANG":"en_US:CLEM"]
+                  // Fails without this from command line, but works in XCode
+                  , env: ["LC_ALL":"", "LANG":""]
+                   )
   }
   
 }

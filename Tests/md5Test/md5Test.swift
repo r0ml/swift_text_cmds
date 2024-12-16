@@ -32,9 +32,10 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class md5Test {
+@Suite(.serialized) class md5Test : ShellTest {
 
-  let ex = "md5"
+  let cmd = "md5"
+  let suite = "md5Test"
 
   let n=8
   // algorithms="md5 sha1 sha224 sha256 sha384 sha512 sha512t224 sha512t256 rmd160 skein256 skein512 skein1024"
@@ -46,6 +47,7 @@ import Foundation
   let name_bsd_sha256="SHA256"
   let name_bsd_sha384="SHA384"
   let name_bsd_sha512="SHA512"
+    
   let name_bsd_sha512t224="SHA512t224"
   let name_bsd_sha512t256="SHA512t256"
   let name_bsd_rmd160="RMD160"
@@ -214,9 +216,7 @@ import Foundation
 
   
   @Test("Test BSD md5", arguments: 0..<8) func bsd_md5(_ i : Int) async throws {
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.run(inp[i])
-    #expect( j!.dropLast() == out_md5[i] )
+    try await run(withStdin: inp[i], output: out_md5[i]+"\n")
     }
 
 }

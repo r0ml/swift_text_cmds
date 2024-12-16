@@ -31,15 +31,17 @@
 import Testing
 import TestSupport
 
-struct grepBsdTest {
-  let ex = "grep"
+class grepBsdTest : ShellTest {
+  let cmd = "grep"
+  let suite = "grepTest"
+  
   @Test func grep_r_implied() async throws {
     let rd = try geturl("grepTest")
-    let p = ShellProcess(ex, "-r", "--exclude=*.out", "-e", "test", ".", cd: rd)
+    let p = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", ".", cd: rd)
 //    await p.setDirectory(rd)
     let (r, j, e) = try await p.run()
     #expect(r == 0, Comment(rawValue: e ?? ""))
-    let p2 = ShellProcess(ex, "-r", "--exclude=*.out", "-e", "test", cd: rd)
+    let p2 = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", cd: rd)
     let (r2, j2, _) = try await p2.run()
     
     #expect(r2 == 0)

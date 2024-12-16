@@ -301,7 +301,7 @@ line
     let k2 = String(data: await p.midCapture(), encoding: .utf8)!
 
     #expect(k == "1\n2\n3\n")
-    #expect(k2 == k + "4\n5\n")
+    #expect(k2 == "4\n5\n")
     await p.interrupt()
     rm(inf)
   }
@@ -332,7 +332,7 @@ line
     let k2 = String(data: m2, encoding: .utf8)!
 
     #expect(k == "1\n2\n3\n")
-    #expect(k2 == "1\n2\n3\n4\n5\n")
+    #expect(k2 == "4\n5\n")
     await p.interrupt()
     
     rm(inf)

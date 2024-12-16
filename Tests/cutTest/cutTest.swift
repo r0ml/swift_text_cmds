@@ -438,10 +438,13 @@ qwe:rty:uio:p[]:asd:fgh:jkl
   @Test("Checks support for non-ascii characters") func latin1() async throws {
     let o1 = "bar\nBar\nBAr\nBAR\n"
     let res = try inFile("d_latin1.in")
-    try await run(output: o1, args: "-b", "6,7,8", res)
+    try await run(output: o1, args: "-b", "6,7,8", res
+                  // This is required for command-line swift test
+                  // but it seems like any values work
+                  , env: ["LANG":"C", "LC_ALL":"C"])
     
     let o2 = "bar\nBar\nBAr\nBAR\n"
-    try await run(output: o2, args: "-c", "6,7,8", res)
+    try await run(output: o2, args: "-c", "6,7,8", res, env: ["LANG":"C", "LC_ALL":"C"])
   }
 
   @Test("Checks support for multibyte characters") func utf8() async throws {

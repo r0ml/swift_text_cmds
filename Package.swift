@@ -22,6 +22,9 @@
 import PackageDescription
 import Foundation
 
+// run tests like this:
+// PATH=/usr/bin:/bin:/sbin TEST_ORIGINAL=1 swift test --no-parallel
+
 let package = Package(
   name: "text_cmds",
   // Mutex is only available in v15 or newer

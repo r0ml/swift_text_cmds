@@ -81,15 +81,6 @@
 		2A473D0029EDF39C0049F068 /* regress.traditional.in in Install Test Files */ = {isa = PBXBuildFile; fileRef = 2A1513162946F9980051ED9C /* regress.traditional.in */; };
 		2A473D0129EDF39C0049F068 /* regress.traditional.out in Install Test Files */ = {isa = PBXBuildFile; fileRef = 2A1513132946F9980051ED9C /* regress.traditional.out */; };
 		2A473D0229EDF3A20049F068 /* legacy_test.sh in Install Test Files */ = {isa = PBXBuildFile; fileRef = 2A1513182946F9980051ED9C /* legacy_test.sh */; };
-		2A6BBF94275EB19600EBBEA6 /* regress.00.out in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF8B275EB14C00EBBEA6 /* regress.00.out */; };
-		2A6BBF95275EB19600EBBEA6 /* regress.00a.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF8E275EB14C00EBBEA6 /* regress.00a.in */; };
-		2A6BBF96275EB19600EBBEA6 /* regress.00b.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF8C275EB14C00EBBEA6 /* regress.00b.in */; };
-		2A6BBF97275EB19600EBBEA6 /* regress.01.out in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF8D275EB14C00EBBEA6 /* regress.01.out */; };
-		2A6BBF98275EB19600EBBEA6 /* regress.01a.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF90275EB14C00EBBEA6 /* regress.01a.in */; };
-		2A6BBF99275EB19600EBBEA6 /* regress.01b.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF8F275EB14C00EBBEA6 /* regress.01b.in */; };
-		2A6BBF9A275EB19600EBBEA6 /* regress.02.out in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF91275EB14C00EBBEA6 /* regress.02.out */; };
-		2A6BBF9B275EB19600EBBEA6 /* regress.02a.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF87275EB14C00EBBEA6 /* regress.02a.in */; };
-		2A6BBF9C275EB19600EBBEA6 /* regress.02b.in in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBF88275EB14C00EBBEA6 /* regress.02b.in */; };
 		2A6BBFAE275EB43600EBBEA6 /* d_basic.out in Copy Test Files */ = {isa = PBXBuildFile; fileRef = 2A6BBFA4275EB42F00EBBEA6 /* d_basic.out */; };
 		2AC6B55E268C1B16006AA0B7 /* libutil.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AC6B55D268C1B16006AA0B7 /* libutil.tbd */; };
 		CB345C012A0BDBE9001FE3D2 /* md5_test.sh in Copy Test Files */ = {isa = PBXBuildFile; fileRef = CB345C002A0BDBE5001FE3D2 /* md5_test.sh */; };
@@ -645,15 +636,15 @@
 		E79737D12D0E947D0011846D /* q1.err in Resources */ = {isa = PBXBuildFile; fileRef = E79737032D0E947D0011846D /* q1.err */; };
 		E79737DF2D0E99010011846D /* libTestSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E76970A12CF54ACA00F3903F /* libTestSupport.a */; platformFilters = (macos, ); };
 		E79737E52D0E9C480011846D /* csplitTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E79737D32D0E98C70011846D /* csplitTest.swift */; };
-		E79737E72D0EA0DE0011846D /* regress.00.out in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF8B275EB14C00EBBEA6 /* regress.00.out */; };
-		E79737E82D0EA0DE0011846D /* regress.00a.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF8E275EB14C00EBBEA6 /* regress.00a.in */; };
-		E79737E92D0EA0DE0011846D /* regress.00b.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF8C275EB14C00EBBEA6 /* regress.00b.in */; };
-		E79737EA2D0EA0DE0011846D /* regress.01.out in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF8D275EB14C00EBBEA6 /* regress.01.out */; };
-		E79737EB2D0EA0DE0011846D /* regress.01a.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF90275EB14C00EBBEA6 /* regress.01a.in */; };
-		E79737EC2D0EA0DE0011846D /* regress.01b.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF8F275EB14C00EBBEA6 /* regress.01b.in */; };
-		E79737ED2D0EA0DE0011846D /* regress.02.out in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF91275EB14C00EBBEA6 /* regress.02.out */; };
-		E79737EE2D0EA0DE0011846D /* regress.02a.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF87275EB14C00EBBEA6 /* regress.02a.in */; };
-		E79737EF2D0EA0DE0011846D /* regress.02b.in in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBF88275EB14C00EBBEA6 /* regress.02b.in */; };
+		E7E621422D1095DB00E26DA9 /* regress.01a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213D2D1095DB00E26DA9 /* regress.01a.in */; };
+		E7E621432D1095DB00E26DA9 /* regress.02a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E621402D1095DB00E26DA9 /* regress.02a.in */; };
+		E7E621442D1095DB00E26DA9 /* regress.01.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213C2D1095DB00E26DA9 /* regress.01.out */; };
+		E7E621452D1095DB00E26DA9 /* regress.02b.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E621412D1095DB00E26DA9 /* regress.02b.in */; };
+		E7E621462D1095DB00E26DA9 /* regress.00a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213A2D1095DB00E26DA9 /* regress.00a.in */; };
+		E7E621472D1095DB00E26DA9 /* regress.00b.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213B2D1095DB00E26DA9 /* regress.00b.in */; };
+		E7E621482D1095DB00E26DA9 /* regress.01b.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213E2D1095DB00E26DA9 /* regress.01b.in */; };
+		E7E621492D1095DB00E26DA9 /* regress.02.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213F2D1095DB00E26DA9 /* regress.02.out */; };
+		E7E6214A2D1095DB00E26DA9 /* regress.00.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E621392D1095DB00E26DA9 /* regress.00.out */; };
 		E7E6C49E2CFA04AA000D0B42 /* vis.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = E7E6C49D2CFA04AA000D0B42 /* vis.xctestplan */; };
 		E7E6C4B12CFA6D92000D0B42 /* libTestSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E76970A12CF54ACA00F3903F /* libTestSupport.a */; platformFilters = (macos, ); };
 		E7E6C4B32CFA6E0D000D0B42 /* visTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E6C4992CFA0497000D0B42 /* visTest.swift */; };
@@ -1292,15 +1283,6 @@
 			dstPath = /AppleInternal/Tests/text_cmds/comm;
 			dstSubfolderSpec = 0;
 			files = (
-				2A6BBF94275EB19600EBBEA6 /* regress.00.out in Copy Test Files */,
-				2A6BBF95275EB19600EBBEA6 /* regress.00a.in in Copy Test Files */,
-				2A6BBF96275EB19600EBBEA6 /* regress.00b.in in Copy Test Files */,
-				2A6BBF97275EB19600EBBEA6 /* regress.01.out in Copy Test Files */,
-				2A6BBF98275EB19600EBBEA6 /* regress.01a.in in Copy Test Files */,
-				2A6BBF99275EB19600EBBEA6 /* regress.01b.in in Copy Test Files */,
-				2A6BBF9A275EB19600EBBEA6 /* regress.02.out in Copy Test Files */,
-				2A6BBF9B275EB19600EBBEA6 /* regress.02a.in in Copy Test Files */,
-				2A6BBF9C275EB19600EBBEA6 /* regress.02b.in in Copy Test Files */,
 			);
 			name = "Copy Test Files";
 			runOnlyForDeploymentPostprocessing = 1;
@@ -1800,18 +1782,7 @@
 		2A31580929CFCABD00B2DB3D /* libdarwintest.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdarwintest.a; path = usr/local/lib/libdarwintest.a; sourceTree = SDKROOT; };
 		2A31580C29CFD7E300B2DB3D /* uudecode.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = uudecode.1; path = bintrans/uudecode.1; sourceTree = "<group>"; };
 		2A31580D29CFD7FE00B2DB3D /* uuencode.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; name = uuencode.1; path = bintrans/uuencode.1; sourceTree = "<group>"; };
-		2A6BBF87275EB14C00EBBEA6 /* regress.02a.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.02a.in; path = ../../../comm/tests/regress.02a.in; sourceTree = "<group>"; };
-		2A6BBF88275EB14C00EBBEA6 /* regress.02b.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.02b.in; path = ../../../comm/tests/regress.02b.in; sourceTree = "<group>"; };
-		2A6BBF8B275EB14C00EBBEA6 /* regress.00.out */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.00.out; path = ../../../comm/tests/regress.00.out; sourceTree = "<group>"; };
-		2A6BBF8C275EB14C00EBBEA6 /* regress.00b.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.00b.in; path = ../../../comm/tests/regress.00b.in; sourceTree = "<group>"; };
-		2A6BBF8D275EB14C00EBBEA6 /* regress.01.out */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.01.out; path = ../../../comm/tests/regress.01.out; sourceTree = "<group>"; };
-		2A6BBF8E275EB14C00EBBEA6 /* regress.00a.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.00a.in; path = ../../../comm/tests/regress.00a.in; sourceTree = "<group>"; };
-		2A6BBF8F275EB14C00EBBEA6 /* regress.01b.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.01b.in; path = ../../../comm/tests/regress.01b.in; sourceTree = "<group>"; };
-		2A6BBF90275EB14C00EBBEA6 /* regress.01a.in */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.01a.in; path = ../../../comm/tests/regress.01a.in; sourceTree = "<group>"; };
-		2A6BBF91275EB14C00EBBEA6 /* regress.02.out */ = {isa = PBXFileReference; lastKnownFileType = text; name = regress.02.out; path = ../../../comm/tests/regress.02.out; sourceTree = "<group>"; };
 		2A6BBFA4275EB42F00EBBEA6 /* d_basic.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = d_basic.out; sourceTree = "<group>"; };
-		2A6BC0F2275EBD8600EBBEA6 /* inplace_race_test.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = inplace_race_test.sh; path = tests/inplace_race_test.sh; sourceTree = "<group>"; };
-		2A6BC238275EC0E200EBBEA6 /* t_sort.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = t_sort.sh; path = tests/t_sort.sh; sourceTree = "<group>"; };
 		2AC6B55D268C1B16006AA0B7 /* libutil.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libutil.tbd; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.Internal.sdk/usr/lib/libutil.tbd; sourceTree = DEVELOPER_DIR; };
 		3290F2AA290BDDED00C57BFE /* jq */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = jq; sourceTree = BUILT_PRODUCTS_DIR; };
 		3290F2B0290BDE2900C57BFE /* jv_alloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = jv_alloc.c; path = src/jv_alloc.c; sourceTree = "<group>"; };
@@ -2501,6 +2472,15 @@
 		E79737D32D0E98C70011846D /* csplitTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = csplitTest.swift; sourceTree = "<group>"; };
 		E79737D62D0E98E80011846D /* csplit.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = csplit.xctestplan; sourceTree = "<group>"; };
 		E79737DB2D0E99010011846D /* csplitTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = csplitTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7E621392D1095DB00E26DA9 /* regress.00.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00.out; sourceTree = "<group>"; };
+		E7E6213A2D1095DB00E26DA9 /* regress.00a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00a.in; sourceTree = "<group>"; };
+		E7E6213B2D1095DB00E26DA9 /* regress.00b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00b.in; sourceTree = "<group>"; };
+		E7E6213C2D1095DB00E26DA9 /* regress.01.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.01.out; sourceTree = "<group>"; };
+		E7E6213D2D1095DB00E26DA9 /* regress.01a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.01a.in; sourceTree = "<group>"; };
+		E7E6213E2D1095DB00E26DA9 /* regress.01b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.01b.in; sourceTree = "<group>"; };
+		E7E6213F2D1095DB00E26DA9 /* regress.02.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.02.out; sourceTree = "<group>"; };
+		E7E621402D1095DB00E26DA9 /* regress.02a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.02a.in; sourceTree = "<group>"; };
+		E7E621412D1095DB00E26DA9 /* regress.02b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.02b.in; sourceTree = "<group>"; };
 		E7E6C4992CFA0497000D0B42 /* visTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = visTest.swift; sourceTree = "<group>"; };
 		E7E6C49D2CFA04AA000D0B42 /* vis.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = vis.xctestplan; sourceTree = "<group>"; };
 		E7E6C4A32CFA6C3D000D0B42 /* visTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = visTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3195,22 +3175,6 @@
 				2A31580729CFCA5200B2DB3D /* test_base64.c */,
 				2A1513112946F9980051ED9C /* textqpdec */,
 				2A1513152946F9980051ED9C /* textqpenc */,
-			);
-			name = tests;
-			sourceTree = "<group>";
-		};
-		2A6BC0C5275EBD5700EBBEA6 /* tests */ = {
-			isa = PBXGroup;
-			children = (
-				2A6BC0F2275EBD8600EBBEA6 /* inplace_race_test.sh */,
-			);
-			name = tests;
-			sourceTree = "<group>";
-		};
-		2A6BC233275EC02F00EBBEA6 /* tests */ = {
-			isa = PBXGroup;
-			children = (
-				2A6BC238275EC0E200EBBEA6 /* t_sort.sh */,
 			);
 			name = tests;
 			sourceTree = "<group>";
@@ -4620,15 +4584,15 @@
 		E79737E62D0EA0AB0011846D /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				2A6BBF8B275EB14C00EBBEA6 /* regress.00.out */,
-				2A6BBF8E275EB14C00EBBEA6 /* regress.00a.in */,
-				2A6BBF8C275EB14C00EBBEA6 /* regress.00b.in */,
-				2A6BBF8D275EB14C00EBBEA6 /* regress.01.out */,
-				2A6BBF90275EB14C00EBBEA6 /* regress.01a.in */,
-				2A6BBF8F275EB14C00EBBEA6 /* regress.01b.in */,
-				2A6BBF91275EB14C00EBBEA6 /* regress.02.out */,
-				2A6BBF87275EB14C00EBBEA6 /* regress.02a.in */,
-				2A6BBF88275EB14C00EBBEA6 /* regress.02b.in */,
+				E7E621392D1095DB00E26DA9 /* regress.00.out */,
+				E7E6213A2D1095DB00E26DA9 /* regress.00a.in */,
+				E7E6213B2D1095DB00E26DA9 /* regress.00b.in */,
+				E7E6213C2D1095DB00E26DA9 /* regress.01.out */,
+				E7E6213D2D1095DB00E26DA9 /* regress.01a.in */,
+				E7E6213E2D1095DB00E26DA9 /* regress.01b.in */,
+				E7E6213F2D1095DB00E26DA9 /* regress.02.out */,
+				E7E621402D1095DB00E26DA9 /* regress.02a.in */,
+				E7E621412D1095DB00E26DA9 /* regress.02b.in */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -4965,7 +4929,6 @@
 				FC7A7C5F149866AF0086576A /* misc.c */,
 				FC7A7C60149866AF0086576A /* POSIX */,
 				FC7A7C61149866AF0086576A /* process.c */,
-				2A6BC0C5275EBD5700EBBEA6 /* tests */,
 			);
 			path = sed;
 			sourceTree = "<group>";
@@ -4988,7 +4951,6 @@
 				FDF283641DAED0C000CF8C36 /* sort.1.in */,
 				FC7A7C93149866AF0086576A /* sort.c */,
 				FDF283651DAED0C000CF8C36 /* sort.h */,
-				2A6BC233275EC02F00EBBEA6 /* tests */,
 				FDF283661DAED0C000CF8C36 /* vsort.c */,
 				FDF283671DAED0C000CF8C36 /* vsort.h */,
 			);
@@ -6465,15 +6427,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E79737E72D0EA0DE0011846D /* regress.00.out in Resources */,
-				E79737E82D0EA0DE0011846D /* regress.00a.in in Resources */,
-				E79737E92D0EA0DE0011846D /* regress.00b.in in Resources */,
-				E79737EA2D0EA0DE0011846D /* regress.01.out in Resources */,
-				E79737EB2D0EA0DE0011846D /* regress.01a.in in Resources */,
-				E79737EC2D0EA0DE0011846D /* regress.01b.in in Resources */,
-				E79737ED2D0EA0DE0011846D /* regress.02.out in Resources */,
-				E79737EE2D0EA0DE0011846D /* regress.02a.in in Resources */,
-				E79737EF2D0EA0DE0011846D /* regress.02b.in in Resources */,
+				E7E621422D1095DB00E26DA9 /* regress.01a.in in Resources */,
+				E7E621432D1095DB00E26DA9 /* regress.02a.in in Resources */,
+				E7E621442D1095DB00E26DA9 /* regress.01.out in Resources */,
+				E7E621452D1095DB00E26DA9 /* regress.02b.in in Resources */,
+				E7E621462D1095DB00E26DA9 /* regress.00a.in in Resources */,
+				E7E621472D1095DB00E26DA9 /* regress.00b.in in Resources */,
+				E7E621482D1095DB00E26DA9 /* regress.01b.in in Resources */,
+				E7E621492D1095DB00E26DA9 /* regress.02.out in Resources */,
+				E7E6214A2D1095DB00E26DA9 /* regress.00.out in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
