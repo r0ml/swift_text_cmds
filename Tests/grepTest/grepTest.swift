@@ -255,7 +255,8 @@ import TestSupport
   @Test("Check behavior of zero-length matches with -o flag (PR 195763)") func oflag_zerolen_f() async throws {
     let inp = try inFile("d_oflag_zerolen_apple_f.in")
     let expected = try fileContents("d_oflag_zerolen_apple_f.out")
-    try await run(output: expected, args: "-o", "-e", "[A-Z]", inp)
+    try await run(output: expected, args: "-o", "-e", "[A-Z]", inp,
+                  env: ["LANG":"C", "LC_ALL":"C"])
   }
   
   @Test("Check that we actually get a match with -x flag (PR 180998)") func xflag() async throws {

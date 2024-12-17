@@ -50,7 +50,7 @@ public actor ShellProcess {
     
     var execu : URL? = nil
     // FIXME: test for TEST_ORIGINAL
-    if true { // let _ = envx["TEST_ORIGINAL"] {
+    if let _ = envx["TEST_ORIGINAL"] {
       let path = envx["PATH"]!.split(separator: ":", omittingEmptySubsequences: true)
       let f = FileManager.default
       for d in path {

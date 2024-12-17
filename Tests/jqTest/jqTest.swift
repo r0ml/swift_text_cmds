@@ -6,9 +6,8 @@ import Testing
 
 struct jqTest {
 
-  @Test func placeHolder() async throws {
-      // Not yet implemented.
-    #expect(false)
+  @Test(.disabled("Not yet implemented")) func placeHolder() async throws {
+    Issue.record("Not implemented yet")
   }
 
 }

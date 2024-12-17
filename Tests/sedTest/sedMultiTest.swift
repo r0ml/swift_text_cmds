@@ -82,7 +82,7 @@ import Foundation
     ("1.1", ["s/^/e1_/p"]),
     ("1.2", ["-n", "s/^/e1_/p"]),
   ]) func test_args_1(_ f : String, _ p : [String]) async throws {
-    let res = try fileContents("\(f).out")
+    let res = try fileContents("multi.\(f).out")
     try await run(output: res, args: p + [ flines1 ] )
   }
 
@@ -90,79 +90,79 @@ import Foundation
     ("1.3", ["s/^/e1_/p"]),
     ("1.4", ["-n", "s/^/e1_/p"]),
   ]) func test_args_1p(_ f : String, _ p : [String]) async throws {
-    let res = try fileContents("\(f).out")
+    let res = try fileContents("multi.\(f).out")
     try await run(withStdin: lines1.joined(), output: res, args: p)
   }
 
   
   @Test("Argument parsing - second type (1.4)") func test_args_141() async throws {
-    let res = try fileContents("1.4.1.out")
+    let res = try fileContents("multi.1.4.1.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-e", "")
   }
 
   @Test("Argument parsing (1.5)") func test_args_15() async throws {
-    let res = try fileContents("1.5.out")
+    let res = try fileContents("multi.1.5.out")
     try await run(output: res, args: "-f", fscript1, flines1)
   }
 
   @Test("Argument parsing (1.6)") func test_args_16() async throws {
-    let res = try fileContents("1.6.out")
+    let res = try fileContents("multi.1.6.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-f", fscript1)
   }
 
   @Test("Arguments parsing (1.7)") func test_args_17() async throws {
-    let res = try fileContents("1.7.out")
+    let res = try fileContents("multi.1.7.out")
     try await run(output: res, args: "-e", "s/^/e1_/p",  flines1)
   }
 
   @Test("Argument parsing (1.8)") func test_args_18() async throws {
-    let res = try fileContents("1.8.out")
+    let res = try fileContents("multi.1.8.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-e", "s/^/e1_/p")
   }
 
   @Test("Argument parsing (1.9)") func test_args_19() async throws {
-    let res = try fileContents("1.9.out")
+    let res = try fileContents("multi.1.9.out")
     try await run(output: res, args: "-n", "-f", fscript1, flines1)
   }
 
   @Test("Argument parsing (1.10)") func test_args_110() async throws {
-    let res = try fileContents("1.10.out")
+    let res = try fileContents("multi.1.10.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-n", "-f", fscript1)
   }
 
   @Test("Argument parsing (1.11)") func test_args_111() async throws {
-    let res = try fileContents("1.11.out")
+    let res = try fileContents("multi.1.11.out")
     try await run(output: res, args: "-n", "-e", "s/^/e1_/p", flines1)
   }
 
   @Test("Argument parsing (1.12)") func test_args_112() async throws {
-    let res = try fileContents("1.12.out")
+    let res = try fileContents("multi.1.12.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-n", "-e", "s/^/e1_/p")
   }
 
   @Test("Argument parsing (1.13)") func test_args_113() async throws {
-    let res = try fileContents("1.13.out")
+    let res = try fileContents("multi.1.13.out")
     try await run(output: res, args: "-e", "s/^/e1_/p", "-e", "s/^/e2_/p", flines1)
   }
 
   @Test("Argument parsing (1.14)") func test_args_114() async throws {
-    let res = try fileContents("1.14.out")
+    let res = try fileContents("multi.1.14.out")
     try await run(output: res, args: "-f", fscript1, "-f", fscript2, flines1)
   }
 
   @Test("Argument parsing (1.15)") func test_args_115() async throws {
-    let res = try fileContents("1.15.out")
+    let res = try fileContents("multi.1.15.out")
     try await run(output: res, args: "-e", "s/^/e1_/p", "-f", fscript1, flines1)
 
   }
 
   @Test("Argument parsing (1.16)") func test_args_116() async throws {
-    let res = try fileContents("1.16.out")
+    let res = try fileContents("multi.1.16.out")
     try await run(output: res, args: "-e", "s/^/e1_/p", flines1, flines1)
   }
 
   @Test("Argument parsing (1.17)") func test_args_117() async throws {
-    let res = try fileContents("1.17.out")
+    let res = try fileContents("multi.1.17.out")
     try await run(withStdin: lines1.joined(), output: res, args: "p", flines1)
   }
 
@@ -173,128 +173,128 @@ import Foundation
 
 p
 """)
-    let res = try fileContents("1.18.out")
+    let res = try fileContents("multi.1.18.out")
     try await run(withStdin: lines1.joined(), output: res, args: "-f",  fs1, flines1)
   }
 
   
   @Test("Address ranges (2.1)") func test_addr_21() async throws {
-    let res = try fileContents("2.1.out")
+    let res = try fileContents("multi.2.1.out")
     try await run(output: res, args: "-n", "-e", "4p", flines1)
   }
   
   @Test("Address ranges (2.2)") func test_addr_22() async throws {
-    let res = try fileContents("2.2.out")
+    let res = try fileContents("multi.2.2.out")
     try await run(output: res, args: "-n", "-e", "20p", flines1, flines2)
   }
   
   @Test("Address ranges (2.3)") func test_addr_23() async throws {
-    let res = try fileContents("2.3.out")
+    let res = try fileContents("multi.2.3.out")
     try await run(output: res, args: "-n", "-e", "$p", flines1)
   }
   
   @Test("Address ranges (2.4)") func test_addr_24() async throws {
-    let res = try fileContents("2.4.out")
+    let res = try fileContents("multi.2.4.out")
     try await run(output: res, args: "-n", "-e", "$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.5)") func test_addr_25() async throws {
-    let res = try fileContents("2.5.out")
+    let res = try fileContents("multi.2.5.out")
     try await run(output: res, args: "-n", "-e", "$a\\\nhello", "/dev/null")
   }
   
   @Test("Address ranges (2.6)") func test_addr_26() async throws {
-    let res = try fileContents("2.6.out")
+    let res = try fileContents("multi.2.6.out")
     try await run(output: res, args: "-n", "-e", "$p", flines1, "/dev/null", flines2)
   }
   
   @Test("Address ranges (2.7)") func test_addr_27() async throws {
-    let res = try fileContents("2.7.out")
+    let res = try fileContents("multi.2.7.out")
     try await run(output: res, args: "-n", "-e", "20p", flines1)
   }
   
   @Test("Address ranges (2.8)") func test_addr_28() async throws {
-    let res = try fileContents("2.8.out")
+    let res = try fileContents("multi.2.8.out")
     try await run(output: res, args: "-n", "-e", "/NOTFOUND/p", flines1)
   }
   
   @Test("Address ranges (2.9)") func test_addr_29() async throws {
-    let res = try fileContents("2.9.out")
+    let res = try fileContents("multi.2.9.out")
     try await run(output: res, args: "-n", "/l1_7/p", flines1)
   }
   
   @Test("Address ranges (2.10)") func test_addr_210() async throws {
-    let res = try fileContents("2.10.out")
+    let res = try fileContents("multi.2.10.out")
     try await run(output: res, args: "-n", " /l1_7/p", flines1)
   }
   
   @Test("Address ranges (2.11)") func test_addr_211() async throws {
-    let res = try fileContents("2.11.out")
+    let res = try fileContents("multi.2.11.out")
     try await run(output: res, args: "-n", "\\_l1\\_7_p", flines1)
   }
   
   @Test("Address ranges (2.12)") func test_addr_212() async throws {
-    let res = try fileContents("2.12.out")
+    let res = try fileContents("multi.2.12.out")
     try await run(output: res, args: "-n", "1,4p", flines1)
   }
   
   @Test("Address ranges (2.13)") func test_addr_213() async throws {
-    let res = try fileContents("2.13.out")
+    let res = try fileContents("multi.2.13.out")
     try await run(output: res, args: "-n", "1,$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.14)") func test_addr_214() async throws {
-    let res = try fileContents("2.14.out")
+    let res = try fileContents("multi.2.14.out")
     try await run(output: res, args: "-n", "1,/l2_9/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.15)") func test_addr_215() async throws {
-    let res = try fileContents("2.15.out")
+    let res = try fileContents("multi.2.15.out")
     try await run(output: res, args: "-n", "/4/,$p", flines1, flines2)
   }
   
   @Test("Address ranges (2.16)") func test_addr_216() async throws {
-    let res = try fileContents("2.16.out")
+    let res = try fileContents("multi.2.16.out")
     try await run(output: res, args: "-n", "/4/,20p", flines1, flines2)
   }
   
   @Test("Address ranges (2.17)") func test_addr_217() async throws {
-    let res = try fileContents("2.17.out")
+    let res = try fileContents("multi.2.17.out")
     try await run(output: res, args: "-n", "/4/,/10/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.18)") func test_addr_218() async throws {
-    let res = try fileContents("2.18.out")
+    let res = try fileContents("multi.2.18.out")
     try await run(output: res, args: "-n", "/l2_3/,/l1_8/p", flines1, flines2)
   }
   
   @Test("Address ranges (2.19)") func test_addr_219() async throws {
-    let res = try fileContents("2.19.out")
+    let res = try fileContents("multi.2.19.out")
     try await run(output: res, args: "-n", "12,3p", flines1, flines2)
   }
   
   @Test("Address ranges (2.20)") func test_addr_220() async throws {
-    let res = try fileContents("2.20.out")
+    let res = try fileContents("multi.2.20.out")
     try await run(output: res, args: "-n", "/l1_7/,3p", flines1, flines2)
   }
   
   @Test("Address ranges (2.21)") func test_addr_221() async throws {
-    let res = try fileContents("2.21.out")
+    let res = try fileContents("multi.2.21.out")
     try await run(output: res, args: "-n", "13,+4p", flines1, flines2)
   }
   
   @Test("Address ranges (2.22)") func test_addr_222() async throws {
-    let res = try fileContents("2.22.out")
+    let res = try fileContents("multi.2.22.out")
     try await run(output: res, args: "-n", "/l1_6/,+2p", flines1, flines2)
   }
   
   @Test("Address ranges (2.23)") func test_addr_223() async throws {
-    let res = try fileContents("2.23.out")
+    let res = try fileContents("multi.2.23.out")
     try await run(output: res, args: "-n", "12,+1p", flines1, flines2)
   }
   
   @Test("Brance and other grouping (3.1)") func test_group_31() async throws {
-    let res = try fileContents("3.1.out")
+    let res = try fileContents("multi.3.1.out")
     try await run(output: res, args: "-e", """
 4,12 {
   s/^/^/
@@ -305,7 +305,7 @@ p
   }
   
   @Test("Brance and other grouping (3.2)") func test_group_32() async throws {
-    let res = try fileContents("3.2.out")
+    let res = try fileContents("multi.3.2.out")
     try await run(output: res, args: "-e", """
 4,12 {
   s/^/^/
@@ -318,7 +318,7 @@ p
   }
   
   @Test("Brance and other grouping (3.3)") func test_group_33() async throws {
-    let res = try fileContents("3.3.out")
+    let res = try fileContents("multi.3.3.out")
     try await run(output: res, args: "-e", """
 4,12 !{
   s/^/^/
@@ -331,12 +331,12 @@ p
   }
   
   @Test("Brance and other grouping (3.4)") func test_group_34() async throws {
-    let res = try fileContents("3.4.out")
+    let res = try fileContents("multi.3.4.out")
     try await run(output: res, args: "-e", "4,12!s/^/^/", flines1)
   }
   
   @Test("Commands a c d and i (4.1)") func test_acid_41() async throws {
-    let res = try fileContents("4.1.out")
+    let res = try fileContents("multi.4.1.out")
     try await run(output: res, args: "-n", "-e", """
 s/^/before_i/p
 20i\\
@@ -346,7 +346,7 @@ s/^/after_i/p
   }
   
   @Test("Commands a c d and i (4.2)") func test_acid_42() async throws {
-    let res = try fileContents("4.2.out")
+    let res = try fileContents("multi.4.2.out")
     try await run(output: res, args: "-n", "-e", """
 5,12s/^/5-12/
 s/^/before_a/p
@@ -357,7 +357,7 @@ s/^/after_a/p
   }
   
   @Test("Commands a c d and i (4.3)") func test_acid_43() async throws {
-    let res = try fileContents("4.3.out")
+    let res = try fileContents("multi.4.3.out")
     try await run(output: res, args: "-n", "-e", """
 s/^/^/p
 /l1_/a\\
@@ -368,7 +368,7 @@ s/$/$/p
   }
   
   @Test("Commands a c d and i (4.4)") func test_acid_44() async throws {
-    let res = try fileContents("4.4.out")
+    let res = try fileContents("multi.4.4.out")
     try await run(output: res, args: "-n", "-e", """
 c\\
 hello
@@ -376,7 +376,7 @@ hello
   }
   
   @Test("Commands a c d and i (4.5)") func test_acid_45() async throws {
-    let res = try fileContents("4.5.out")
+    let res = try fileContents("multi.4.5.out")
     try await run(output: res, args: "-n", "-e", """
 8c\\
 hello
@@ -384,7 +384,7 @@ hello
   }
   
   @Test("Commands a c d and i (4.6)") func test_acid_46() async throws {
-    let res = try fileContents("4.6.out")
+    let res = try fileContents("multi.4.6.out")
     try await run(output: res, args: "-n", "-e", """
 3,14c\\
 hello
@@ -392,7 +392,7 @@ hello
   }
   
   @Test("Commands a c d and i (4.7)") func test_acid_47() async throws {
-    let res = try fileContents("4.7.out")
+    let res = try fileContents("multi.4.7.out")
     try await run(output: res, args: "-n", "-e", """
 8,3c\\
 hello
@@ -400,13 +400,13 @@ hello
   }
   
   @Test("Commands a c d and i (4.8)") func test_acid_48() async throws {
-    let res = try fileContents("4.8.out")
+    let res = try fileContents("multi.4.8.out")
     try await run(withStdin: lines1.joined(), output: res, args: "d")
   }
   
 
   @Test("Labels and branching (5.1)") func test_branch_51() async throws {
-    let res = try fileContents("5.1.out")
+    let res = try fileContents("multi.5.1.out")
     try await run(output: res, args: "-n", "-e", """
 b label4
 :label3
@@ -426,7 +426,7 @@ b label3
   }
   
   @Test("Labels and branching (5.2)") func test_branch_52() async throws {
-    let res = try fileContents("5.2.out")
+    let res = try fileContents("multi.5.2.out")
     try await run(output: res, args: "-n", "-e", """
 s/l1_/l2_/
 t ok
@@ -437,7 +437,7 @@ s/^/tested /p
   }
   
   @Test("Labels and branching (5.3)") func test_branch_53() async throws {
-    let res = try fileContents("5.3.out")
+    let res = try fileContents("multi.5.3.out")
     try await(output: res, args: "-n", "-e", """
 5,8b inside
 1,5 {
@@ -449,7 +449,7 @@ s/^/tested /p
   }
   
   @Test("Labels and branching (5.4)") func test_branch_54() async throws {
-    let res = try fileContents("5.4.out")
+    let res = try fileContents("multi.5.4.out")
     try await run(output: res, args: "-n", "-e", """
 1,8s/^/^/
 t l1
@@ -463,7 +463,7 @@ s/^/ERROR/
   }
   
   @Test("Labels and branching (5.5)") func test_branch_55() async throws {
-    let res = try fileContents("5.5.out")
+    let res = try fileContents("multi.5.5.out")
     try await run(output: res, args: "-n", "-e", """
 t l2
 1,8s/^/^/p
@@ -475,12 +475,12 @@ s/^/ERROR/p
   }
   
   @Test("Labels and branching (5.6)") func test_branch_56() async throws {
-    let res = try fileContents("5.6.out")
+    let res = try fileContents("multi.5.6.out")
     try await run(output: res, args: "5q", flines1)
   }
   
   @Test("Labels and branching (5.7)") func test_branch_57() async throws {
-    let res = try fileContents("5.7.out")
+    let res = try fileContents("multi.5.7.out")
     try await run(output: res, args: "-e", """
 5i\\
 hello
@@ -489,7 +489,7 @@ hello
   }
   
   @Test("Labels and branching (5.8)") func test_branch_58() async throws {
-    let res = try fileContents("5.8.out")
+    let res = try fileContents("multi.5.8.out")
     try await run(output: res, args: "-e", """
 {
 :b
@@ -501,7 +501,7 @@ tb
   
 
   @Test("Pattern space commands (6.1)") func test_pattern_61() async throws {
-    let res = try fileContents("6.1.out")
+    let res = try fileContents("multi.6.1.out")
     try await run(output: res, args: "-n", "-e", """
 c\\
 changed
@@ -510,7 +510,7 @@ p
   }
         
   @Test("Pattern space commands (6.2)") func test_pattern_62() async throws {
-    let res = try fileContents("6.2.out")
+    let res = try fileContents("multi.6.2.out")
     try await run(output: res, args: "-n", "-e", """
 4d
 p
@@ -518,12 +518,12 @@ p
   }
         
   @Test("Pattern space commands (6.3)") func test_pattern_63() async throws {
-    let res = try fileContents("6.3.out")
+    let res = try fileContents("multi.6.3.out")
     try await run(output: res, args: "-e", "N;N;N;D", flines1)
   }
         
   @Test("Pattern space commands (6.4)") func test_pattern_64() async throws {
-    let res = try fileContents("6.4.out")
+    let res = try fileContents("multi.6.4.out")
     try await run(output: res, args: "-e", """
 2h
 3H
@@ -537,31 +537,34 @@ p
   }
         
   @Test("Pattern space commands (6.5)") func test_pattern_65() async throws {
-    let res = try fileContents("6.5.out")
+    let res = try fileContents("multi.6.5.out")
     try await run(output: res, args: "-e", "4n", flines1)
   }
         
   @Test("Pattern space commands (6.6)") func test_pattern_66() async throws {
-    let res = try fileContents("6.6.out")
+    let res = try fileContents("multi.6.6.out")
     try await run( output: res, args: "-n", "-e", "4n", flines1)
   }
         
   @Test("Print and file routines (7.1)") func test_print_71() async throws {
-    let res = try fileContents("7.1.out")
+    let res = try fileData(suite, "multi.7.1.out")
     var lines3 = Data(repeating: 0, count: 257)
     for i in 1..<256 { lines3[i-1] = UInt8(i) }
     lines3[255] = 10
     lines3[256] = 10
-    try await run(withStdin: lines3, output:res, args: "-n", "l")
+    let lf = try tmpfile("lines3", lines3)
+    try await run(withStdin: lines3, output:res, args: "-n", "l", env: ["LC_ALL":"C"])
+    try await run(output:res, args: "-n", "l", lf, env: ["LC_ALL":"C"])
+    rm(lf)
   }
   
   @Test("Print and file routines (7.2)") func test_print_72() async throws {
-    let res = try fileContents("7.2.out")
+    let res = try fileContents("multi.7.2.out")
     try await run(output: res, args: "-e", "/l2_/=", flines1, flines2)
   }
   
   @Test("Print and file routines (7.3)") func test_print_73() async throws {
-    let res = try fileContents("7.3.out")
+    let res = try fileContents("multi.7.3.out")
     let (r, j, _) = try await ShellProcess(cmd, "-e", "3,12w lines4", flines1).run()
     #expect(r == 0)
     let k = try String(contentsOf: URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory), encoding: .utf8)
@@ -569,22 +572,22 @@ p
   }
   
   @Test("Print and file routines (7.4)") func test_print_74() async throws {
-    let res = try fileContents("7.4.out")
+    let res = try fileContents("multi.7.4.out")
     try await run(output: res, args: "-e", "4r lines2", flines1)
   }
   
   @Test("Print and file routines (7.5)") func test_print_75() async throws {
-    let res = try fileContents("7.5.out")
+    let res = try fileContents("multi.7.5.out")
     try await run(output: res, args: "-e", "5r /dev/dds", flines1)
   }
   
   @Test("Print and file routines (7.6)") func test_print_76() async throws {
-    let res = try fileContents("7.6.out")
+    let res = try fileContents("multi.7.6.out")
     try await run(output: res, args: "-e", "6r /dev/null", flines1)
   }
   
   @Test("Print and file routines (7.7)") func test_print_77() async throws {
-    let res = try fileContents("7.7.out")
+    let res = try fileContents("multi.7.7.out")
     let d = URL(filePath: "/usr/share/dict/words")
     let wwo = try await d.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
 
@@ -616,7 +619,7 @@ p
   }
   
   @Test("Print and file routines (7.8)") func test_print_78() async throws {
-    let res = try fileContents("7.8.out")
+    let res = try fileContents("multi.7.8.out")
     let flines3 = try tmpfile("lines3", lines1.joined()+"\n")
     try await run(output: res, args: "-n", "-e", "$p", flines3, "/dev/null")
     rm(flines3)
@@ -641,7 +644,7 @@ p
           ("8.17", "s/[/]/Q/"),
           ("8.18", "s[_[X[")
         ]) func test_subst_81(_ f : String, _ s : String) async throws {
-          let res = try fileContents("\(f).out")
+          let res = try fileContents("multi.\(f).out")
           try await run(output: res, args: "-e", s, flines1)
   }
   
@@ -651,13 +654,13 @@ p
     let p = ShellProcess(cmd, "-e", "s/1/X/w lines4", flines1)
     let (r, j, e) = try await p.run()
     #expect(r == 0)
-    let res = try fileContents("8.11.out" )
+    let res = try fileContents("multi.8.11.out" )
     let jj = try String(contentsOf: l4, encoding: .utf8)
     #expect(j! + jj == res)
   }
   
   @Test("Substitution command (8.16)") func test_subst_816() async throws {
-    let res = try fileContents("8.16.out")
+    let res = try fileContents("multi.8.16.out")
     try await run(withStdin: "eeefff\n", output: res, args: "-e", """
     p
     s/e/X/p
@@ -677,7 +680,7 @@ p
   }
   
   @Test("Substitution command (8.19)") func test_subst_819() async throws {
-    let res = try fileContents("8.19.out")
+    let res = try fileContents("multi.8.19.out")
     let p = ShellProcess(cmd, "-e", "s/l/[/", flines1)
     let (r, j, _) = try await p.run()
     #expect(r == 0)
@@ -685,7 +688,7 @@ p
   }
   
   @Test("Substitution command (8.20)") func test_subst_820() async throws {
-    let res = try fileContents("8.20.out")
+    let res = try fileContents("multi.8.20.out")
     let p = ShellProcess(cmd, "-e", "s/l/[/", flines1.relativePath)
     let (r, j, _) = try await p.run()
     #expect(r == 0)
@@ -693,18 +696,18 @@ p
   }
   
   @Test("Substitution command (8.21)") func test_subst_821() async throws {
-    let res = try fileContents("8.21.out")
+    let res = try fileContents("multi.8.21.out")
     try await run(withStdin: "a\\b(c\n", output: res, args: "y%ABCDEFGHIJKLMNOPQRSTUVWXYZ, /\\\\()\"%abcdefghijklmnopqrstuvwxyz,------%")
   }
 
   @Test("Substitution command (8.22)",
         .disabled("this test fails in macOS 15.1")) func test_subst_822() async throws {
-          let res = try fileContents("8.22.out")
+          let res = try fileContents("multi.8.22.out")
           try await run(output: res, args: "-n", "1{;N;s/[\\n]/X/;p;}")
   }
 
   @Test("Substitution command (8.23)") func test_subst_823() async throws {
-    let res = try fileContents("8.23.out")
+    let res = try fileContents("multi.8.23.out")
     try await run(withStdin: "1\n2\n", output: res, args: "-n", "1{;N;s/\\n/X/;p;}")
   }
 

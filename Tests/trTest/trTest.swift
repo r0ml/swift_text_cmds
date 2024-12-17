@@ -171,9 +171,9 @@ import TestSupport
  }
   
   @Test("Tests for tr substitution with -c") func csubst() async throws {
-    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ac-\\377'", "b")
-    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ad-\\377'", "bc")
-    try await run(withStdin: "AGCDE\n", output: "QUACK\n", args: "-c", "'\\0-@'", "QUACK")
+    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ac-\\377'", "b", env: ["LC_ALL":""])
+    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ad-\\377'", "bc", env: ["LC_ALL":""])
+    try await run(withStdin: "ABCDE\n", output: "QUACK\n", args: "-c", "'\\0-@'", "QUACK" )
   }
   
   @Test("Legacy tests") func legacy() async throws {
@@ -198,7 +198,7 @@ import TestSupport
 //    #expect( j6 == try fileContents("trTest", "regress.05", withExtension: "out"))
 
     let expected7 = try fileContents("regress.06.out")
-    try await run(withStdin: i, output: expected7, args: "[[:digit:]]", "?")
+    try await run(withStdin: i2, output: expected7, args: "[[:digit:]]", "?")
 
     let expected8 = try fileContents("regress.07.out")
     try await run(withStdin: i2, output: expected8, args: "[[:alnum:]]", "#")
@@ -219,7 +219,7 @@ import TestSupport
     let expectedd = try fileContents("regress.0c.out")
     try await run(withStdin: "[[[[]]]]]\n", output: expectedd, args: "-d", "[=]=]" )
 
-    let expectede = try fileContents("regress.0e.out")
+    let expectede = try fileContents("regress.0d.out")
     try await run(withStdin: "]=[\n", output: expectede, args: "-d", "[=]" )
   }
 }
