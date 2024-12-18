@@ -2489,7 +2489,6 @@
 		FC7A7B4B149866AE0086576A /* banner.6 */ = {isa = PBXFileReference; lastKnownFileType = text; path = banner.6; sourceTree = "<group>"; };
 		FC7A7B4C149866AE0086576A /* banner.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = banner.c; sourceTree = "<group>"; };
 		FC7A7B4F149866AE0086576A /* cat.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = cat.1; sourceTree = "<group>"; };
-		FC7A7B50149866AE0086576A /* cat.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = cat.c; sourceTree = "<group>"; };
 		FC7A7B53149866AE0086576A /* col.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = col.1; sourceTree = "<group>"; };
 		FC7A7B54149866AE0086576A /* col.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = col.c; sourceTree = "<group>"; };
 		FC7A7B56149866AE0086576A /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
@@ -3535,8 +3534,8 @@
 				E76971032CF5B5E100F3903F /* banner */,
 				E76970D02CF54D3300F3903F /* cat */,
 				E76971052CF5B61800F3903F /* col */,
-				E76971082CF5B64600F3903F /* comm */,
 				E76971062CF5B62400F3903F /* colrm */,
+				E76971082CF5B64600F3903F /* comm */,
 				E76971072CF5B63100F3903F /* column */,
 				E76971092CF5B66300F3903F /* csplit */,
 				E76971012CF5B59500F3903F /* cut */,
@@ -4612,7 +4611,6 @@
 				E769708F2CF546E700F3903F /* Tests */,
 				FC7A7B4A149866AE0086576A /* banner */,
 				2A1513022946F9520051ED9C /* bintrans */,
-				FC7A7B4E149866AE0086576A /* cat */,
 				FC7A7B52149866AE0086576A /* col */,
 				FC7A7B57149866AE0086576A /* colrm */,
 				FC7A7B5B149866AE0086576A /* column */,
@@ -4725,14 +4723,6 @@
 				FC7A7B4C149866AE0086576A /* banner.c */,
 			);
 			path = banner;
-			sourceTree = "<group>";
-		};
-		FC7A7B4E149866AE0086576A /* cat */ = {
-			isa = PBXGroup;
-			children = (
-				FC7A7B50149866AE0086576A /* cat.c */,
-			);
-			path = cat;
 			sourceTree = "<group>";
 		};
 		FC7A7B52149866AE0086576A /* col */ = {

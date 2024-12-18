@@ -11,42 +11,38 @@ import TestSupport
 import Foundation
 
 @Suite(.serialized) class colTest : ShellTest {
-
+  
   let cmd = "col"
   let suite = "colTest"
-
+  
   @Test("testing just newlines", arguments: ["nl", "nl2"]) func nl(_ arg : String) async throws {
     let i = try fileContents("\(arg).in")
     try await run(withStdin: i, output: arg == "nl3" ? "a\n\nb\n\n" : "a\nb\n" )
   }
   
-  @Test("testing reverse line feed") func rlf() async throws {
-    let i2 = try fileContents("rlf.in")
-    try await run(withStdin: i2, output: "a b\n")
-    
-    let i3 = try fileContents("rlf2.in")
-    try await run(withStdin: i3, output: "a\tb\n")
-   
-    let i4 = try fileContents("rlf2.in")
-    try await run(withStdin: i4, output: "a       b\n",  args: "-x")
-
-    let i5 = try fileContents("rlf3.in")
-    try await run(withStdin: i5, output: " b\na\n", args: "-x")
+  @Test("testing reverse line feed", .serialized, arguments: [
+    ("rlf.in", "a b\n", []),
+    ("rlf2.in", "a\tb\n", []),
+    ("rlf2.in",  "a       b\n", ["-x"]),
+    ("rlf3.in", " b\na\n", ["-x"]),
+  ]) func rlf(_ inf : String, _ outp: String, _ args : [String]) async throws {
+    let i2 = try fileContents(inf)
+    try await run(withStdin: i2, output: outp, args: args)
   }
-
-  @Test("testing half line feed") func hlf() async throws {
-    let i = try fileContents("hlf.in")
-    try await run(withStdin: i, output: "a f\naf\n")
-
-    let res2 = "a f\u{1b}9\r f\u{1b}9\ra\n"
-    try await run(withStdin: i, output: res2, args: "-f")
-
-    let i3 = try fileContents("hlf2.in")
-    try await run(withStdin: i3, output: "a\n f\n")
-
-    let i4 = try fileContents("hlf2.in")
-    let res4 = "a\u{1b}9\r f\n\u{1b}9"
-    try await run(withStdin: i4, output: res4, args: "-f")
+  
+  @Test("testing half line feed", arguments: [
+    ("hlf.in", "a f\naf\n"),
+    ("hlf2.in", "a\n f\n"),
+  ]) func hlf(_ inf : String, _ outp: String) async throws {
+    let i = try fileContents(inf)
+    try await run(withStdin: i, output: outp)
   }
-
+  
+  @Test("testing half line feed 2", arguments: [
+    ("hlf.in", "a f\u{1b}9\r f\u{1b}9\ra\n"),
+    ("hlf2.in", "a\u{1b}9\r f\n\u{1b}9"),
+  ]) func hlf2(_ inf : String, _ outp: String) async throws {
+    let i = try fileContents(inf)
+    try await run(withStdin: i, output: outp, args: "-f")
+  }
 }

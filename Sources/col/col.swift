@@ -37,28 +37,472 @@ import Foundation
 import Shared
 
 @main final class col : ShellCommand {
+  
+  var usage : String = "usage: col [-bfhpx] [-l nline]"
+  
+  // Constants
+  let BS: Character = "\u{08}"  // Backspace
+  let TAB: Character = "\t"     // Tab
+  let SPACE: Character = " "    // Space
+  let NL: Character = "\n"      // Newline
+  let CR: Character = "\r"      // Carriage Return
+  let ESC: Character = "\u{1B}" // Escape
+  let SI: Character = "\u{17}"  // Shift In
+  let SO: Character = "\u{16}"  // Shift Out
+  let VT: Character = "\u{0B}"  // Vertical Tab
+  let BEL: Character = "\u{07}" // Bell
+  let RLF: Character = "7"      // ESC-7 reverse line feed
+  let RHLF: Character = "8"     // ESC-8 reverse half-line feed
+  let FHLF: Character = "9"     // ESC-9 forward half-line feed
+  
+  
+  // Buffer margin for flushing
+  let BUFFER_MARGIN = 32
+  
+  var last_set : CSET = .normal
+  var nblank_lines = 0
 
-  var usage : String = "Not yet implemented"
+  // Character Set
+  enum CSET {
+    case normal
+    case alternate
+  }
+  
+  struct CHAR {
+    var c_column: Int
+    var c_set: CSET
+    var c_char: Character
+    var c_width: Int
+  }
+  
+  class LINE {
+    var l_line: [CHAR] = []
+    var l_needs_sort: Bool = false
+    var l_max_col: Int = 0
+  }
+  
   
   struct CommandOptions {
+    var compressSpaces = true
+    var fine = false
+    var max_bufd_lines = 256
+    var nblank_lines = 0
+    var noBackspaces = false
+    var passUnknownSeqs = false
     var args : [String] = CommandLine.arguments
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
+    let supportedFlags = "bfhl:px"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    while let (k, v) = try go.getopt() {
       switch k {
-        default: throw CmdErr(1)
+        case "b": // do no output backspacers
+          options.noBackspaces = true
+        case "f": // allow half forward line feeds
+          options.fine = true
+        case "h": // compress spaces into tabs
+          options.compressSpaces = true
+        case "l": // buffered line count
+          if let n = Int(v) {
+            if n < 1 || n > (Int(INT_MAX) - BUFFER_MARGIN) / 2 {
+              throw CmdErr(1, "bad -l argument (out of range): \(v)")
+            }
+            options.max_bufd_lines = n
+          } else {
+            throw CmdErr(1, "bad -l argument (not an integer): \(v)")
+          }
+        case "p": // pass unknown control sequences
+          options.passUnknownSeqs = true
+        case "x":
+          options.compressSpaces = false
+        case "?":
+          fallthrough
+        default:
+          throw CmdErr(1)
       }
+    }
+    if !go.remaining.isEmpty {
+      throw CmdErr(1)
     }
     options.args = go.remaining
     return options
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+    
+    var cur_line = 0
+    var cur_col = 0
+    var cur_set: CSET = .normal
+//    var l = 0
+    var lines: ArraySlice<LINE> = [LINE()]
+    var this_line = 0
+    var adjust = 0
+    var nflushd_lines = 0
+    var max_line = 0
+    var extra_lines = 0
+    var warned = false
+    
+    while true {
+      let chx = getwchar()
+      if chx == WEOF { break }
+      let ch = Character(UnicodeScalar(UInt32(chx))!)
+
+      if 0 == iswgraph(chx) {
+        switch ch {
+          case BS:
+            if cur_col == 0 {
+              continue
+            }
+            cur_col -= 1
+            continue
+          case CR:
+            cur_col = 0
+            continue
+          case ESC:
+            switch Character(UnicodeScalar(UInt32(getwchar()))!) {
+              case BEL, RLF:
+                cur_line -= 2
+              case BS, RHLF:
+                cur_line -= 1
+              case TAB, FHLF:
+                cur_line += 1
+                if cur_line > max_line { max_line = cur_line }
+              default:
+                continue
+            }
+            continue
+          case NL:
+            cur_line += 2
+            if cur_line > max_line {
+              max_line = cur_line
+            }
+            cur_col = 0
+            continue
+          case SPACE:
+            cur_col += 1
+            continue
+          case SI:
+            cur_set = .normal
+            continue
+          case SO:
+            cur_set = .alternate
+            continue
+          case TAB:
+            cur_col |= 7
+            cur_col += 1
+            continue
+          case VT:
+            cur_line -= 2
+            continue
+          default:
+            break
+        }
+        if ch.isWhitespace {
+          let width = wcwidth(chx)
+          if width > 0 {
+            cur_col += Int(width)
+          }
+          continue
+        }
+        if !options.passUnknownSeqs {
+          continue
+        }
+      }
+      
+      /*
+      // Handle other cases here, like adding the character to the line
+      if cur_line != 0 {
+        flush_lines(lines, 1, options)
+      }
+    }
+    
+    // Final clean up and flushing
+    flush_lines(lines, cur_line, options)
+    */
+      /* Must stuff ch in a line - are we at the right one? */
+      if (cur_line + adjust != this_line) {
+
+        /* round up to next line */
+        adjust = (!options.fine && (cur_line & 1) == 1) ? 1 : 0
+
+        if (cur_line + adjust < this_line) {
+          while (cur_line + adjust < this_line &&
+                 this_line > lines.startIndex) {
+//            l -= 1
+            this_line-=1
+          }
+          if (cur_line + adjust < this_line) {
+            if (nflushd_lines == 0) {
+              /*
+               * Allow backup past first
+               * line if nothing has been
+               * flushed yet.
+               */
+              while (cur_line + adjust
+                  < this_line) {
+                let lnew = LINE()
+                lines.insert(lnew, at: 0)
+                extra_lines+=1
+//                  this_line-=1
+                cur_line += 1
+              }
+            } else {
+              if !warned {
+                warned = true
+                let ff = cur_line < 0 ? "past first line" : "-- line already flushed"
+                let msg = "warning: can't back up \(ff)"
+                FileHandle.standardError.write("\(msg)\n")
+              }
+              cur_line = this_line - adjust;
+            }
+          }
+        } else {
+          /* may need to allocate here */
+          while (cur_line + adjust > this_line) {
+            //             if (l->l_next == NULL) {
+            if (this_line >= lines.endIndex - 1) {
+              lines.append(LINE())
+            }
+            this_line += 1
+          }
+        }
+        if (this_line > nflushd_lines &&
+            this_line - nflushd_lines >=
+            options.max_bufd_lines + BUFFER_MARGIN) {
+          if extra_lines > 0 {
+            flush_lines(&lines, extra_lines, options)
+            extra_lines = 0
+          }
+          flush_lines(&lines, this_line - nflushd_lines -
+                      options.max_bufd_lines, options)
+          nflushd_lines = this_line - options.max_bufd_lines;
+        }
+      }
+ //     let l = lines.first!
+ 
+      let c = CHAR(c_column: cur_col, c_set: cur_set, c_char: ch, c_width: Int(wcwidth(chx)))
+      lines[this_line].l_line.append(c)
+
+      /*
+       * If things are put in out of order, they will need sorting
+       * when it is flushed.
+       */
+      if (cur_col < lines[this_line].l_max_col) {
+//        l->l_needs_sort = 1
+        lines[this_line].l_needs_sort = true
+      } else {
+//        l->l_max_col = cur_col
+        lines[this_line].l_max_col = cur_col
+      }
+      if (c.c_width > 0) {
+        cur_col += c.c_width
+      }
+    }
+    
+//    if (ferror(stdin)) {
+//      err(1, NULL)
+//    }
+    
+    if extra_lines > 0 {
+      /*
+       * Extra lines only exist if no lines have been flushed
+       * yet. This means that 'lines' must point to line zero
+       * after we flush the extra lines.
+       */
+      flush_lines(&lines, extra_lines, options);
+//      l = lines;
+      this_line = 0 // or startIndex?
+    }
+
+    /* goto the last line that had a character on it */
+/*    for (; l->l_next; l = l->l_next) {
+      this_line += 1
+    }
+ */
+    this_line = lines.endIndex - 1
+    flush_lines(&lines, this_line - nflushd_lines + 1, options);
+
+    /* make sure we leave things in a sane state */
+    if last_set != .normal {
+      PUTC(SI)
+    }
+
+    /* flush out the last few blank lines */
+    if max_line >= this_line {
+      nblank_lines = max_line - this_line + (max_line & 1)
+    }
+    if nblank_lines == 0 {
+      /* end with a newline even if the source doesn't */
+      nblank_lines = 2
+    }
+    flush_blanks(options)
+  }
+  
+  func PUTC(_ ch: Character) {
+    FileHandle.standardOutput.write(String(ch))
+  }
+  
+  /*
+   * Prints the first 'nflush' lines. Printed lines are freed.
+   * After this function returns, 'lines' points to the first
+   * of the remaining lines, and 'nblank_lines' will have the
+   * number of half line feeds between the final flushed line
+   * and the first remaining line.
+   */
+  func flush_lines(_ lines : inout ArraySlice<LINE>, _  nflush: Int, _ options: CommandOptions) {
+    for _ in 0..<nflush {
+      if !lines.isEmpty {
+        let line = lines.removeFirst()
+        if !line.l_line.isEmpty {
+          flush_blanks(options)
+          flush_line(line, options)
+        }
+      }
+      if !lines.isEmpty {
+        nblank_lines += 1
+      }
+    }
+  }
+  
+  /*
+   * Print a number of newline/half newlines.
+   * nblank_lines is the number of half line feeds.
+   */
+  func flush_blanks(_ options: CommandOptions) {
+    var half = 0
+    var nb = nblank_lines
+    if nb & 1 != 0 {
+      if options.fine {
+        half = 1
+      } else {
+        nb += 1
+      }
+    }
+    nb /= 2
+    for _ in 0..<nb {
+      PUTC("\n")
+    }
+    if half != 0 {
+      PUTC(ESC)
+      PUTC(FHLF)
+      if nb == 0 {
+        PUTC("\r")
+      }
+    }
+    nblank_lines = 0
+  }
+  
+  /*
+   * Write a line to stdout taking care of space to tab conversion (-h flag)
+   * and character set shifts.
+   */
+  
+  
+  func flush_line(_ line: LINE, _ options : CommandOptions) {
+    var chars = line.l_line
+    var last_col = 0
+    var nchars = chars.count
+    
+    // Sorting logic (if needed)
+    if line.l_needs_sort {
+      var sorted: [CHAR] = []
+      var count = Array(repeating: 0, count: line.l_max_col + 1)
+      
+      for char in chars {
+        count[char.c_column] += 1
+      }
+      
+      var tot = 0
+      for i in 0...line.l_max_col {
+        let save = count[i]
+        count[i] = tot
+        tot += save
+      }
+      
+      sorted = Array(repeating: CHAR(c_column: 0, c_set: .normal, c_char: " ", c_width: 0), count: nchars)
+      for char in chars {
+        sorted[count[char.c_column]] = char
+        count[char.c_column] += 1
+      }
+      
+      chars = sorted
+    }
+    
+    var c = 0
+    // Start processing the characters
+    while nchars > 0 {
+      let this_col = chars[c].c_column
+      var endc = c
+      while true {
+        endc += 1
+        nchars -= 1
+        if nchars  > 0 && this_col == chars[endc].c_column { continue }
+        break
+      }
+      
+      // If -b flag is set, only print last character
+      if options.noBackspaces {
+        c = endc - 1
+        if nchars > 0 && this_col + chars[c].c_width > chars[endc].c_column {
+          continue
+        }
+      }
+      
+      // Handle space or tab conversion
+      if this_col > last_col {
+        var nspace = this_col - last_col
+        
+        if options.compressSpaces && nspace > 1 {
+          while true {
+            let tab_col = (last_col + 8) & ~7
+            if tab_col > this_col {
+              break
+            }
+            let tab_size = tab_col - last_col
+            if tab_size == 1 {
+              PUTC(" ")
+            } else {
+              PUTC(TAB)
+            }
+            nspace -= tab_size
+            last_col = tab_col
+          }
+        }
+        
+        while nspace > 0 {
+          PUTC(" ")
+          nspace -= 1
+        }
+        last_col = this_col
+      }
+      
+      // Handle character set changes and printing
+      while true {
+        if chars[c].c_set != last_set {
+          switch chars[c].c_set {
+            case .normal:
+              print(SI, terminator: "")
+            case .alternate:
+              print(SO, terminator: "")
+          }
+          last_set = chars[c].c_set
+        }
+        PUTC(chars[c].c_char)
+        // If the character has width > 1, backspace accordingly (if required)
+        if c + 1 < endc {
+          for _ in 0..<chars[c].c_width {
+            PUTC(BS)
+          }
+        }
+        c += 1
+        if c >= endc {
+          break
+        }
+      }
+      last_col += chars[c-1].c_width
+    }
   }
 }
