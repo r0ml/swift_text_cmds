@@ -29,9 +29,6 @@ let package = Package(
   name: "text_cmds",
   // Mutex is only available in v15 or newer
   platforms: [.macOS(.v15)],
-//  products: [
-//    .executable(name: "apply", targets: ["apply"])
-//  ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     // Targets can depend on other targets in this package and products from dependencies.
@@ -41,39 +38,8 @@ let package = Package(
             path: "TestSupport" )
     ]
     
-    +
-    
-    generateTargets()
-    
-    /*
-    .executableTarget(
-      name: "apply",
-      dependencies: [.target(name: "shared")]
-    ),
-    .executableTarget(
-      name: "basename",
-      dependencies: [.target(name: "shared")]
-    ),
-    */
-    
-    +
-    
-  /*
-  [
-    .testTarget(
-      name: "applyTest",
-      dependencies: [.target(name: "apply"), .target(name: "testSupport")],
-      resources: [.copy("Resources")]
-    ),
-    .testTarget(
-      name: "basenameTest",
-      dependencies: [.target(name: "basename"), .target(name: "testSupport")]
-    )
-
-  ]
-   */
-  
-  generateTestTargets()
+  +generateTargets()
+  +generateTestTargets()
 )
 
 func generateTargets() -> [Target] {

@@ -1402,7 +1402,7 @@ public class BSDGetopt {
       //   place = nargv.count == 0 ? "" : nargv.removeFirst()
       // }
       if ostr.first != ":" {
-        throw CmdErr(1, "\(PROGNAME): illegal option -- \(optopt))")
+        throw CmdErr(1, "\(PROGNAME): illegal option -- \(optopt)")
       }
     }
 

@@ -11,7 +11,7 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class wcTest {
+@Suite(.serialized) class wcTest : ShellTest {
   let tv="""
 Der bode en underlig gråsprængt en
 på den yderste nøgne ø; –
@@ -32,10 +32,11 @@ kom Terje Vigen nær.
   let tvcL=42
   let tvmL=39
 
-  let ex = "wc"
+  let cmd = "wc"
+  let suite = "wcTest"
 
   func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
-    let p1 = ShellProcess(ex)
+    let p1 = ShellProcess(cmd)
     let (_, o, _) = try await p1.run(i)
     let k = o!.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
     #expect(k.count == 1 &&
@@ -43,19 +44,19 @@ kom Terje Vigen nær.
             Int(k[0].output.2)! == b &&
             Int(k[0].output.3)! == c )
 
-    let p2 = ShellProcess(ex, "-l")
+    let p2 = ShellProcess(cmd, "-l")
     let (_, o1, _) = try await p2.run(i)
     let k1 = o1!.matches(of: /^ +(\d+)\n$/)
     #expect(k1.count == 1 &&
             Int(k1[0].output.1)! == a )
 
-    let p3 = ShellProcess(ex, "-w")
+    let p3 = ShellProcess(cmd, "-w")
     let (_, o2, _) = try await p3.run(i)
     let k2 = o2!.matches(of: /^ +(\d+)\n$/)
     #expect(k2.count == 1 &&
             Int(k2[0].output.1)! == b)
 
-    let p4 = ShellProcess(ex, "-c")
+    let p4 = ShellProcess(cmd, "-c")
     let (_, o3, _) = try await p4.run(i)
     let k3 = o3!.matches(of: /^ +(\d+)\n$/)
     #expect(k3.count == 1 &&
@@ -84,11 +85,7 @@ kom Terje Vigen nær.
   @Test("Invalid multibye input") func invalid() async throws {
     let i = "a\u{ff}b\n".data(using: .isoLatin1)!
     
-/*    let u = FileManager.default.temporaryDirectory.appendingPathComponent("foo")
-    try i!.write(to: u)
-    defer { try? FileManager.default.removeItem(at: u) }
- */
-    let p = ShellProcess(ex, "-m", env: ["LC_ALL":"UTF-8"])
+    let p = ShellProcess(cmd, "-m", env: ["LC_ALL":"UTF-8"])
     let (_, o, e) = try await p.run(i)
     let k = o!.matches(of: /^ +(\d+)\n$/)
     #expect(k.count == 1)
@@ -122,20 +119,14 @@ kom Terje Vigen nær.
   }
 
   @Test func total() async throws {
-    let f =
-    FileManager.default.temporaryDirectory.appendingPathComponent("foo")
-    let f2 =
-    FileManager.default.temporaryDirectory.appendingPathComponent("bar")
-
-    try (tv.appending("\n")).write(to: f, atomically: true, encoding: .utf8)
-    try (tv.appending("\n")).write(to: f2, atomically: true, encoding: .utf8)
+    let f = try tmpfile("foo", tv+"\n")
+    let f2 = try tmpfile("bar", tv+"\n")
 
     defer {
-      try? FileManager.default.removeItem(at: f)
-      try? FileManager.default.removeItem(at: f2)
+      rm(f, f2)
     }
     
-    let p = ShellProcess(ex, f.path, f2.path)
+    let p = ShellProcess(cmd, f, f2)
     let (_, j, _) = try await p.run()
     let ll = j!.split(separator: "\n", omittingEmptySubsequences: true).last
     
@@ -145,7 +136,7 @@ kom Terje Vigen nær.
     if let ll {
       let k = ll.matches(of: /^\s+(\d+)\s+(\d+)\s+(\d+)\s+total$/)
       
-      #expect(!k.isEmpty)
+      try #require(!k.isEmpty)
       #expect( Int((k.first!.output.1))! == 2 * tvl )
       #expect( Int(k.first!.output.2)! == 2 * tvw )
       #expect( Int(k.first!.output.3)! == 2 * tvc )
@@ -157,7 +148,7 @@ kom Terje Vigen nær.
   }
 
   @Test("Trigger usage message") func usage() async throws {
-    let p = ShellProcess(ex, "-?")
+    let p = ShellProcess(cmd, "-?")
     let (r, j, e) = try await p.run()
     #expect(r == 1)
     #expect( e!.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )

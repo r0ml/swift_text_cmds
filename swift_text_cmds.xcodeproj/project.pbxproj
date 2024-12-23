@@ -87,7 +87,6 @@
 		CBAA7C3C2BAC9157003B113A /* b64decode.1 in Install section 1 manpages */ = {isa = PBXBuildFile; fileRef = CBAA7C3A2BAC913F003B113A /* b64decode.1 */; };
 		CBAA7C3D2BAC915A003B113A /* b64encode.1 in Install section 1 manpages */ = {isa = PBXBuildFile; fileRef = CBAA7C3B2BAC913F003B113A /* b64encode.1 */; };
 		CBBD76ED2BACAC4F008CD52C /* jq.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = CBBD76EC2BACAC4A008CD52C /* jq.1 */; };
-		CBDCAA982996BA6600657251 /* libxo.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E14C02A427C7CED1007B22ED /* libxo.tbd */; };
 		CBFC467B29C3739800DE6539 /* libutil.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 2AC6B55D268C1B16006AA0B7 /* libutil.tbd */; };
 		E14C02A527C7CED1007B22ED /* libxo.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E14C02A427C7CED1007B22ED /* libxo.tbd */; };
 		E724AF3B2CFADFA6009CC87C /* libTestSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E76970A12CF54ACA00F3903F /* libTestSupport.a */; platformFilters = (macos, ); };
@@ -645,6 +644,7 @@
 		E7E624F02D10C55600E26DA9 /* multi.1.9.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E623C82D10C55600E26DA9 /* multi.1.9.out */; };
 		E7E624F12D10C55600E26DA9 /* regress.s5.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E624542D10C55600E26DA9 /* regress.s5.out */; };
 		E7E624F22D10C55600E26DA9 /* hanoi.sed in Resources */ = {isa = PBXBuildFile; fileRef = E7E623BD2D10C55600E26DA9 /* hanoi.sed */; };
+		E7E6250A2D13755D00E26DA9 /* xo in Frameworks */ = {isa = PBXBuildFile; productRef = E7E625092D13755D00E26DA9 /* xo */; };
 		E7E6C49E2CFA04AA000D0B42 /* vis.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = E7E6C49D2CFA04AA000D0B42 /* vis.xctestplan */; };
 		E7E6C4B12CFA6D92000D0B42 /* libTestSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E76970A12CF54ACA00F3903F /* libTestSupport.a */; platformFilters = (macos, ); };
 		E7E6C4B32CFA6E0D000D0B42 /* visTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E6C4992CFA0497000D0B42 /* visTest.swift */; };
@@ -2481,6 +2481,7 @@
 		E7E624542D10C55600E26DA9 /* regress.s5.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.s5.out; sourceTree = "<group>"; };
 		E7E624552D10C55600E26DA9 /* regress.sg.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.sg.out; sourceTree = "<group>"; };
 		E7E624562D10C55600E26DA9 /* regress.y.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.y.out; sourceTree = "<group>"; };
+		E7E625012D136C7500E26DA9 /* libxo.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxo.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/usr/lib/libxo.tbd; sourceTree = DEVELOPER_DIR; };
 		E7E6C4992CFA0497000D0B42 /* visTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = visTest.swift; sourceTree = "<group>"; };
 		E7E6C49D2CFA04AA000D0B42 /* vis.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = vis.xctestplan; sourceTree = "<group>"; };
 		E7E6C4A32CFA6C3D000D0B42 /* visTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = visTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3120,7 +3121,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E76972EE2CF6402100F3903F /* libShared.a in Frameworks */,
-				CBDCAA982996BA6600657251 /* libxo.tbd in Frameworks */,
+				E7E6250A2D13755D00E26DA9 /* xo in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3181,6 +3182,7 @@
 		2AC6B55C268C1B16006AA0B7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E7E625012D136C7500E26DA9 /* libxo.tbd */,
 				2A31580929CFCABD00B2DB3D /* libdarwintest.a */,
 				E14C02A427C7CED1007B22ED /* libxo.tbd */,
 				2AC6B55D268C1B16006AA0B7 /* libutil.tbd */,
@@ -6327,6 +6329,9 @@
 				Base,
 			);
 			mainGroup = FC7A7B2E149865C70086576A;
+			packageReferences = (
+				E7E6250B2D14995000E26DA9 /* XCRemoteSwiftPackageReference "libxo" */,
+			);
 			productRefGroup = FC7A7B3A149865C80086576A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -11773,6 +11778,32 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E7E625062D136E8800E26DA9 /* XCLocalSwiftPackageReference "../libxo" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../libxo;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E7E6250B2D14995000E26DA9 /* XCRemoteSwiftPackageReference "libxo" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/r0ml/libxo";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E7E625092D13755D00E26DA9 /* xo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E7E625062D136E8800E26DA9 /* XCLocalSwiftPackageReference "../libxo" */;
+			productName = xo;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FC7A7B30149865C80086576A /* Project object */;
 }
