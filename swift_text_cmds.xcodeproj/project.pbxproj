@@ -2482,6 +2482,9 @@
 		E7E624552D10C55600E26DA9 /* regress.sg.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.sg.out; sourceTree = "<group>"; };
 		E7E624562D10C55600E26DA9 /* regress.y.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.y.out; sourceTree = "<group>"; };
 		E7E625012D136C7500E26DA9 /* libxo.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libxo.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/usr/lib/libxo.tbd; sourceTree = DEVELOPER_DIR; };
+		E7E6251B2D19EF9400E26DA9 /* libc.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libc.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/usr/lib/libc.tbd; sourceTree = DEVELOPER_DIR; };
+		E7E6251D2D19F7DF00E26DA9 /* libSystem.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/usr/lib/libSystem.tbd; sourceTree = DEVELOPER_DIR; };
+		E7E625202D19FC6700E26DA9 /* libSystem.B_asan.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B_asan.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/usr/lib/libSystem.B_asan.tbd; sourceTree = DEVELOPER_DIR; };
 		E7E6C4992CFA0497000D0B42 /* visTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = visTest.swift; sourceTree = "<group>"; };
 		E7E6C49D2CFA04AA000D0B42 /* vis.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = vis.xctestplan; sourceTree = "<group>"; };
 		E7E6C4A32CFA6C3D000D0B42 /* visTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = visTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -3182,6 +3185,9 @@
 		2AC6B55C268C1B16006AA0B7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E7E625202D19FC6700E26DA9 /* libSystem.B_asan.tbd */,
+				E7E6251D2D19F7DF00E26DA9 /* libSystem.tbd */,
+				E7E6251B2D19EF9400E26DA9 /* libc.tbd */,
 				E7E625012D136C7500E26DA9 /* libxo.tbd */,
 				2A31580929CFCABD00B2DB3D /* libdarwintest.a */,
 				E14C02A427C7CED1007B22ED /* libxo.tbd */,
