@@ -75,7 +75,7 @@ extern int main_base64_decode(const char *);
 #include <get_compat.h>
 #endif
 
-static const char *try inFile, *outfile;
+static const char *inFile, *outfile;
 static FILE *infp, *outfp;
 static bool base64, cflag, iflag, oflag, pflag, rflag, sflag;
 #ifdef __APPLE__
@@ -103,12 +103,12 @@ main_base64_decode(const char *in)
 #else
 	if (in != NULL) {
 #endif
-		try inFile = in;
-		infp = fopen(try inFile, "r");
+    inFile = in;
+		infp = fopen(inFile, "r");
 		if (infp == NULL)
 			err(1, "%s", in);
 	} else {
-		try inFile = "stdin";
+		inFile = "stdin";
 		infp = stdin;
 	}
 #ifdef __APPLE__
@@ -179,7 +179,7 @@ main_decode(int argc, char *argv[])
 	if (*argv != NULL) {
 		rval = 0;
 		do {
-			infp = fopen(try inFile = *argv, "r");
+			infp = fopen(inFile = *argv, "r");
 			if (infp == NULL) {
 				warn("%s", *argv);
 				rval = 1;
@@ -189,7 +189,7 @@ main_decode(int argc, char *argv[])
 			fclose(infp);
 		} while (*++argv);
 	} else {
-		try inFile = "stdin";
+    inFile = "stdin";
 		infp = stdin;
 		rval = decode();
 	}
@@ -219,7 +219,7 @@ decode(void)
 	}
 	v = decode2();
 	if (v == EOF) {
-		warnx("%s: missing or bad \"begin\" line", try inFile);
+		warnx("%s: missing or bad \"begin\" line", inFile);
 		return (1);
 	}
 	for (r = v; cflag; r |= v) {
@@ -270,7 +270,7 @@ decode2(void)
 
 	handle = setmode(p);
 	if (handle == NULL) {
-		warnx("%s: unable to parse file mode", try inFile);
+		warnx("%s: unable to parse file mode", inFile);
 		return (1);
 	}
 	mode = getmode(handle, 0)
@@ -304,7 +304,7 @@ decode2(void)
 				m = strlen(p);
 				if (sizeof(buf) < n + m) {
 					warnx("%s: bad output filename",
-					    try inFile);
+                inFile);
 					return (1);
 				}
 				p = memmove(buf + n, p, m);
@@ -335,7 +335,7 @@ decode2(void)
 			    && !S_ISFIFO(st.st_mode)
 #endif
 			    ) {
-				warnc(EEXIST, "%s: %s", try inFile, outfile);
+				warnc(EEXIST, "%s: %s", inFile, outfile);
 				return (0);
 			}
 			switch (st.st_mode & S_IFMT) {
@@ -361,10 +361,10 @@ decode2(void)
 
 				if (unlink(outfile) == 0 || errno == ENOENT)
 					break;
-				warn("%s: unlink %s", try inFile, outfile);
+				warn("%s: unlink %s", inFile, outfile);
 				return (1);
 			case S_IFDIR:
-				warnc(EISDIR, "%s: %s", try inFile, outfile);
+				warnc(EISDIR, "%s: %s", inFile, outfile);
 				return (1);
 #ifdef __APPLE__
 			case S_IFIFO:
@@ -377,21 +377,21 @@ decode2(void)
 					flags &= ~O_EXCL;
 					break;
 				}
-				warnc(EEXIST, "%s: %s", try inFile, outfile);
+				warnc(EEXIST, "%s: %s", inFile, outfile);
 				return (1);
 			}
 		} else if (errno != ENOENT) {
-			warn("%s: %s", try inFile, outfile);
+			warn("%s: %s", inFile, outfile);
 			return (1);
 		}
 		if ((fd = open(outfile, flags, mode)) < 0 ||
 		    (outfp = fdopen(fd, "w")) == NULL) {
-			warn("%s: %s", try inFile, outfile);
+			warn("%s: %s", inFile, outfile);
 			return (1);
 		}
 #ifdef __APPLE__
 		if (fchmod(fileno(outfp), mode) && EPERM != errno) {
-			warn("%s: %s", try inFile, outfile);
+			warn("%s: %s", inFile, outfile);
 			close(fd);
 			return 1;
 		}
@@ -417,7 +417,7 @@ get_line(char *buf, size_t size)
 		return (2);
 	if (rflag)
 		return (0);
-	warnx("%s: %s: short file", try inFile, outfile);
+	warnx("%s: %s: short file", inFile, outfile);
 	return (1);
 }
 
@@ -429,7 +429,7 @@ checkend(const char *ptr, const char *end, const char *msg)
 	n = strlen(end);
 	if (strncmp(ptr, end, n) != 0 ||
 	    strspn(ptr + n, " \t\r\n") != strlen(ptr + n)) {
-		warnx("%s: %s: %s", try inFile, outfile, msg);
+		warnx("%s: %s: %s", inFile, outfile, msg);
 		return (1);
 	}
 	return (0);
@@ -439,7 +439,7 @@ static int
 checkout(int rval)
 {
 	if (fflush(outfp) != 0) {
-		warn("%s: %s", try inFile, outfile);
+		warn("%s: %s", inFile, outfile);
 		rval = 1;
 	}
 	if (outfp != stdout) {
@@ -471,7 +471,7 @@ uu_decode(void)
 
 #define OUT_OF_RANGE do {						\
 	warnx("%s: %s: character out of range: [%d-%d]",		\
-	    try inFile, outfile, ' ', 077 + ' ' + 1);			\
+      inFile, outfile, ' ', 077 + ' ' + 1);			\
 	return (1);							\
 } while (0)
 

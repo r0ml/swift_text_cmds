@@ -150,7 +150,7 @@ base64_encode_or_decode(int argc, char *argv[])
 	int ch;
 	bool decode = false;
 #ifdef __APPLE__
-	const char *try inFile = "-", *outfile = "-";
+	const char *inFile = "-", *outfile = "-";
 	/* default to no line breaks for compatibility */
 	const char *w = "0";
 #else
@@ -194,7 +194,7 @@ base64_encode_or_decode(int argc, char *argv[])
 			break;
 		case 'i':
 #ifdef __APPLE__
-			try inFile = optarg;
+			inFile = optarg;
 #else
 			/* silently ignore */
 #endif
@@ -223,9 +223,9 @@ base64_encode_or_decode(int argc, char *argv[])
 		usage_base64(true);
 	}
 	if (decode)
-		main_base64_decode(try inFile, outfile);
+		main_base64_decode(inFile, outfile);
 	else
-		main_base64_encode(try inFile, outfile, w);
+		main_base64_encode(inFile, outfile, w);
 #else
 	if (decode)
 		main_base64_decode(argv[optind]);

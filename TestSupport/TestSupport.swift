@@ -111,6 +111,7 @@ public actor ShellProcess {
     return try await run(asi)
   }
   
+  
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
   @discardableResult
   public func runBinary( _ input : Data) async throws -> (Int32, Data, String) {
@@ -118,6 +119,11 @@ public actor ShellProcess {
     return try await runBinary(asi)
   }
   
+  @discardableResult
+  public func runBinary(_ input : String) async throws -> (Int32, Data, String) {
+    return try await runBinary( input.data(using: .utf8)! )
+  }
+
   // ==========================================================
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
@@ -319,8 +325,8 @@ public actor ShellProcess {
   static public func run(_ ex : String, withStdin: Stdinable? = nil, status: Int = 0, output: Data, error: Matchable? = nil, args: [Arguable], env: [String:String] = [:], cd: URL? = nil) async throws {
     let p = ShellProcess(ex, args, env: env, cd: cd)
     let (r, j, e) = switch withStdin {
-//    case is String:
-//      try await p.runBinary(withStdin as? String)
+    case is String:
+      try await p.runBinary(withStdin as! String)
     case is Data:
       try await p.runBinary(withStdin as! Data)
 //    case is FileHandle:

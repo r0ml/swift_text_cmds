@@ -96,6 +96,12 @@ public func warn(_ b : String) {
   fputs(": \(b): \(e)\n", stderr)
 }
 
+public func warnc(_ cod : Int32, _ b : String) {
+  let e = String(cString: strerror(cod))
+  fputs(basename(CommandLine.unsafeArgv[0]), stderr)
+  fputs(": \(b): \(e)\n", stderr)
+}
+
 extension Character {
   public static func from(_ c : Int8?) -> Character? {
     guard let c else { return nil }
