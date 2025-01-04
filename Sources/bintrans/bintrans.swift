@@ -53,7 +53,7 @@ Usage:  base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
     var rflag = false
     var pflag = false
     var cflag = false
-    var columns : Int = 76
+    var columns : Int = 0
     var raw = false
     var base64 = false
     var coder : coders = .base64
@@ -140,7 +140,7 @@ usage: [bintrans] <uuencode | uudecode> ...
     }
     options.args = go.remaining
     if !options.args.isEmpty {
-      warnx("invalid argumnent \(options.args[0])")
+      warnx("invalid argument \(options.args[0])")
       throw CmdErr(1)
     }
   }
@@ -154,7 +154,7 @@ usage: [bintrans] <uuencode | uudecode> ...
         } else {
           try main_base64_encode(options.inFile, options.outFile, options.w, &xoptions)
         }
-        throw CmdErr(1, usage)
+//        throw CmdErr(1, usage)
       case .uuencode, .b64encode:
         try main_encode(options)
       case .uudecode, .b64decode:

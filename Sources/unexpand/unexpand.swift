@@ -75,13 +75,11 @@ import Shared
       }
     } else {
       for filename in options.args {
-        if let fh = FileHandle(forReadingAtPath: filename) {
-          do {
-            try await tabify(fh, filename, options: options)
-          } catch(let e) {
-            warn(filename)
-          }
-        } else {
+        do {
+          let u = URL(filePath: filename)
+          let fh = try FileHandle(forReadingFrom: u)
+          try await tabify(fh, filename, options: options)
+        } catch(let e) {
           warn(filename)
         }
       }

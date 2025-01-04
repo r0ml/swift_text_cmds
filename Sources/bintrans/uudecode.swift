@@ -56,10 +56,12 @@ extension bintrans {
     
     if let inp, inp != "-" {
       inFile = inp
-      if let xinfp = FileHandle(forReadingAtPath: inp) {
+      do {
+        let u = URL(filePath: inp)
+        let xinfp = try FileHandle(forReadingFrom: u)
         infp = xinfp
-      } else {
-        throw CmdErr(1, inp)
+      } catch(let e) {
+        throw CmdErr(1, "\(inp): Permission denied (\(e.localizedDescription))")
       }
     } else {
       inFile = "stdin";
@@ -72,11 +74,15 @@ extension bintrans {
       if outp == "-" {
         outfp = FileHandle.standardOutput
       }
-      else if let xoutfp = FileHandle(forWritingAtPath: outp) {
-        outFile = outp
-        outfp = xoutfp
-      } else {
-        throw CmdErr(1, outp)
+      else {
+        let u = URL(filePath: outp)
+        do {
+          let xoutfp = try FileHandle(forWritingTo: u)
+          outFile = outp
+          outfp = xoutfp
+        } catch(let e) {
+          throw CmdErr(1, "\(outp): Permission denied (\(e.localizedDescription))")
+        }
       }
     }
     
@@ -637,10 +643,10 @@ extension bintrans {
 //      p = inbuf;
 //      while (*p != '\0') {
       var count = 0
-      var count4 = -1
+      var count4 = 0
       var nn = 0
 
-    for ch in inb {
+    for ch in inbuf {
         nn += 1
         /*
          * Base64 encoded strings have the following
@@ -657,8 +663,8 @@ extension bintrans {
         }
       }
       
-      leftover = String(inb.dropFirst(count4)) // count4+1 ??
-      let ibf = inb.prefix(count4)
+      leftover = String(inbuf.dropFirst(count4)) // count4+1 ??
+      let ibf = inbuf.prefix(count4)
       
       let (outbuf, done) = apple_b64_pton(String(ibf))
       

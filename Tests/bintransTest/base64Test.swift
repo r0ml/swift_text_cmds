@@ -19,3 +19,180 @@
  License for the specific language governing rights and limitations
  under the License."
 */
+
+import Testing
+import TestSupport
+import System
+
+let sampinp="aoijeasdflkbnoiqenfoaisdfjlkadjslkjdf"
+let sampout="YW9pamVhc2RmbGtibm9pcWVuZm9haXNkZmpsa2FkanNsa2pkZgo="
+let sampoutnonl="YW9pamVhc2RmbGtibm9pcWVuZm9haXNkZmpsa2FkanNsa2pkZg=="
+let sampoutb20="""
+YW9pamVhc2RmbGtibm9p
+cWVuZm9haXNkZmpsa2Fk
+anNsa2pkZgo=
+"""
+let sampoutb10="""
+YW9pamVhc2
+RmbGtibm9p
+cWVuZm9haX
+NkZmpsa2Fk
+anNsa2pkZg
+o=
+"""
+
+@Suite(.serialized) class base64Test : ShellTest {
+  let cmd = "bintrans"
+  let suite = "bintransTest"
+  
+  @Test func encode() async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    try await run(output: sampout+"\n", args: "base64", "-i", "inFile")
+    rm(t)
+  }
+  
+  @Test("encode, break at 10", .serialized, arguments: [
+    ["-b10"], ["--break", "10"], ["-w10"], ["--wrap", "10"],
+  ]) func encode_b10(_ args : [String]) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    try await run(output: sampoutb10+"\n", args: ["base64"] + args+["-i", t])
+    rm(t)
+  }
+  
+  @Test("encode, break at 20", .serialized, arguments: [
+    ["-b20"], ["--break", "20"], ["-w20"], ["--wrap", "20"],
+  ]) func encode_b20(_ args : [String]) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    try await run(output: sampoutb20+"\n", args: ["base64"] + args+["-i", t])
+    rm(t)
+  }
+  
+  @Test("decode, no break", .serialized, arguments: [
+    "-D", "-d", "--decode"
+  ]) func decode(_ arg: String) async throws {
+    let t = try tmpfile("inFile", sampout+"\n")
+    try await run(output: sampinp+"\n", args: "base64", arg, "-i", t)
+    rm(t)
+  }
+  
+  @Test("decode, break at 10", .serialized, arguments: [
+    "-D", "-d", "--decode"
+  ]) func decode_b10(_ arg: String) async throws {
+    let t = try tmpfile("inFile", sampoutb10+"\n")
+    try await run(output: sampinp+"\n", args: "base64", arg, "-i", t)
+    rm(t)
+  }
+  
+  @Test("decode, break at 20", .serialized, arguments: [
+    "-D", "-d", "--decode"
+  ]) func decode_b20(_ arg: String) async throws {
+    let t = try tmpfile("inFile", sampoutb20+"\n")
+    try await run(output: sampinp+"\n", args: "base64", arg, "-i", t)
+    rm(t)
+  }
+  
+  @Test("exit code when incorrect usage") func ex_usage() async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    try await run(status: 1, error: /requires an argument/, args: "base64", "-b")
+    try await run(status: 1, error: /requires an argument/, args: "base64", "-w")
+    try await run(status: 1, error: /invalid argument/, args: "base64", t)
+    rm(t)
+  }
+  
+  @Test("different ways of specifying input and output", .serialized, arguments:
+          ["", "-o-", "-o -", "--output=-",],
+        ["-iinFile", "-i inFile", "--input=inFile"]
+  ) func in_out(_ o : String, _ i : String) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    let args = ["base64", i, o].flatMap { $0.split(separator: " ") }
+    try await run(output: sampout+"\n", args: args)
+    rm(t)
+  }
+  
+  @Test("different ways of specifying input and output(2)", arguments:
+          ["", "-o-", "-o -", "--output=-",],
+        ["", "-i-", "-i -", "--input=-"]
+  ) func in_out2(_ o : String, _ i : String) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    let args = ["base64", i, o].flatMap { $0.split(separator: " ") }
+    try await run(withStdin: t, output: sampout+"\n", args: args)
+  }
+  
+  @Test("different ways of specifying input and output(3)", arguments:
+          ["-ooutfile", "-o outfile", "--output=outfile",],
+        ["-iinFile", "-i inFile", "--input=inFile"]
+  ) func in_out3(_ o : String, _ i : String) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
+    try await run( args: args)
+    let j = URL(filePath: "outfile", directoryHint: .notDirectory,  relativeTo: FileManager.default.temporaryDirectory)
+    let oo = try String(contentsOf: j, encoding: .utf8)
+    #expect( oo == sampoutb20+"\n")
+    rm(t, j)
+  }
+
+  @Test("different ways of specifying input and output(4)", arguments:
+          ["-ooutfile", "-o outfile", "--output=outfile",],
+        ["", "-i-", "-i -", "--input=-"]
+  ) func in_out4(_ o : String, _ i : String) async throws {
+    let t = try tmpfile("inFile", sampinp+"\n")
+    let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
+    try await run(withStdin: t, args: args)
+    let j = URL(filePath: "outfile", directoryHint: .notDirectory,  relativeTo: FileManager.default.temporaryDirectory)
+    let oo = try String(contentsOf: j, encoding: .utf8)
+    #expect( oo == sampoutb20+"\n")
+    rm(t, j)
+  }
+
+@Test("check that we don't break the output when decoding") func decode_break() async throws {
+    let t = try tmpfile("inFile", sampout+"\n")
+  try await run(output: sampinp+"\n", args: "base64", "-d", "-b", "20", "-i", t)
+  rm (t)
+  }
+
+  @Test("unreadable input file") func unreadable() async throws {
+    let t = try tmpfile("unreadable", sampinp+"\n")
+    let a = try FileManager.default.attributesOfItem(atPath: t.path)
+    let k = a[.posixPermissions]
+    var j = FilePermissions(rawValue: k as! CModeT)
+    j.remove([.groupRead, .otherRead, .ownerRead])
+    try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
+    try await run(status: 1, error: /denied/, args: "base64", "-i", t)
+    rm(t)
+  }
+  
+  @Test("unwriteable output file") func unwritable() async throws {
+    let t = try tmpfile("unwriteable", "")
+    let a = try FileManager.default.attributesOfItem(atPath: t.path)
+    let k = a[.posixPermissions]
+    var j = FilePermissions(rawValue: k as! CModeT)
+    j.remove([.ownerWrite, .groupWrite, .otherWrite] )
+    try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
+    try await run(status: 1, error: /denied/, args: "base64", "-o", t)
+    rm(t)
+  }
+  
+  @Test("unterminated input") func unterminated() async throws {
+    let t = try tmpfile("inFile", sampinp)
+    try await run(output: sampoutnonl+"\n", args: "base64", "-i", t)
+  }
+  
+  @Test("Check that base64 does not break lines by default") func rdar109360812() async throws {
+    let inp = ((1...1024).map { String($0)+"\n"}).joined()
+    let t = try tmpfile("inFile", inp)
+    let tt = try tmpfile("outfile", "")
+    try await run(args: "base64", "-i", t, "-o", tt)
+    let oo = try String(contentsOf: tt, encoding: .utf8).split(separator: "\n")
+    #expect( oo.count == 1)
+    try await run(output: inp, args: "base64", "-d", "-i", tt)
+    rm(t, tt)
+  }
+  
+  @Test("test URL encoding") func url() async throws {
+    let t = try tmpfile("inFile", "MCM_MA==\n")
+    try await run(output: "0#?0", args: "base64", "-d", "-i", t)
+    rm(t)
+  }
+  
+}
+

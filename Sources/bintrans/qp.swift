@@ -35,12 +35,13 @@ import Shared
 extension bintrans {
   
   func hexval(_ c : Character) -> Int {
-    return Array(arrayLiteral: "0123456789ABCDEF").firstIndex(of: c.uppercased())!
+    let x = Array("0123456789ABCDEF")
+    return x.firstIndex(of: c.uppercased().first!)!
   }
   
-  func decode_char(_ s : Substring) -> Character {
+  func decode_char(_ s : Substring) -> UInt8 {
     let a = s.prefix(2).uppercased()
-    return Character(UnicodeScalar(16 * hexval(a.first!) + hexval(a.last!))!)
+    return UInt8(16 * hexval(a.first!) + hexval(a.last!))
   }
   
   
@@ -52,22 +53,35 @@ extension bintrans {
         case "=":
           if body.count < 1 {
             fpo.write(String(c) )
-          } else if body.prefix(2) == "\r\n" {
+          } else
+          if body.prefix(2) == "\r\n" {
             body = body.dropFirst(2)
-          } else if body.first  == "\n" {
-            body.removeFirst()
+            break
+          } else if body.first == "\n" {
+            body = body.dropFirst()
+            break;
+          } else if body.first == "\r" {
+            body = body.dropFirst()
+            fpo.write("=\r\n")
+//          } else if body.first == "\r" {
+//            fpo.write("=\r\n")
+//            body = body.dropFirst()
+//          } else if body.isEmpty {
+//            fpo.write("=")
           } else if !"0123456789ABCDEFabcdef".contains(body.first!) {
             fpo.write(String(c))
           } else if !"0123456789ABCDEFabcdef".contains(body.dropFirst().first!) {
             fpo.write(String(c))
           } else {
-            fpo.write(String(decode_char(body)))
+            let d = decode_char(body)
             body = body.dropFirst(2)
+            fpo.write(Data([d]))
           }
         default:
           fpo.write(String(c))
       }
     }
+ //   fpo.write("\n")
   }
   
   func hexstring( _ c : UInt8) -> String {
@@ -89,23 +103,33 @@ extension bintrans {
         linelen = 0
       }
       let cc = c.unicodeScalars.first!.value
-      if (cc < 128 ||
+      if (cc >= 128 ||
           c == "=" ||
           (c == "." && (body.first == "\n" || body.first == "\r"))) {
-        fpo.write( hexstring( UInt8(cc)) )
-        linelen += 2;
+        let uu = c.utf8
+        for u in uu {
+          let k = hexstring(u.magnitude)
+          fpo.write("="+k)
+          linelen += 3
+        }
+        linelen -= 1
         prev = c
       } else if (cc < 33 && c != "\n") {
         if ((c == " " || c == "\t") &&
-            body.count > 1 &&
+            body.count > 0 &&
             (body.first != "\n" && body.first !=
              "\r")) {
           fpo.write(String(c))
           prev = c
         } else {
-          fpo.write( hexstring( UInt8(cc)))
-          linelen += 2
-          prev = " "
+          let uu = c.utf8
+          for u in uu {
+            let k = hexstring(u.magnitude)
+            fpo.write( "=" + k)
+            linelen += 2
+          }
+          linelen -= 1
+          prev = "_"
         }
       } else if c == "\n" {
         if prev == " " || prev == "\t" {
@@ -126,7 +150,7 @@ extension bintrans {
     let codec = encode ? encode_quoted_printable : decode_quoted_printable
     
     do {
-      for try await line in fp.bytes.lines {
+      for try await line in fp.bytes.linesNL() {
         // (getline(&line, &linecap, fp) > 0)
         codec(line, fpo);
       }
@@ -181,4 +205,67 @@ extension bintrans {
     
     try await qp(fp, fpo, options.encode);
   }
+}
+
+
+extension FileHandle.AsyncBytes {
+    /// Asynchronously reads lines from the `AsyncBytes` stream.
+    func linesNL() -> AsyncLineSequence {
+        return AsyncLineSequence(asyncBytes: self)
+    }
+
+    struct AsyncLineSequence: AsyncSequence {
+        typealias Element = String
+        typealias AsyncIterator = AsyncLineIterator
+        
+        private let asyncBytes: FileHandle.AsyncBytes
+        
+        init(asyncBytes: FileHandle.AsyncBytes) {
+            self.asyncBytes = asyncBytes
+        }
+        
+        func makeAsyncIterator() -> AsyncLineIterator {
+            return AsyncLineIterator(asyncBytes: asyncBytes.makeAsyncIterator())
+        }
+    }
+
+    struct AsyncLineIterator: AsyncIteratorProtocol {
+        typealias Element = String
+        
+        private var asyncBytes: FileHandle.AsyncBytes.Iterator
+        private var buffer: Data = Data()
+        
+        init(asyncBytes: FileHandle.AsyncBytes.Iterator) {
+            self.asyncBytes = asyncBytes
+        }
+        
+        mutating func next() async throws -> String? {
+            while let byte = try await asyncBytes.next() {
+                buffer.append(byte)
+                
+                // Check for newline (\n)
+                if let range = buffer.range(of: Data([0x0A])) { // '\n'
+                    let lineData = buffer.subdata(in: buffer.startIndex..<range.endIndex)
+                    buffer.removeSubrange(buffer.startIndex..<range.endIndex)
+                    return String(data: lineData, encoding: .utf8)
+                }
+              /*else if let range = buffer.range(of: Data([0x0D, 0x0A])) { // '\r\n'
+                    let lineData = buffer.subdata(in: buffer.startIndex..<range.startIndex)
+                    buffer.removeSubrange(buffer.startIndex...range.endIndex - 1)
+                    return String(data: lineData, encoding: .utf8)
+                }
+               */
+            }
+            
+            // If we reach the end of the stream and still have data in the buffer
+            if !buffer.isEmpty {
+                let line = String(data: buffer, encoding: .utf8)
+                buffer.removeAll()
+                return line
+            }
+            
+            // End of stream
+            return nil
+        }
+    }
 }

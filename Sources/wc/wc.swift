@@ -182,15 +182,17 @@ import Synchronization
     var fh : FileHandle
     
     if xfile != nil {
-      let fhh = FileHandle(forReadingAtPath: xfile!)
-//      fd = open(file, O_RDONLY)
-//      if (fd < 0) {
-      if fhh == nil {
-        xo_warn( "\(xfile!): open")
+      file = xfile!
+      let u = URL(filePath: file)
+      do {
+        let fhh = try FileHandle(forReadingFrom: u)
+        fh = fhh
+        //      fd = open(file, O_RDONLY)
+        //      if (fd < 0) {
+      } catch(let e) {
+        xo_warn( "\(file): open \(e.localizedDescription))")
         return true
       }
-      fh = fhh!
-      file = xfile!
     } else {
       fh = FileHandle.standardInput
 //      fd = STDIN_FILENO

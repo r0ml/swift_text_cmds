@@ -45,19 +45,26 @@ extension bintrans {
     
     if let inp, inp != "-" {
       name = inp
-      if let xinfp = FileHandle(forReadingAtPath: inp) {
+      let u = URL(filePath: inp)
+      do {
+        let xinfp = try FileHandle(forReadingFrom: u)
         infp = xinfp
-      } else {
-        throw CmdErr(1, inp)
+      } catch(let e) {
+        throw CmdErr(1, "\(inp): Permission denied \(e.localizedDescription))")
       }
     }
 
     var outfp : FileHandle = FileHandle.standardOutput
     if let outp, outp != "-"  {
-      if let xoutfp = FileHandle(forWritingAtPath: outp) {
+      let u = URL(filePath: outp)
+      do {
+        if !FileManager.default.fileExists(atPath: u.path) {
+          FileManager.default.createFile(atPath: u.path, contents: nil)
+        }
+        let xoutfp = try FileHandle(forWritingTo: u)
         outfp = xoutfp
-      } else {
-        throw CmdErr(1, outp)
+      } catch(let e) {
+        throw CmdErr(1, "\(outp): Permission denied (\(e.localizedDescription))")
       }
     }
     
@@ -66,10 +73,20 @@ extension bintrans {
     }
     
     var d = Decoder(options: options)
-    d.inHandle = infp
-    d.inFile = inp!
-    d.outHandle = outfp
-    d.outFile = outp!
+    if inp == nil {
+      d.inHandle = FileHandle.standardInput
+      d.inFile = "stdin"
+    } else {
+      d.inHandle = infp
+      d.inFile = inp!
+    }
+    if outp == nil {
+      d.outFile = "stdout"
+      d.outHandle = FileHandle.standardOutput
+    } else {
+      d.outHandle = outfp
+      d.outFile = outp!
+    }
     
     
     // FIXME: why no mode here?
@@ -84,6 +101,7 @@ extension bintrans {
   func parseOptions_encode(_ options : inout CommandOptions, _ bintflag : Bool) throws(CmdErr) {
 
     options.base64 = false;
+    options.columns = 76
     
 //    if (strcmp(basename(argv[0]), "b64encode") == 0) {
     if options.progname == "b64encode" {

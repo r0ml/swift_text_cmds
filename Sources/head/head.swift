@@ -144,8 +144,12 @@ extension FileHandle {
     } else {
       var se = FileHandle.standardError
       for file in opts.args {
-        guard let fileHandle = FileHandle(forReadingAtPath: file) else {
-          print("Cannot open file: \(file)", to: &se)
+        let u = URL(filePath: file)
+        var fileHandle : FileHandle
+        do {
+          fileHandle = try FileHandle(forReadingFrom: u)
+        } catch( let e) {
+          print("Cannot open file: \(file) \(e.localizedDescription))", to: &se)
           continue
         }
         

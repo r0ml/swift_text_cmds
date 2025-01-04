@@ -77,10 +77,12 @@ struct visOptions : OptionSet {
       try await process(FileHandle.standardInput, "<stdin>", options.eflags)
     } else {
       for arg in options.args {
-        if let fh = FileHandle(forReadingAtPath: arg) {
+        let u = URL(filePath: arg)
+        do {
+          let fh = try FileHandle(forReadingFrom: u)
           try await process(fh, arg, options.eflags)
-        } else {
-          warn( arg )
+        } catch(let e) {
+          warn( "\(arg): \(e.localizedDescription)" )
         }
       }
     }

@@ -71,6 +71,7 @@ public actor ShellProcess {
     let aargs = args.map {
       switch $0 {
         case is String: return $0 as! String
+        case is Substring: return String($0 as! Substring)
         case is URL: let u = $0 as! URL
           if u.baseURL == cur.absoluteURL {
             return u.relativePath
@@ -124,6 +125,14 @@ public actor ShellProcess {
     return try await runBinary( input.data(using: .utf8)! )
   }
 
+  @discardableResult
+  public func runBinary(_ input : FileHandle) async throws -> (Int32, Data, String) {
+    try theLaunch(input)
+    return await theCaptureAsData()
+  }
+
+
+
   // ==========================================================
   
   /// Returns the output of running `executable` with `args`. Throws an error if the process exits indicating failure.
@@ -144,7 +153,6 @@ public actor ShellProcess {
   
   @discardableResult
   public func run(_ input : FileHandle) async throws -> (Int32, String?, String?) {
-    
     try theLaunch(input)
     return await theCapture()
   }
@@ -297,6 +305,8 @@ public actor ShellProcess {
       try await p.run(withStdin as! FileHandle)
     case is AsyncStream<Data>:
       try await p.run(withStdin as? AsyncStream<Data>)
+    case is URL:
+      try await p.run( FileHandle(forReadingFrom: withStdin as! URL) )
     case .none:
       try await p.run()
     default:
@@ -329,8 +339,10 @@ public actor ShellProcess {
       try await p.runBinary(withStdin as! String)
     case is Data:
       try await p.runBinary(withStdin as! Data)
-//    case is FileHandle:
-//      try await p.runBinary(withStdin as! FileHandle)
+    case is FileHandle:
+      try await p.runBinary(withStdin as! FileHandle)
+    case is URL:
+      try await p.runBinary(FileHandle(forReadingFrom: withStdin as! URL))
     case is AsyncStream<Data>:
       try await p.runBinary(withStdin as? AsyncStream<Data>)
     case .none:
@@ -364,8 +376,10 @@ extension String : Stdinable {}
 extension Data : Stdinable {}
 extension FileHandle : Stdinable {}
 extension AsyncStream : Stdinable {}
+extension URL : Stdinable {}
 
 public protocol Arguable : Sendable {}
+extension Substring : Arguable {}
 extension String : Arguable {}
 extension URL : Arguable {}
 
@@ -469,6 +483,7 @@ public func tmpfile(_ s : String, _ data : Data? = nil) throws -> URL {
   let j = URL(string: s, relativeTo: FileManager.default.temporaryDirectory)!
 
   try FileManager.default.createDirectory(at: j.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
+  try? FileManager.default.removeItem(at: j)
   if let data { try data.write(to: j) }
   return j
 }
