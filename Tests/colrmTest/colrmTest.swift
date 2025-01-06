@@ -5,29 +5,30 @@ import Testing
 import TestSupport
 import Foundation
 
-@Suite(.serialized) class colrmTest {
+@Suite(.serialized) class colrmTest  : ShellTest {
 
-  let ex = "colrm"
+  let cmd = "colrm"
+  let suite = "colrmTest"
 
   @Test func basic() async throws {
     let input = "abcdefgh\n12345678"
-    let p = ShellProcess(ex, "3", "5")
-    let (_, o, _) = try await p.run(input)
-    #expect(o == "abfgh\n12678")
+    try await run(withStdin: input, output: "abfgh\n12678", args: "3", "5")
   }
 
   @Test func large() async throws {
     let input = "abcdefgh\n12345678"
-    let p = ShellProcess(ex, "108")
-    let (_, o, _) = try await p.run(input)
-    #expect(o == input)
+    try await run(withStdin: input, output: input, args: "108")
   }
 
   @Test func one() async throws {
     let input = "abcdefgh\n12345678"
-    let p = ShellProcess(ex, "1")
-    let (_, o, _) = try await p.run(input)
-    #expect(o == "\n")
+    try await run(withStdin: input, output: "\n", args: "1")
+  }
+
+  @Test func one5() async throws {
+    let input = "abcdefghij\n1234567890\nABCDEFGHIJ"
+    let output = "abcd\n1234\nABCD"
+    try await run(withStdin: input, output: output, args: "5")
   }
 
 }

@@ -211,3 +211,65 @@ extension stat {
  public var st_birthtim : timespec { st_birthtimespec }
 }
 
+
+extension FileHandle.AsyncBytes {
+    /// Asynchronously reads lines from the `AsyncBytes` stream.
+  public var linesNL : AsyncLineSequence {
+        return AsyncLineSequence(asyncBytes: self)
+    }
+
+    public struct AsyncLineSequence: AsyncSequence {
+        public typealias Element = String
+        public typealias AsyncIterator = AsyncLineIterator
+        
+        private let asyncBytes: FileHandle.AsyncBytes
+        
+        init(asyncBytes: FileHandle.AsyncBytes) {
+            self.asyncBytes = asyncBytes
+        }
+        
+      public func makeAsyncIterator() -> AsyncLineIterator {
+            return AsyncLineIterator(asyncBytes: asyncBytes.makeAsyncIterator())
+        }
+    }
+
+    public struct AsyncLineIterator: AsyncIteratorProtocol {
+        public typealias Element = String
+        
+        private var asyncBytes: FileHandle.AsyncBytes.Iterator
+        private var buffer: Data = Data()
+        
+        init(asyncBytes: FileHandle.AsyncBytes.Iterator) {
+            self.asyncBytes = asyncBytes
+        }
+        
+      mutating public func next() async throws -> String? {
+            while let byte = try await asyncBytes.next() {
+                buffer.append(byte)
+                
+                // Check for newline (\n)
+                if let range = buffer.range(of: Data([0x0A])) { // '\n'
+                    let lineData = buffer.subdata(in: buffer.startIndex..<range.endIndex)
+                    buffer.removeSubrange(buffer.startIndex..<range.endIndex)
+                    return String(data: lineData, encoding: .utf8)
+                }
+              /*else if let range = buffer.range(of: Data([0x0D, 0x0A])) { // '\r\n'
+                    let lineData = buffer.subdata(in: buffer.startIndex..<range.startIndex)
+                    buffer.removeSubrange(buffer.startIndex...range.endIndex - 1)
+                    return String(data: lineData, encoding: .utf8)
+                }
+               */
+            }
+            
+            // If we reach the end of the stream and still have data in the buffer
+            if !buffer.isEmpty {
+                let line = String(data: buffer, encoding: .utf8)
+                buffer.removeAll()
+                return line
+            }
+            
+            // End of stream
+            return nil
+        }
+    }
+}
