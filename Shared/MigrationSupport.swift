@@ -273,3 +273,18 @@ extension FileHandle.AsyncBytes {
         }
     }
 }
+
+enum StringEncodingError : Error {
+  case invalidCharacter
+}
+
+extension StringProtocol {
+  public func wcwidth() -> Int {
+    let s = self.unicodeScalars
+    return s.reduce(0) { sum, scal in
+      let t = Darwin.wcwidth(Int32(scal.value))
+      if t > 0 { return sum + Int(t) }
+      else { return sum }
+    }
+  }
+}

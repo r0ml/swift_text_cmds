@@ -29,6 +29,9 @@ let package = Package(
   name: "text_cmds",
   // Mutex is only available in v15 or newer
   platforms: [.macOS(.v15)],
+  dependencies: [
+    .package(name: "libxo", path: "../libxo"),
+  ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     // Targets can depend on other targets in this package and products from dependencies.
@@ -37,9 +40,8 @@ let package = Package(
     .target(name: "TestSupport",
             path: "TestSupport" )
     ]
-    
-  +generateTargets()
-  +generateTestTargets()
+  + generateTargets()
+  + generateTestTargets()
 )
 
 func generateTargets() -> [Target] {
@@ -47,8 +49,17 @@ func generateTargets() -> [Target] {
     let cd = try! FileManager.default.contentsOfDirectory(atPath: "Sources")
     print(cd)
     for i in cd {
+      if i == "wc" {
+        let t = Target.executableTarget(
+          name: i,
+          dependencies: [.target(name: "Shared"),
+                         .product(name: "xo", package: "libxo"),
+          ] )
+        res.append(t)
+      } else {
         let t = Target.executableTarget(name: i, dependencies: [.target(name: "Shared")] )
         res.append(t)
+      }
     }
     return res
 }

@@ -350,7 +350,7 @@ public actor ShellProcess {
     default:
       fatalError("not possible")
     }
-    #expect(r == Int32(status), Comment(rawValue: e ?? ""))
+    #expect(r == Int32(status), Comment(rawValue: e ))
     #expect(j == output)
     if let error {
         switch error {

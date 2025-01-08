@@ -179,7 +179,7 @@ extension bintrans {
     do {
       try ofh.close()
     } catch(let e) {
-      throw CmdErr(1, "write error")
+      throw CmdErr(1, "write error: \(e.localizedDescription)")
     }
   }
   
