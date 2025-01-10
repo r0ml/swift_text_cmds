@@ -57,8 +57,7 @@
  */
 
 
-import Testing
-import TestSupport
+import ShellTesting
 
 class prTest : ShellTest {
 

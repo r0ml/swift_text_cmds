@@ -3,8 +3,7 @@
 
 // $FreeBSD$
 
-import Testing
-import TestSupport
+import ShellTesting
 
 @Suite(.serialized) class commTest : ShellTest {
   let cmd = "comm"

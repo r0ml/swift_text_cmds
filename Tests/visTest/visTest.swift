@@ -17,9 +17,7 @@
   OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import Testing
-import TestSupport
-import Foundation
+import ShellTesting
 
 @Suite(.serialized) class visTest : ShellTest {
 

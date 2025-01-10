@@ -1,8 +1,7 @@
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
 // from automatically generated files
 
-import Testing
-import TestSupport
+import ShellTesting
 
 @Suite("edTest") class edTest : ShellTest {
   let cmd = "ed"
@@ -20,7 +19,7 @@ import TestSupport
     let inp = try fileContents("\(n).t")
     let res = try fileContents("\(n).res")
     let dat = try inFile("\(n).dat")
-    let rd = try geturl(suite)
+    let rd = try ShellProcess.geturl(suite)
     try await run(withStdin: inp+",p\n", output: res, args: "-", dat, cd: rd)
   }
   
@@ -33,7 +32,7 @@ import TestSupport
     let inp = try fileContents("\(n).t")
     let res = try fileContents("\(n).res")
     let dat = try inFile("\(n).dat")
-    let rd = try geturl(suite)
+    let rd = try ShellProcess.geturl(suite)
     let se = StringEmitter()
     let ss = se.stream
     let p = ShellProcess(cmd, "-", dat, env: ["NSUnbufferedIO" : "1"], cd: rd)

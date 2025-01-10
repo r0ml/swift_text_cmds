@@ -29,8 +29,7 @@
   SUCH DAMAGE.
  */
 
-import Testing
-import TestSupport
+import ShellTesting
 
 struct rsTest {
   let ex = "rs"

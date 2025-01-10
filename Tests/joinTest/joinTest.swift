@@ -4,8 +4,7 @@
 
 // $FreeBSD$
 
-import Testing
-import TestSupport
+import ShellTesting
 
 struct joinTest : ShellTest {
   let cmd = "join"

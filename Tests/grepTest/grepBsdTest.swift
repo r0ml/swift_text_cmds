@@ -28,15 +28,14 @@
    $FreeBSD$
  */
 
-import Testing
-import TestSupport
+import ShellTesting
 
 class grepBsdTest : ShellTest {
   let cmd = "grep"
   let suite = "grepTest"
   
   @Test func grep_r_implied() async throws {
-    let rd = try geturl("grepTest")
+    let rd = try ShellProcess.geturl("grepTest")
     let p = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", ".", cd: rd)
 //    await p.setDirectory(rd)
     let (r, j, e) = try await p.run()

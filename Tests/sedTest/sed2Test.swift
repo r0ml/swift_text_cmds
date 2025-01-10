@@ -28,9 +28,7 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import Foundation
-import Testing
-import TestSupport
+import ShellTesting
 
 @Suite("sed2_test", .serialized) class sed2Test : ShellTest {
 

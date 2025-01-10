@@ -32,9 +32,7 @@
   SUCH DAMAGE.
  */
 
-import Testing
-import TestSupport
-import Foundation
+import ShellTesting
 
 @Suite("sed multi_test", .serialized) class sedMultiTest : ShellTest {
   let cmd = "sed"
@@ -547,7 +545,7 @@ p
   }
         
   @Test("Print and file routines (7.1)") func test_print_71() async throws {
-    let res = try fileData(suite, "multi.7.1.out")
+    let res = try ShellProcess.fileData(suite, "multi.7.1.out")
     var lines3 = Data(repeating: 0, count: 257)
     for i in 1..<256 { lines3[i-1] = UInt8(i) }
     lines3[255] = 10

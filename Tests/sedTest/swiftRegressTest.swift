@@ -3,9 +3,7 @@
 
 // $FreeBSD$
 
-import Foundation
-import Testing
-import TestSupport
+import ShellTesting
 
 @Suite("sedRegress", .serialized) class sedRegressTest : ShellTest {
 

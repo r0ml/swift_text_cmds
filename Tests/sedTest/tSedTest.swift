@@ -30,8 +30,7 @@
   POSSIBILITY OF SUCH DAMAGE.
  */
 
-import TestSupport
-import Testing
+import ShellTesting
 
 @Suite("t_sed") class tSedTest : ShellTest {
   let cmd = "sed"

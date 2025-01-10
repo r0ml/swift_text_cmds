@@ -27,8 +27,7 @@
   SUCH DAMAGE.
  */
 
-import Testing
-import TestSupport
+import ShellTesting
 
 class csplitTest : ShellTest {
   let cmd = "csplit"

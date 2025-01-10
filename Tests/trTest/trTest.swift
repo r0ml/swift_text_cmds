@@ -31,9 +31,7 @@
    POSSIBILITY OF SUCH DAMAGE.
  */
 
-import Testing
-import Foundation
-import TestSupport
+import ShellTesting
 
 @Suite(.serialized) class trTest : ShellTest {
 

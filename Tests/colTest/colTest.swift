@@ -6,9 +6,7 @@
   $FreeBSD$
 */
 
-import Testing
-import TestSupport
-import Foundation
+import ShellTesting
 
 @Suite(.serialized) class colTest : ShellTest {
   

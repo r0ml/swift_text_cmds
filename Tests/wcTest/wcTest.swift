@@ -7,9 +7,7 @@
   SPDX-License-Identifier: BSD-2-Clause
 */
 
-import Testing
-import TestSupport
-import Foundation
+import ShellTesting
 
 @Suite(.serialized) class wcTest : ShellTest {
   let tv="""

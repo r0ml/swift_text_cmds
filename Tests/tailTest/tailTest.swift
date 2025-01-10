@@ -26,9 +26,7 @@
   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
   SUCH DAMAGE.
  */
-import Testing
-import TestSupport
-import Foundation
+import ShellTesting
 
 @Suite(.serialized) class tailTest {
 
