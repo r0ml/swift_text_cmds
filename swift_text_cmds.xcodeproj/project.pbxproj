@@ -17,11 +17,13 @@
 				2A145F6B274F0D5F003C7EC3 /* Install md5 variant links */,
 			);
 			dependencies = (
+				FC7A7ED1149875E00086576A /* PBXTargetDependency */,
+				FC7A7E9D149875E00086576A /* PBXTargetDependency */,
+				E7E33DB42D30E89D00478AF2 /* PBXTargetDependency */,
 				FC7A7E95149875E00086576A /* PBXTargetDependency */,
 				FC7A7E97149875E00086576A /* PBXTargetDependency */,
 				FC7A7E99149875E00086576A /* PBXTargetDependency */,
 				FC7A7E9B149875E00086576A /* PBXTargetDependency */,
-				FC7A7E9D149875E00086576A /* PBXTargetDependency */,
 				FC7A7E9F149875E00086576A /* PBXTargetDependency */,
 				FC7A7EA1149875E00086576A /* PBXTargetDependency */,
 				FC7A7EA3149875E00086576A /* PBXTargetDependency */,
@@ -48,7 +50,6 @@
 				FC7A7ECB149875E00086576A /* PBXTargetDependency */,
 				FC7A7ECD149875E00086576A /* PBXTargetDependency */,
 				FC7A7ECF149875E00086576A /* PBXTargetDependency */,
-				FC7A7ED1149875E00086576A /* PBXTargetDependency */,
 				FC7A7ED3149875E00086576A /* PBXTargetDependency */,
 				FC7A7ED5149875E00086576A /* PBXTargetDependency */,
 			);
@@ -864,6 +865,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = FC7A7D1C14986A230086576A;
 			remoteInfo = ed;
+		};
+		E7E33DB32D30E89D00478AF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FC7A7B30149865C80086576A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2A1513192946F9A20051ED9C;
+			remoteInfo = bintrans;
 		};
 		E7E6C4AF2CFA6D8A000D0B42 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -7714,6 +7722,11 @@
 			isa = PBXTargetDependency;
 			target = FC7A7D1C14986A230086576A /* ed */;
 			targetProxy = E7E33C542D30B4D400478AF2 /* PBXContainerItemProxy */;
+		};
+		E7E33DB42D30E89D00478AF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2A1513192946F9A20051ED9C /* bintrans */;
+			targetProxy = E7E33DB32D30E89D00478AF2 /* PBXContainerItemProxy */;
 		};
 		E7E6C4B02CFA6D8A000D0B42 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

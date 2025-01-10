@@ -20,8 +20,7 @@
  under the License."
 */
 
-import Testing
-import TestSupport
+import ShellTesting
 import System
 
 let sampinp="aoijeasdflkbnoiqenfoaisdfjlkadjslkjdf"

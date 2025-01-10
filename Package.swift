@@ -31,13 +31,14 @@ let package = Package(
   platforms: [.macOS(.v15)],
   dependencies: [
     .package(name: "libxo", path: "../libxo"),
-    .package(name: "ShellTest", path: "../ShellTest")
+    .package(url: "https://github.com/r0ml/ShellTesting.git" , branch: "main")
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     // Targets can depend on other targets in this package and products from dependencies.
     .target(name: "Shared",
-            path: "Shared"),
+            path: "Shared")
+    ]
   + generateTargets()
   + generateTestTargets()
 )
@@ -74,8 +75,8 @@ func generateTestTargets() -> [Target] {
       let x = try! FileManager.default.contentsOfDirectory(atPath: "Tests/\(i)").filter { $0.hasSuffix(".xctestplan") }
         let rr = r ? [Resource.copy("Resources")] : []
         let t = Target.testTarget(name: i,
-                                  dependencies: [.target(name: "ShellTest"),
-                                                 .target(name: i.replacingOccurrences(of: "Test", with: ""))],
+                                  dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
+                                        .target(name: i.replacingOccurrences(of: "Test", with: ""))],
                                   path: nil,
                                   exclude: x
                                   , resources: rr
