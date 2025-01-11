@@ -6,7 +6,7 @@ import ShellTesting
 @Suite(.serialized) class colrmTest  : ShellTest {
 
   let cmd = "colrm"
-  let suite = "colrmTest"
+  let suite = "text_cmds_colrmTest"
 
   @Test func basic() async throws {
     let input = "abcdefgh\n12345678"

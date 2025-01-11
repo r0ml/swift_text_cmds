@@ -35,7 +35,7 @@ import ShellTesting
 @Suite(.serialized) class catTest : ShellTest {
   
   let cmd = "cat"
-  let suite = "catTest"
+  let suite = "text_cmds_catTest"
 
   @Test func align() async throws {
     let x = try fileContents("d_align.out")

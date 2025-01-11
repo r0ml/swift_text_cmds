@@ -31,7 +31,7 @@ import ShellTesting
 
 class csplitTest : ShellTest {
   let cmd = "csplit"
-  let suite = "csplitTest"
+  let suite = "text_cmds_csplitTest"
   
     @Test("Test an edge case where input has fewer lines than count") func lines_lt_count() async throws {
       let xf = [

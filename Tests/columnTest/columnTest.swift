@@ -6,7 +6,7 @@ import ShellTesting
 @Suite(.serialized) class columnTest : ShellTest {
   
   let cmd = "column"
-  let suite = "columnTest"
+  let suite = "text_cmds_columnTest"
   
   @Test func basic01() async throws {
     let input = """

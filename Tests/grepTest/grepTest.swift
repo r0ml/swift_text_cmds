@@ -33,7 +33,7 @@ import ShellTesting
 @Suite(.serialized) struct grepTest : ShellTest {
   
   var cmd = "grep"
-  var suite = "grepTest"
+  var suite = "text_cmds_grepTest"
   
   @Test("Checks basic functionality") func basic() async throws {
     let inp = ((1...10000).map { String($0)+"\n" }).joined()

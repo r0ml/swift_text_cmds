@@ -42,7 +42,7 @@ o=
 
 @Suite(.serialized) class base64Test : ShellTest {
   let cmd = "bintrans"
-  let suite = "bintransTest"
+  let suite = "text_cmds_bintransTest"
   
   @Test func encode() async throws {
     let t = try tmpfile("inFile", sampinp+"\n")

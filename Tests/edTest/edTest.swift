@@ -5,7 +5,7 @@ import ShellTesting
 
 @Suite("edTest") class edTest : ShellTest {
   let cmd = "ed"
-  let suite = "edTest"
+  let suite = "text_cmds_edTest"
   
   @Test(arguments: [
     "a", "addr",

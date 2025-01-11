@@ -34,7 +34,7 @@ import ShellTesting
 
 @Suite("t_sed") class tSedTest : ShellTest {
   let cmd = "sed"
-  let suite = "sedTest"
+  let suite = "text_cmds_sedTest"
   
   @Test("Test that sed(1) does not fail when the 2048'th character is a backslash (PR bin/25899)")
   func c2048() async throws {

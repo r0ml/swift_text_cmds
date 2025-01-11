@@ -31,7 +31,7 @@ kom Terje Vigen nær.
   let tvmL=39
 
   let cmd = "wc"
-  let suite = "wcTest"
+  let suite = "text_cmds_wcTest"
 
   func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
     let p1 = ShellProcess(cmd)

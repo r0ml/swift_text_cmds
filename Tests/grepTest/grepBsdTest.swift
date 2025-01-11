@@ -32,7 +32,7 @@ import ShellTesting
 
 class grepBsdTest : ShellTest {
   let cmd = "grep"
-  let suite = "grepTest"
+  let suite = "text_cmds_grepTest"
   
   @Test func grep_r_implied() async throws {
     let rd = try ShellProcess.geturl("grepTest")

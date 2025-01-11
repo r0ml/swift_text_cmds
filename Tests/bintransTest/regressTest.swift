@@ -5,7 +5,7 @@ import ShellTesting
 
 struct regressTest : ShellTest {
   var cmd = "bintrans"
-  var suite = "bintransTest"
+  var suite = "text_cmds_bintransTest"
 
     @Test func traditional() async throws {
       let res = try fileContents("regress.traditional.out")

@@ -4,7 +4,7 @@ import ShellTesting
 
 @Suite(.serialized) class bintransTest : ShellTest {
   let cmd = "bintrans"
-  let suite = "bintransTest"
+  let suite = "text_cmds_bintransTest"
  
   @Test func encode_qp() async throws {
     let t = try inFile("textqpdec")

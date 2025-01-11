@@ -33,7 +33,7 @@ import ShellTesting
 
 @Suite(.serialized) class sortTest : ShellTest {
   let cmd = "sort"
-  let suite = "sortTest"
+  let suite = "text_cmds_sortTest"
   
   @Test("Basic functionality test") func basic() async throws {
     let i = """

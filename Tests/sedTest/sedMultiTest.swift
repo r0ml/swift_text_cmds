@@ -36,7 +36,7 @@ import ShellTesting
 
 @Suite("sed multi_test", .serialized) class sedMultiTest : ShellTest {
   let cmd = "sed"
-  let suite = "sedTest"
+  let suite = "text_cmds_sedTest"
   
   let lines1 = ((1...14).map { "l1_\($0)\n" })
   let lines2 = ((1...9).map { "l2_\($0)\n"})

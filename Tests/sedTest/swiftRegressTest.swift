@@ -8,7 +8,7 @@ import ShellTesting
 @Suite("sedRegress", .serialized) class sedRegressTest : ShellTest {
 
   let cmd = "sed"
-  let suite = "sedTest"
+  let suite = "text_cmds_sedTest"
   
   var i : String!
   

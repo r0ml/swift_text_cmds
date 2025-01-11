@@ -22,7 +22,7 @@ import ShellTesting
 @Suite(.serialized) class visTest : ShellTest {
 
   let cmd = "vis"
-  let suite = "visTest"
+  let suite = "text_cmds_visTest"
   
     @Test func basic1() async throws {
       try await run(withStdin: "\u{10}\n\t\n", output: "\\^P\\012\\011\\012", args: ["-w", "-t"])
