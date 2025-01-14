@@ -33,7 +33,7 @@ import ShellTesting
   let ex = "tail"
   
   @Test("Reverse an empty file") func empty_r() async throws {
-    let i = try tmpfile("try inFile", Data() )
+    let i = try tmpfile("inFile", Data() )
     defer { rm(i) }
     let p = ShellProcess(ex, "-r", i.relativePath)
     let (_, j, _) = try await p.run()
@@ -47,7 +47,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("try inFile", d)
+    let i = try tmpfile("inFile", d)
     defer { rm(i) }
     let p = ShellProcess(ex, "-r", i.relativePath)
     let (_, j, _) = try await p.run()
@@ -62,7 +62,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("try inFile", d)
+    let i = try tmpfile("inFile", d)
     let o = """
 This is the third line
 This is the second line
@@ -82,7 +82,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("try inFile", d)
+    let i = try tmpfile("inFile", d)
     let o = """
 This is the third line
 This is the second line
@@ -107,7 +107,7 @@ This is the second line
 This is the third line
 
 """
-    let i = try tmpfile("try inFile", d)
+    let i = try tmpfile("inFile", d)
     let o = """
 This is the third line
 line
@@ -131,7 +131,7 @@ line
     k.formatWidth = 511
     let p = 0..<1030
     let d = (p.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
-    let i = try tmpfile("try inFile", d)
+    let i = try tmpfile("inFile", d)
 
     let q = stride(from: 1029, through: 0, by: -1)
     let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
@@ -209,7 +209,7 @@ line
     k.formatWidth = 63
     let i = ((0 ..< 9000).map { k.string(from: NSNumber(value: $0))!+"\n" }).joined()
     /*
-     let inf = FileManager.default.temporaryDirectory.appendingPathComponent("try inFile")
+     let inf = FileManager.default.temporaryDirectory.appendingPathComponent("inFile")
      try i.write(to: inf, atomically: true, encoding: .utf8)
      */
     // FIXME: doesnt work with pipe output -- would work with file
@@ -283,7 +283,7 @@ line
   }
   
   @Test("Basic regression test for -f") func follow() async throws {
-    let inf = try tmpfile("try inFile",  "1\n2\n3\n")
+    let inf = try tmpfile("inFile",  "1\n2\n3\n")
     let inh = try FileHandle(forWritingTo: inf)
 
     let p = ShellProcess(ex, "-F", inf.relativePath)
@@ -307,7 +307,7 @@ line
   @Test("Verify that -f works with files piped to standard input") func follow_stdin() async throws {
     let p = ShellProcess(ex, "-f")
 
-    let inf = try tmpfile("try inFile", "1\n2\n3\n")
+    let inf = try tmpfile("inFile", "1\n2\n3\n")
 
     Task.detached {
       let fh = try FileHandle(forReadingFrom: inf)
@@ -339,7 +339,7 @@ line
 
   @Test("Verify that -F works when a file is created") func follow_create() async throws {
 
-    let inf = try tmpfile("try inFile", Data())
+    let inf = try tmpfile("inFile", Data())
     rm(inf)
     
     let p = ShellProcess(ex, "-F", inf.relativePath)
@@ -362,7 +362,7 @@ line
 
   @Test("Verify that -F works when a file is replaced") func follow_rename() async throws {
 
-    let inf = try tmpfile("try inFile", "1\n2\n3\n")
+    let inf = try tmpfile("inFile", "1\n2\n3\n")
     let p = ShellProcess(ex, "-F", inf.relativePath)
 
     Task.detached {
@@ -445,7 +445,7 @@ line
   @Test("File does not end in newline") func no_lf_at_eof() async throws {
     
     let f1 = "a\nb\nc"
-    let inf = try tmpfile("try inFile", f1)
+    let inf = try tmpfile("inFile", f1)
 
     let p1 = ShellProcess(ex, "-1", inf.relativePath)
     let (r1, j1, _) = try await p1.run()
