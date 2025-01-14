@@ -29,61 +29,53 @@
 
 import ShellTesting
 
-@Suite(.serialized) class headTest {
-  let ex = "head"
+@Suite(.serialized) class headTest : ShellTest {
+  let cmd = "head"
+  let suite = "headTest"
 
   @Test("Test head(1)'s handling of an empty file") func empty_file() async throws {
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.run()
-    #expect(j!.isEmpty)
+    try await run(output: "")
   }
 
   @Test("Test head(1)'s default mode") func default_no_options() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.run(i)
-    #expect( j == Array(repeating: "test\n", count: 10).joined())
+    let expec = Array(repeating: "test\n", count: 10).joined()
+    try await run(withStdin: i, output: expec)
   }
 
   @Test("Test head(1)'s -n option") func line_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let p = ShellProcess(ex, "-n", "50")
-    let (_, j, _) = try await p.run(i)
+    let (_, j, _) = try await ShellProcess(cmd, "-n", "50").run(i)
     #expect( j!.split(separator: "\n", omittingEmptySubsequences: true).count == 50)
   }
 
   @Test("Test head(1)'s -c option") func byte_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let p = ShellProcess(ex, "-c", "50")
-    let (_, j, _) = try await p.run(i)
+    let (_, j, _) = try await ShellProcess(cmd, "-c", "50").run(i)
     #expect( j!.count == 50)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the beginning of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup") ) func sparse_file_text_at_beginning() async throws {
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.run()
+    let (_, j, _) = try await ShellProcess(cmd).run()
       // Not yet implemented.
     #expect(false)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the end of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup")) func spare_file_text_at_end() async throws {
-    let p = ShellProcess(ex)
-    let (_, j, _) = try await p.run()
+    let (_, j, _) = try await ShellProcess(cmd).run()
       // Not yet implemented.
     #expect(false)
   }
 
   @Test("Test head(1)'s handling of a missing line count arg") func missing_line_count() async throws {
-    let p = ShellProcess(ex, "-n")
-    let (r, j, e) = try await p.run()
+    let (r, j, e) = try await ShellProcess(cmd, "-n").run()
     let ee = "head: option requires an argument -- n\nusage: head [-n lines | -c bytes] [file ...]\n"
     #expect(r != 0)
     #expect(e == ee)
   }
 
   @Test("Test head(1)'s handling of an invalid line count arg") func invalid_line_count() async throws {
-    let p = ShellProcess(ex, "-n", "-10")
-    let (r, j, e) = try await p.run()
+    let (r, j, e) = try await ShellProcess(cmd, "-n", "-10").run()
     let ee = "head: illegal line count -- -10\n"
     #expect(r != 0)
     #expect(e == ee )

@@ -59,17 +59,17 @@
 import ShellTesting
 
 @Suite(.serialized) class cutTest : ShellTest {
-
+  
   let cmd = "cut"
   let suite = "text_cmds_cutTest"
-
+  
   let fields = ["1", "2", "3", "1-2", "2,3", "4", "1-3,4-7", "1,2-7"]
   
   @Test("Checks basic functionality", .serialized, arguments: 0..<8) func basic(_ n : Int) async throws {
     let res = try inFile("d_cut.in")
     
     let os = [
-//      ----- test: cut -f 1  d_cut.in ----- 0
+      //      ----- test: cut -f 1  d_cut.in ----- 0
 """
 1
 
@@ -184,12 +184,12 @@ qwe:rty:uio:p[]:asd:fgh:jkl:zxc:vbn:nm
     ]
     try await run(output: os[n], args: "-f", fields[n], res)
   }
-
+  
   @Test("Checks -s flag", .serialized, arguments: 0..<8) func sflag(_ n : Int) async throws {
-//    let o = try fileContents("cutTest", "d_sflag", withExtension: "out")
+    //    let o = try fileContents("cutTest", "d_sflag", withExtension: "out")
     let res = try inFile("d_cut.in")
     let os = [
-//      ----- test: cut -f 1 -s d_cut.in ----- 0
+      //      ----- test: cut -f 1 -s d_cut.in ----- 0
 """
 12
 
@@ -248,12 +248,12 @@ qwe\t\trty\tuio\tp[]\tasd\t
     ]
     try await run(output: os[n], args: "-s", "-f", fields[n], res)
   }
-
+  
   @Test("Checks -d flag", .serialized, arguments: 0..<8) func dflag(_ n : Int) async throws {
     // let o = try fileContents("cutTest", "d_dflag", withExtension: "out")
     let res = try inFile("d_cut.in")
     let os = [
-//      ----- test: cut -f 1 -d : d_cut.in ----- 0
+      //      ----- test: cut -f 1 -d : d_cut.in ----- 0
 """
 1
 
@@ -368,61 +368,61 @@ qwe:rty:uio:p[]:asd:fgh:jkl
     ]
     try await run(output: os[n], args: "-d", ":", "-f", fields[n], res)
   }
-
+  
   @Test("Checks -s and -d flags combined", .serialized, arguments: 0..<8) func dsflag(_ n : Int) async throws {
-//    let o = try fileContents("cutTest", "d_dsflag", withExtension: "out")
+    //    let o = try fileContents("cutTest", "d_dsflag", withExtension: "out")
     let res = try inFile("d_cut.in")
     let os = [
-//      ----- test: cut -f 1 -d : -s d_cut.in -----
+      //      ----- test: cut -f 1 -d : -s d_cut.in -----
       """
 12
 qwe
 
 
 """,
-//      ----- test: cut -f 2 -d : -s d_cut.in -----
+      //      ----- test: cut -f 2 -d : -s d_cut.in -----
       """
 34
 rty
 qwe
 
 """,
-//      ----- test: cut -f 3 -d : -s d_cut.in -----
+      //      ----- test: cut -f 3 -d : -s d_cut.in -----
       """
 56
 uio
 
 
 """,
-//      ----- test: cut -f 1-2 -d : -s d_cut.in -----
+      //      ----- test: cut -f 1-2 -d : -s d_cut.in -----
 """
 12:34
 qwe:rty
 :qwe
 
 """,
-//      ----- test: cut -f 2,3 -d : -s d_cut.in -----
+      //      ----- test: cut -f 2,3 -d : -s d_cut.in -----
       """
 34:56
 rty:uio
 qwe:
 
 """,
-//      ----- test: cut -f 4 -d : -s d_cut.in -----
+      //      ----- test: cut -f 4 -d : -s d_cut.in -----
 """
 
 p[]
 
 
 """,
-//      ----- test: cut -f 1-3,4-7 -d : -s d_cut.in -----
+      //      ----- test: cut -f 1-3,4-7 -d : -s d_cut.in -----
 """
 12:34:56
 qwe:rty:uio:p[]:asd:fgh:jkl
 :qwe:::rty:uio:
 
 """,
-//      ----- test: cut -f 1,2-7 -d : -s d_cut.in -----
+      //      ----- test: cut -f 1,2-7 -d : -s d_cut.in -----
       """
 12:34:56
 qwe:rty:uio:p[]:asd:fgh:jkl
@@ -432,7 +432,7 @@ qwe:rty:uio:p[]:asd:fgh:jkl
     ]
     try await run(output: os[n], args: "-d", ":", "-s", "-f", fields[n], res)
   }
-
+  
   @Test("Checks support for non-ascii characters") func latin1() async throws {
     let o1 = "bar\nBar\nBAr\nBAR\n"
     let res = try inFile("d_latin1.in")
@@ -444,7 +444,7 @@ qwe:rty:uio:p[]:asd:fgh:jkl
     let o2 = "bar\nBar\nBAr\nBAR\n"
     try await run(output: o2, args: "-c", "6,7,8", res, env: ["LANG":"C", "LC_ALL":"C"])
   }
-
+  
   @Test("Checks support for multibyte characters") func utf8() async throws {
     let o1 = ":ba\n:Ba\n:BA\n:BA\n"
     let res = try inFile("d_utf8.in")
@@ -453,7 +453,7 @@ qwe:rty:uio:p[]:asd:fgh:jkl
     let o2 = "bar\nBar\nBAr\nBAR\n"
     try await run(output: o2, args: "-c", "6,7,8", res, env: ["LC_ALL": "en_US.UTF-8"])
   }
-
+  
   @Test("Check -s flag") func s_flag() async throws {
     let i = """
 a,b,c,d
@@ -463,12 +463,46 @@ d
 
 """
     try await run(withStdin: i, output: "a\nb\nc\n", args: "-d,", "-f", "1", "-s")
-
+    
     try await run(withStdin: i, output: "d\n\n\n", args: "-d,", "-f", "4", "-s")
-
+    
     try await run(withStdin: i, output: "a,b,\nb,\n\n", args: "-d", "c", "-f", "1", "-s")
-
+    
     try await run(withStdin: i, output: "", args: "-d!", "-f", "1", "-s")
   }
+  
+  
+  @Test("Basic -c flag", arguments: [
+    ("h\n", "-c1"),
+    ("hlo\n", "-c1,3,5"),
+    ("ell\n", "-c2-4"),
+    ("hel\n", "-c-3"),
+    ("llo\n", "-c3-"),
+  ]) func c_flag(_ o : String, _ a : String) async throws {
+    try await run(withStdin: "hello", output: o, args: a)
+  }
+  
+  @Test("Edge case -c flag") func c_flag_edge_case() async throws {
+    try await run(withStdin: "hi", output: "", args: "-c3")
+  }
+  
+  @Test("Edge case -c flag 2") func c_flag_edge_case2() async throws {
+    try await run(withStdin: "", output: "", args: "-c1")
+  }
+  
+  @Test("Edge case -c flag 3") func c_flag_edge_case3() async throws {
+    try await run(withStdin: "\n", output: "\n", args: "-c1")
+  }
+  
+  @Test("Multiple lines") func c_flag_multiline() async throws {
+    try await run(withStdin: "hello\nworld\n", output: "hel\nwor\n", args: "-c1-3")
+  }
 
+  @Test("Invalid list") func c_flag_invalid() async throws {
+    try await run(withStdin: "hello\nworld\n", status: 1, error: /illegal list value/, args: "-c1,a")
+  }
+
+  @Test("unicode -c") func c_flag_unicode() async throws {
+    try await run(withStdin: "h😊llo", output: "😊ll\n", args: "-c2-4")
+  }
 }

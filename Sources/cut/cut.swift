@@ -38,27 +38,444 @@ import Shared
 
 @main final class cut : ShellCommand {
 
-  var usage : String = "Not yet implemented"
-  
+  var usage : String = """
+usage: cut -b list [-n] [file ...]
+       cut -c list [file ...]
+       cut -f list [-s] [-w | -d delim] [file ...]
+"""
+
   struct CommandOptions {
+    var bflag = false
+    var cflag = false
+    var dflag = false
+    var fflag = false
+    var sflag = false
+    var nflag = false
+    var wflag = false
+    var dchar : Character = "\t"
+    var positions : [Bool] = []
+    var autostart : Int = 0
+    var autostop : Int = 0
+  
+    var fcn : ((FileHandle, String, CommandOptions) async throws(CmdErr) -> Void)?
     var args : [String] = CommandLine.arguments
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
+    let supportedFlags = "b:c:d:f:snw"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    while let (k, v) = try go.getopt() {
       switch k {
+        case "b":
+          (options.positions, options.autostart, options.autostop) = get_list(v)
+          options.bflag = true
+        case "c":
+          (options.positions, options.autostart, options.autostop) = get_list(v)
+          options.cflag = true
+        case "d":
+          if v.count != 1 {
+            throw CmdErr(1, "bad delimiter")
+          }
+          options.dchar = v.first!
+          options.dflag = true
+    case "f":
+          (options.positions, options.autostart, options.autostop) = get_list(v)
+          options.fflag = true
+    case "s":
+          options.sflag = true
+    case "n":
+          options.nflag = true
+    case "w":
+          options.wflag = true
+    case "?":
+          fallthrough
         default: throw CmdErr(1)
       }
     }
     options.args = go.remaining
+    
+    if (options.fflag) {
+      if (options.bflag || options.cflag || options.nflag || (options.wflag && options.dflag)) {
+        throw CmdErr(1)
+      }
+    } else if (!(options.bflag || options.cflag) || options.dflag || options.sflag || options.wflag) {
+      throw CmdErr(1)
+    }
+    else if (!options.bflag && options.nflag) {
+      throw CmdErr(1)
+    }
+    
+    if (options.fflag) {
+      options.fcn = f_cut
+    }
+    else if (options.cflag) {
+      options.fcn = c_cut // MB_CUR_MAX > 1 ? c_cut : b_cut;
+    }
+    else if (options.bflag) {
+//      options.fcn = nflag /* && MB_CUR_MAX > 1 */ ? b_n_cut : b_cut;
+      fatalError("not yet implemented: bflag")
+    }
+    
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+  func get_list(_ list : String) -> ([Bool], Int, Int) {
+    var start : Int
+    var stop : Int
+    var setautostart : Bool
+    var positions = [Bool]()
+    
+    /*
+     * set a byte in the positions array to indicate if a field or
+     * column is to be selected; use +1, it's 1-based, not 0-based.
+     * Numbers and number ranges may be overlapping, repeated, and in
+     * any order. We handle "-3-5" although there's no real reason to.
+     */
+    let llist = list.split(whereSeparator: {", \t".contains($0)} )
+    var autostart = 0
+    var autostop = 0
+    var maxval = 0
+    for var p in llist {
+//    for (; (p = strsep(&list, ", \t")) != NULL;) {
+      setautostart = false
+      start = 0
+      stop = 0;
+      if (p.first == "-") {
+        p.removeFirst()
+        setautostart = true
+      }
+      let d = p.prefix(while: {$0.isNumber})
+      if !d.isEmpty {
+        p = p.dropFirst(d.count)
+//      if (isdigit((unsigned char)*p)) {
+        start = Int(d)!
+        stop = start // strtol(p, &p, 10);
+        if (setautostart && start > autostart) {
+          autostart = start;
+        }
+      }
+      if (p.first == "-") {
+        let d = p.dropFirst().prefix(while: {$0.isNumber})
+        if !d.isEmpty {
+          stop = Int(d)!
+          p = p.dropFirst(1+d.count)
+        }
+        if (p.first == "-") {
+          p.removeFirst()
+          if (autostop == 0 || autostop > stop) {
+            autostop = stop
+          }
+        }
+      }
+      if !p.isEmpty {
+        errx(1, "[-bcf] list: illegal list value");
+      }
+      if (stop == 0 || start == 0) {
+        errx(1, "[-bcf] list: values may not include zero");
+      }
+      if (maxval < stop) {
+        maxval = stop;
+        positions.append(contentsOf: Array(repeating: false, count: maxval - positions.count))
+      }
+      
+      for pos in start...stop {
+        positions[pos-1] = true
+      }
+    }
+
+    /* overlapping ranges */
+    if (autostop > 0 && maxval > autostop) {
+      maxval = autostop;
+      positions.append(contentsOf: Array(repeating: false, count: maxval - positions.count))
+    }
+
+    /* reversed range with autostart */
+    if (maxval < autostart) {
+      maxval = autostart;
+      positions.append(contentsOf: Array(repeating: false, count: maxval - positions.count))
+    }
+
+    /* set autostart */
+    if (autostart != 0) {
+      for i in 1...autostart {
+        positions[i-1] = true
+      }
+      
+    }
+    return (positions, autostart, autostop)
   }
+
+  
+  func c_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+//    wint_t ch;
+//    int col;
+//    char *pos;
+
+//    ch = 0;
+    
+    do {
+      for try await linel in fh.bytes.linesNL {
+        let lastnl = linel.last == "\n"
+        let line = lastnl ? String(linel.dropLast()) : String(linel)
+        var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
+//          if i.1 {
+//            FileHandle.standardOutput.write(String(i.0))
+//          }
+
+        
+        //    while true {
+        /*      pos = positions + 1;
+         for (col = maxval; col; --col) {
+         if ((ch = getwc(fp)) == WEOF)
+         goto out;
+         if (ch == '\n')
+         break;
+         if (*pos++)
+         (void)putwchar(ch);
+         }
+         */
+        if options.autostop > 0 {
+          k.append(contentsOf: line.dropFirst(options.positions.count))
+//          FileHandle.standardOutput.write(String(line.dropFirst(options.positions.count)))
+        }
+        // if lastnl {
+
+        if !k.isEmpty {
+          print(String(k))
+        }
+//          FileHandle.standardOutput.write("\n")
+      // }
+        /*
+         if (ch != '\n') {
+         if (autostop)
+         while ((ch = getwc(fp)) != WEOF && ch != '\n')
+         (void)putwchar(ch);
+         else
+         while ((ch = getwc(fp)) != WEOF && ch != '\n');
+         }
+         (void)putwchar('\n');
+         */
+      }
+      /*  out:
+       if (ferror(fp)) {
+       warn("%s", fname);
+       return (1);
+       }
+       */
+    } catch {
+      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+    }
+  }
+
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+    if options.args.isEmpty {
+      try await options.fcn!(FileHandle.standardInput, "stdin", options)
+    } else {
+      for fnam in options.args {
+        do {
+          let fp = try FileHandle.init(forReadingFrom: URL(fileURLWithPath: fnam))
+          try await options.fcn!(fp, fnam, options)
+          try fp.close()
+        } catch(let e) {
+          throw CmdErr(1, "reading from: \(fnam): \(e.localizedDescription)")
+        }
+      }
+    }
+  }
+  
+  
+  func f_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr)
+  {
+//    wchar_t ch;
+//    int field, i, isdelim;
+//    char *pos, *p;
+//    int output;
+//    char *lbuf, *mlbuf;
+//    size_t clen, lbuflen, reallen;
+
+//    mlbuf = NULL;
+  
+    
+    
+    do {
+      for try await linel in fh.bytes.linesNL {
+        let lastnl = linel.last == "\n"
+        let line = lastnl ? String(linel.dropLast()) : String(linel)
+        var linef : [Substring]
+        if line.contains(options.dchar) {
+          let linex = line.split(separator: options.dchar, omittingEmptySubsequences: false)
+          
+          
+          linef = zip(linex, options.positions).compactMap { $0.1 ? $0.0 : nil }
+          
+          //        print(linef.joined(separator: String(options.dchar)), terminator: "")
+          
+          
+          
+          if options.autostop > 0 {
+            linef.append(contentsOf: linex.dropFirst(options.positions.count))
+          }
+        } else {
+          if options.sflag { continue }
+          linef = [Substring(line)]
+        }
+        print(linef.joined(separator: String(options.dchar)), terminator: "\n") // lastnl ? "\n" : "")
+      }
+    } catch {
+      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+    }
+  }
+
+    
+    
+    /*
+    
+    while ((lbuf = fgetln(fp, &lbuflen)) != NULL) {
+      reallen = lbuflen;
+      /* Assert EOL has a newline. */
+      if (*(lbuf + lbuflen - 1) != '\n') {
+        /* Can't have > 1 line with no trailing newline. */
+        mlbuf = malloc(lbuflen + 1);
+        if (mlbuf == NULL)
+          err(1, "malloc");
+        memcpy(mlbuf, lbuf, lbuflen);
+        *(mlbuf + lbuflen) = '\n';
+        lbuf = mlbuf;
+        reallen++;
+      }
+      output = 0;
+      for (isdelim = 0, p = lbuf;; p += clen) {
+        clen = mbrtowc(&ch, p, lbuf + reallen - p, NULL);
+        if (clen == (size_t)-1 || clen == (size_t)-2) {
+          warnc(EILSEQ, "%s", fname);
+          free(mlbuf);
+          return (1);
+        }
+        if (clen == 0)
+          clen = 1;
+        /* this should work if newline is delimiter */
+        if (is_delim(ch))
+          isdelim = 1;
+        if (ch == '\n') {
+          if (!isdelim && !sflag)
+            (void)fwrite(lbuf, lbuflen, 1, stdout);
+          break;
+        }
+      }
+      if (!isdelim)
+        continue;
+
+      pos = positions + 1;
+      for (field = maxval, p = lbuf; field; --field, ++pos) {
+        if (*pos && output++)
+          for (i = 0; dcharmb[i] != '\0'; i++)
+            putchar(dcharmb[i]);
+        for (;;) {
+          clen = mbrtowc(&ch, p, lbuf + reallen - p,
+              NULL);
+          if (clen == (size_t)-1 || clen == (size_t)-2) {
+            warnc(EILSEQ, "%s", fname);
+            free(mlbuf);
+            return (1);
+          }
+          if (clen == 0)
+            clen = 1;
+          p += clen;
+          if (ch == '\n' || is_delim(ch)) {
+            /* compress whitespace */
+            if (wflag && ch != '\n')
+              while (is_delim(*p))
+                p++;
+            break;
+          }
+          if (*pos)
+            for (i = 0; i < (int)clen; i++)
+              putchar(p[i - clen]);
+        }
+        if (ch == '\n')
+          break;
+      }
+      if (ch != '\n') {
+        if (autostop) {
+          if (output)
+            for (i = 0; dcharmb[i] != '\0'; i++)
+              putchar(dcharmb[i]);
+          for (; (ch = *p) != '\n'; ++p)
+            (void)putchar(ch);
+        } else
+          for (; (ch = *p) != '\n'; ++p);
+      }
+      (void)putchar('\n');
+    }
+    free(mlbuf);
+    return (0);
+  }
+*/
+  
+  func b_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+//    wint_t ch;
+//    int col;
+//    char *pos;
+
+//    ch = 0;
+    
+    do {
+      for try await linel in fh.bytes.linesNL {
+        let lastnl = linel.last == "\n"
+        let line = lastnl ? String(linel.dropLast()) : String(linel)
+        var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
+//          if i.1 {
+//            FileHandle.standardOutput.write(String(i.0))
+//          }
+
+        
+        //    while true {
+        /*      pos = positions + 1;
+         for (col = maxval; col; --col) {
+         if ((ch = getwc(fp)) == WEOF)
+         goto out;
+         if (ch == '\n')
+         break;
+         if (*pos++)
+         (void)putwchar(ch);
+         }
+         */
+        if options.autostop > 0 {
+          k.append(contentsOf: line.dropFirst(options.positions.count))
+//          FileHandle.standardOutput.write(String(line.dropFirst(options.positions.count)))
+        }
+        // if lastnl {
+
+        if !k.isEmpty {
+          print(String(k))
+        }
+//          FileHandle.standardOutput.write("\n")
+      // }
+        /*
+         if (ch != '\n') {
+         if (autostop)
+         while ((ch = getwc(fp)) != WEOF && ch != '\n')
+         (void)putwchar(ch);
+         else
+         while ((ch = getwc(fp)) != WEOF && ch != '\n');
+         }
+         (void)putwchar('\n');
+         */
+      }
+      /*  out:
+       if (ferror(fp)) {
+       warn("%s", fname);
+       return (1);
+       }
+       */
+    } catch {
+      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+    }
+  }
+  
+  
+  
+  
 }
