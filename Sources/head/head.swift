@@ -97,7 +97,7 @@ extension FileHandle {
       Shared.option.init("lines", .required_argument),
     ]
     
-    let go = BSDGetopt_long("cn", oo)
+    let go = BSDGetopt_long("c:n:", oo)
     
     // FIXME: put this back
     //               obsolete(&args)
@@ -105,16 +105,16 @@ extension FileHandle {
     while let (k, v) = try go.getopt_long() {
       switch k {
         case "n", "lines":
-          if let value = Int(v) {
+          if let value = Int(v), value > 0 {
             opts.lineCount = value
           } else {
-            throw CmdErr(1)
+            throw CmdErr(1, "illegal line count -- \(v)")
           }
         case "c", "bytes":
-          if let value = Int(v) {
+          if let value = Int(v), value > 0 {
             opts.byteCount = value
           } else {
-            throw CmdErr(1)
+            throw CmdErr(1, "illegal byte count -- \(v)")
           }
         default: throw CmdErr(1)
       }

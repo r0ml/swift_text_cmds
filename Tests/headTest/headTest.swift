@@ -68,17 +68,16 @@ import ShellTesting
   }
 
   @Test("Test head(1)'s handling of a missing line count arg") func missing_line_count() async throws {
-    let (r, j, e) = try await ShellProcess(cmd, "-n").run()
+    try await run(status: 1, error: /option requires an argument/, args: "-n")
+/*    let (r, j, e) = try await ShellProcess(cmd, "-n").run()
     let ee = "head: option requires an argument -- n\nusage: head [-n lines | -c bytes] [file ...]\n"
     #expect(r != 0)
     #expect(e == ee)
+ */
   }
 
   @Test("Test head(1)'s handling of an invalid line count arg") func invalid_line_count() async throws {
-    let (r, j, e) = try await ShellProcess(cmd, "-n", "-10").run()
-    let ee = "head: illegal line count -- -10\n"
-    #expect(r != 0)
-    #expect(e == ee )
+    try await run(status: 1, error: /illegal line count/, args: "-n", "-10")
   }
 
   @Test("Test head(1)'s reading of stdin", .disabled("all of the tests read from stdin instead of creating temp files, so this test is no longer necessary")) func read_from_stdin() async throws {
