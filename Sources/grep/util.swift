@@ -266,7 +266,7 @@ class grepDoer {
     
     if (myMprintc.doctx) {
       if (!first_match && (!myMprintc.same_file || myMprintc.last_outed > 0)) {
-        print("--\n")
+        print("--")
       }
       if (options.Bflag > 0) {
         for item in queue {
@@ -315,7 +315,11 @@ class grepDoer {
        * line being rotated out, then go ahead and increment
        * last_outed to signify a gap between context/match.
        */
-      myMprintc.last_outed += 1
+      
+      while queue.count > options.Bflag {
+        queue.removeFirst()
+        myMprintc.last_outed += 1
+      }
     }
   }
   
@@ -373,8 +377,6 @@ class grepDoer {
      int lines;
      bool line_matched;
      */
-    var sbp =
-    if (psbp != nil) { psbp } else { stat() }
     
     var fn : String = fnx
     var f : file?
@@ -409,7 +411,10 @@ class grepDoer {
     
     let ln = str(boff: 0, off: -1, dat: "", file: fn, line_no: 0)
     myParsec = parsec(ln: ln, f: f)
+    // Initialize here? !!
+    myMprintc = mprintc()
     
+
     
     /*      pc.ln.file = fn
      pc.ln.line_no = 0;
@@ -699,7 +704,8 @@ class grepDoer {
     /* Loop to process the whole line */
     while (st <= myParsec.ln.dat.endIndex) {
       var lastmatched = false;
-      var startm = myParsec.matches.count;
+      retry = myParsec.ln.dat.startIndex
+      let startm = myParsec.matches.count;
       if (st > myParsec.ln.dat.startIndex && myParsec.ln.dat[myParsec.ln.dat.index(before: st)] != options.fileeol) {
         leflags |= REG_NOTBOL;
       }
@@ -743,8 +749,6 @@ class grepDoer {
         }
         /* Check for whole word match */
         if (options.wflag) {
-          let wbegin = " "
-          let wend = " "
           if pmatch.rm_so != 0 &&
               
               //                #ifdef __APPLE__

@@ -173,7 +173,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     var options = CommandOptions()
     
   
-    let flags = "aB:bC::cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ"
+    let flags = "A:aB:bC::cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ"
     let long_options : [Shared.option] = [
       .init("binary-files",  .required_argument),
       .init("help",    .no_argument),

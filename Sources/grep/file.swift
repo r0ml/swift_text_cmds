@@ -34,7 +34,7 @@
 import Foundation
 import Shared
 import zlib
-import Compression
+// import Compression
 
 let MAXBUFSIZE = 32 * 1024
 
@@ -54,7 +54,7 @@ class file {
   var buffer : Data = Data()
   var bufrange : Range<Int> = 0..<0
   
-  var inputFilter : InputFilter<Data>?
+//  var inputFilter : InputFilter<Data>?
   var name : String
   
   // var bufrem : Int = 0
@@ -66,6 +66,7 @@ class file {
   var MAXBUFSIZ : Int { (32 * 1024) }
   var LNBUFBUMP : Int { 80 }
   
+  var gzbufdesc : gzFile?
   /*
   func createFilter() {
     let inputFilter: InputFilter<Data>
@@ -127,9 +128,21 @@ class file {
         //   #ifdef __APPLE__
       case .GZIP:
         
-        do {
-          //       nr = gzread(gzbufdesc, buffer, MAXBUFSIZ);
-          if let b = try inputFilter?.readData(ofLength: MAXBUFSIZE) {
+//        do {
+          let z = UnsafeMutableBufferPointer<CChar>.allocate(capacity: MAXBUFSIZ)
+          let nr = gzread(gzbufdesc, z.baseAddress!, UInt32(MAXBUFSIZ));
+          if nr > 0 {
+            let b = Data(bytesNoCopy: z.baseAddress!, count: Int(nr), deallocator: .free)
+            buffer.append(b)
+            bufrange = 0..<buffer.count
+          } else if nr < 0 {
+            let str = String(cString: strerror(errno))
+            warn("read error \(name): \(str)")
+            return false
+          }
+          return true
+        
+ /*         if let b = try inputFilter?.readData(ofLength: MAXBUFSIZE) {
             buffer.append(b)
           }
           bufrange = 0..<buffer.count
@@ -138,6 +151,7 @@ class file {
           warn("read error \(name): \(error.localizedDescription)")
           return false
         }
+  */
       case .BZIP:
         fatalError("BZIP2 not implemented yet")
         /*
@@ -330,20 +344,31 @@ class file {
 //        #ifdef __APPLE__
       case .GZIP:
         
-//        guard let gzbufdesc = gzdopen(fd.fileDescriptor, "r") else { try? fd.close(); return nil }
+        guard let gzbufdesc = gzdopen(fd.fileDescriptor, "r") else { try? fd.close();
+          let str = String(cString: strerror(errno))
+          warn("read error \(name): \(str)")
+          return nil }
+        self.gzbufdesc = gzbufdesc
+        
+        /*
         do {
           inputFilter = try InputFilter(.decompress, using: .zlib) { (length: Int) -> Data? in
-            try self.fd.read(upToCount: length)
+            if let ib = try self.fd.read(upToCount: length), !ib.isEmpty {
+              return ib
+            }
+            return nil
           }
+
         } catch {
           warn("read error \(name): \(error.localizedDescription)")
           return nil
         }
+         */
         
       case .BZIP:
         fatalError( "not yet implemented")
         /*
-        if ((bzbufdesc = BZ2_bzdopen(f->fd, "r")) == NULL)
+        if ((baaaaaazbufdesc = BZ2_bzdopen(f->fd, "r")) == NULL)
             goto error2;
         break;
          */

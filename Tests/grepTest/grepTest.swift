@@ -117,32 +117,45 @@ import ShellTesting
     try await run(status: 1, args: "not even remotely possible", inf)
   }
   
-  @Test("Checks displaying context with -A, -B and -C flags") func context() async throws {
+  @Test("Checks displaying context with -A, -B and -C flags",
+        arguments: [
+          ("a", "-C2", "bamboo"),
+          ("b", "-A3", "tilt"),
+          ("c", "-B4", "Whig"),
+        ]) func context(_ ex : String, _ opt : String, _ srch : String) async throws {
     let dd = try ShellProcess.geturl("grepTest")
     let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
-    let expected = try fileContents("d_context_a.out")
-    try await run(output: expected, args: "-C2", "bamboo", inf)
     
-    let expected2 = try fileContents("d_context_b.out")
-    try await run(output: expected2, args: "-A3", "tilt", inf)
+    let expected = try fileContents("d_context_\(ex).out")
+    try await run(output: expected, args: opt, srch, inf)
     
-    let expected3 = try fileContents("d_context_c.out")
-    try await run(output: expected3, args: "-B4", "Whig", inf)
+    let expected2 = try fileContents("d_context_\(ex).out")
+    try await run(output: expected2, args: opt, srch, inf)
     
+    let expected3 = try fileContents("d_context_\(ex).out")
+    try await run(output: expected3, args: opt, srch, inf)
+  }
+  
+  @Test("More checks displaying context with -A, -B and -C flags") func context3() async throws {
     // this command needs to be run from the directory containing the input files
+    let dd = try ShellProcess.geturl("grepTest")
+    let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
     let inf2 = URL(filePath: "d_context_b.in", relativeTo: dd)
+    
     let expected4 =  try fileContents("d_context_d.out")
     try await run(output: expected4, args: "-C1", "pig", inf, inf2, cd: dd)
+  }
     
+    
+    @Test("Even more checks displaying context with -A, -B and -C flags",
+          arguments: [
+            ("e", "-E", "-C1", "(banana|monkey)"),
+            ("f", "-Ev", "-B2", "(banana|monkey|fruit)"),
+            ("g", "-Ev", "-A1", "(banana|monkey|fruit)"),
+          ]) func context4( _ ex : String, _ ev : String, _ opt : String, _ exp : String) async throws {
     let inf5 = try inFile("d_context_e.in")
-    let expected5 = try fileContents("d_context_e.out")
-    try await run(output: expected5, args: "-E", "-C1", "(banana|monkey)", inf5)
-    
-    let expected6 = try fileContents("d_context_f.out")
-    try await run(output: expected6, args: "-Ev", "-B2", "(banana|monkey|fruit)", inf5)
-    
-    let expected7 = try fileContents("d_context_g.out")
-    try await run(output: expected7, args: "-Ev", "-A1", "(banana|monkey|fruit)", inf5)
+    let expected5 = try fileContents("d_context_\(ex).out")
+    try await run(output: expected5, args: ev, opt, exp, inf5)
   }
   
   @Test("Checks reading expressions from file") func file_exp() async throws {
@@ -410,14 +423,18 @@ import ShellTesting
   }
 
   
-  @Test("Check for incorrectly matching lines with both -w and -v flags (PR 218467)") func wv_combo_break() async throws {
-    let test1 = "x xx\n"
-    let test2 = "xx x\n"
-    
-    try await run(withStdin: test1, output: test1, args: "-w", "x")
-    try await run(withStdin: test2, output: test2, args: "-w", "x")
-    try await run(withStdin: test1, status: 1, args: "-v", "-w", "x")
-    try await run(withStdin: test2, status: 1, args: "-v", "-w", "x")
+  @Test("Check for incorrectly matching lines with both -w and -v flags (PR 218467)",
+        arguments: [
+          "x xx\n", "xx x\n"
+          ],
+        [false, true]
+  ) func wv_combo_break(_ io : String, _ vb : Bool) async throws {
+      
+    if vb {
+      try await run(withStdin: io, status: 1, args: "-v", "-w", "x")
+    } else {
+      try await run(withStdin: io, output: io, args: "-w", "x")
+    }
   }
   
   @Test("Check for -n/-b producing per-line metadata output") func ocolor_metadata() async throws {
