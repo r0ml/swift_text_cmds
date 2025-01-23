@@ -4,36 +4,36 @@
 import ShellTesting
 
 struct regressTest : ShellTest {
-  var cmd = "bintrans"
-  var suite = "text_cmds_bintransTest"
+  let cmd = "bintrans"
+  let suiteBundle = "text_cmds_bintransTest"
 
     @Test func traditional() async throws {
       let res = try fileContents("regress.traditional.out")
-      let inp = try ShellProcess.fileData(suite, "regress.in")
+      let inp = try ShellProcess.fileData(suiteBundle, "regress.in")
       try await run(withStdin: inp, output: res, args: "uuencode", "regress.in")
     }
 
 
   @Test func base64() async throws {
     let res = try fileContents("regress.base64.out")
-    let inp = try ShellProcess.fileData(suite, "regress.in")
+    let inp = try ShellProcess.fileData(suiteBundle, "regress.in")
     try await run(withStdin: inp, output: res, args: "uuencode", "-m", "regress.in")
   }
   
   @Test func decode_traditional() async throws {
-    let res = try ShellProcess.fileData(suite, "regress.in")
+    let res = try ShellProcess.fileData(suiteBundle, "regress.in")
     let inp = try fileContents("regress.traditional.in")
     try await run(withStdin: inp, output: res, args: "uudecode", "-p")
   }
 
   @Test func decode_base64() async throws {
-    let res = try ShellProcess.fileData(suite, "regress.in")
+    let res = try ShellProcess.fileData(suiteBundle, "regress.in")
     let inp = try fileContents("regress.base64.in")
     try await run(withStdin: inp, output: res, args: "uudecode", "-p")
   }
 
   @Test func t153276() async throws {
-//    let res = try fileData(suite, "regress.153276.out")
+//    let res = try fileData(suiteBundle, "regress.153276.out")
     let inp = try fileContents("regress.153276.in")
     try await run(withStdin: inp, status: 0,
                   error: /character out of range:/,

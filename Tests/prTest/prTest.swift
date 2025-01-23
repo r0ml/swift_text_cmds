@@ -62,7 +62,7 @@ import ShellTesting
 class prTest : ShellTest {
 
   let cmd = "pr"
-  let suite = "text_cmds_prTest"
+  let suiteBundle = "text_cmds_prTest"
   
   @Test("A basic test of pr(1) (cf. PR bin/41080)") func basic() async throws {
     let inp = try inFile("d_basic.in")

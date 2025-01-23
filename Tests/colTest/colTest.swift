@@ -11,7 +11,7 @@ import ShellTesting
 @Suite(.serialized) class colTest : ShellTest {
   
   let cmd = "col"
-  let suite = "text_cmds_colTest"
+  let suiteBundle = "text_cmds_colTest"
   
   @Test("testing just newlines", arguments: ["nl", "nl2"]) func nl(_ arg : String) async throws {
     let i = try fileContents("\(arg).in")

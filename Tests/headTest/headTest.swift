@@ -31,7 +31,7 @@ import ShellTesting
 
 @Suite(.serialized) class headTest : ShellTest {
   let cmd = "head"
-  let suite = "headTest"
+  let suiteBundle = "headTest"
 
   @Test("Test head(1)'s handling of an empty file") func empty_file() async throws {
     try await run(output: "")

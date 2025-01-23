@@ -35,7 +35,7 @@ import ShellTesting
 @Suite(.serialized) class foldTest : ShellTest {
   
   let cmd = "fold"
-  let suite = "text_cmds_foldTest"
+  let suiteBundle = "text_cmds_foldTest"
 
   @Test("Verify the usage of option 'b'") func b_flag() async throws {
     let (r, j, _) = try await ShellProcess(cmd, "-b").run()

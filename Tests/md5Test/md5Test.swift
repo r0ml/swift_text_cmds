@@ -33,7 +33,7 @@ import ShellTesting
 @Suite(.serialized) class md5Test : ShellTest {
 
   let cmd = "md5"
-  let suite = "text_cmds_md5Test"
+  let suiteBundle = "text_cmds_md5Test"
 
   let n=8
   // algorithms="md5 sha1 sha224 sha256 sha384 sha512 sha512t224 sha512t256 rmd160 skein256 skein512 skein1024"

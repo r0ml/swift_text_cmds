@@ -36,7 +36,7 @@ import ShellTesting
 @Suite(.serialized) class trTest : ShellTest {
 
   let cmd = "tr"
-  let suite = "text_cmds_trTest"
+  let suiteBundle = "text_cmds_trTest"
 
   @Test("Tests for tr -d", arguments: [
     ("x", "abcde"), ("c", "abde"), ("bd", "ace"),

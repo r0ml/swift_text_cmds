@@ -61,7 +61,7 @@ import ShellTesting
 @Suite(.serialized) class cutTest : ShellTest {
   
   let cmd = "cut"
-  let suite = "text_cmds_cutTest"
+  let suiteBundle = "text_cmds_cutTest"
   
   let fields = ["1", "2", "3", "1-2", "2,3", "4", "1-3,4-7", "1,2-7"]
   

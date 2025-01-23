@@ -114,10 +114,8 @@ class grepDoer {
     
     var ret = options.finclude ? false : true
     
-    let fname_buf = fname
-    
     let fname_base = fname.withCString {
-      var a = UnsafeMutablePointer<CChar>(mutating: $0)
+      let a = UnsafeMutablePointer<CChar>(mutating: $0)
       return String(cString: basename(a))
     }
     
@@ -382,7 +380,7 @@ class grepDoer {
     var f : file?
     if fnx == "-" {
       fn = options.label
-      f = file(nil, options.filebehave)
+      f = file(nil, options.filebehave, options.fileeol, options.binbehave)
     } else {
       var sbp = stat()
       if let psbp  { sbp = psbp }
@@ -398,7 +396,7 @@ class grepDoer {
             return (false)
           }
         }
-        f = file(fn, options.filebehave)
+        f = file(fn, options.filebehave, options.fileeol, options.binbehave)
       }
     }
     guard let f else {
@@ -451,7 +449,7 @@ class grepDoer {
     if (myMprintc.printmatch && (options.Aflag != 0 || options.Bflag != 0 || options.mflag || options.nflag)) {
       myParsec.cntlines = true;
     }
-    var mcount = options.mcount
+    let mcount = options.mcount
     
     var lines = 0
     while lines == 0 || !(options.lflag || options.qflag) {
@@ -525,15 +523,15 @@ class grepDoer {
       //      if (cflag) {
       // #endif
       if (!options.hflag) {
-        print("\(myParsec.ln.file):")
+        print("\(myParsec.ln.file):", terminator: "")
       }
-      print("\(lines)\n")
+      print("\(lines)")
     }
     if (options.lflag && !options.qflag && lines != 0) {
-      print("\(fn)\(options.nullflag ? "" : "\n")")
+      print(fn, terminator: options.nullflag ? "" : "\n")
     }
     if (options.Lflag && !options.qflag && lines == 0) {
-      print("\(fn)\(options.nullflag ? "" : "\n")")
+      print(fn, terminator: options.nullflag ? "" : "\n")
     }
     if (lines != 0 && !options.cflag && !options.lflag && !options.Lflag &&
         options.binbehave == .BIN && f.binary && !options.qflag) {
@@ -691,6 +689,7 @@ class grepDoer {
     var matched = false;
     var st : String.Index = myParsec.lnstart
     var nst : String.Index = myParsec.ln.dat.endIndex
+    var nstdone = false
     
     /* Initialize to avoid a false positive warning from GCC. */
     var lastmatch = regmatch_t()
@@ -702,7 +701,7 @@ class grepDoer {
     var retry : String.Index = myParsec.ln.dat.startIndex
 
     /* Loop to process the whole line */
-    while (st <= myParsec.ln.dat.endIndex) {
+    while ( (!nstdone) && st <= myParsec.ln.dat.endIndex) {
       var lastmatched = false;
       retry = myParsec.ln.dat.startIndex
       let startm = myParsec.matches.count;
@@ -859,7 +858,11 @@ class grepDoer {
               nst += max(1, advance);
             } else {
  */
+            if nst < myParsec.ln.dat.endIndex {
               nst = myParsec.ln.dat.index(after: nst)
+            } else {
+              nstdone = true
+            }
 //            }
           }
           // #endif
@@ -900,7 +903,8 @@ class grepDoer {
       }
       //        #ifdef __APPLE__
       /* rdar://problem/86536080 */
-      assert(nst > st);
+      assert( /* nst >= myParsec.ln.dat.endIndex || */ nstdone ||  nst > st);
+//      assert(nst > st)
       // #else
       //        else if (st == nst && lastmatch.rm_so == lastmatch.rm_eo)
       //                  /* Zero-length match -- advance one more so we don't get stuck */
@@ -1047,7 +1051,7 @@ class grepDoer {
           print(stp, terminator: "") //  match.rm_so - a, 1, stdout);
         }
         if let color = options.color {
-          print("\u{1b}[\(color)m\u{1b}[K")
+          print("\u{1b}[\(color)m\u{1b}[K", terminator: "")
         }
         let stp = myParsec.ln.dat.dropFirst(Int(match.rm_so)).prefix(Int(match.rm_eo)-Int(match.rm_so))
         print(stp, terminator: "");

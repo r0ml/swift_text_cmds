@@ -31,6 +31,7 @@ let package = Package(
   platforms: [.macOS(.v15)],
   dependencies: [
     .package(name: "libxo", path: "../libxo"),
+//    .package(name: "ShellTesting", path: "../ShellTesting"),
     .package(url: "https://github.com/r0ml/ShellTesting.git" , branch: "main")
   ],
   targets: [

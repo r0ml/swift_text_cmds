@@ -282,7 +282,7 @@ class file {
   /*
    * Opens a file for processing.
    */
-  init?(_ path : String?, _ behav : FILE) {
+  init?(_ path : String?, _ behav : FILE, _ fileeol : Character, _ binbehav : grep.BINFILE) {
     self.behave = behav
     
     var url : URL?
@@ -400,6 +400,10 @@ class file {
     }
         
     /* Fill read buffer, also catches errors early */
+    if !grep_refill() {
+      try? fd.close()
+      return nil
+    }
 //    if (bufrem == 0 && grep_refill(f) != 0) {
 //      try? fd.close()
 //      return nil
@@ -409,14 +413,16 @@ class file {
 //    #ifdef __APPLE__
 
     // FIXME: put me back
-//    if (options.fileeol != "\0" && memchr(bufpos, "\0", bufrem) != NULL) {
+    if binbehav != .TEXT && fileeol != "\0" &&
+        buffer.contains(0) {
+//        memchr(bufpos, "\0", bufrem) != NULL) {
       
       //        #else
       //        if (binbehave != BINFILE_TEXT && fileeol != '\0' &&
       //            memchr(bufpos, '\0', bufrem) != NULL)
       //        #endif
-//      self.binary = true
-//    }
+      self.binary = true
+    }
     
  //
 //  error2:

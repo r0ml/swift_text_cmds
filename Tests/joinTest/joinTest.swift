@@ -8,7 +8,7 @@ import ShellTesting
 
 struct joinTest : ShellTest {
   let cmd = "join"
-  let suite = "text_cmds_joinTest"
+  let suiteBundle = "text_cmds_joinTest"
   
   @Test func only() async throws {
     let inp1 = try inFile("regress.1.in")

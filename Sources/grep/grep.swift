@@ -169,11 +169,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   ]
   
   
-  func parseOptions() throws(CmdErr) -> CommandOptions {
+  func parseOptions() async throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     
   
-    let flags = "A:aB:bC::cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ"
+    let flags = "A:aB:bC:cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ0123456789"
     let long_options : [Shared.option] = [
       .init("binary-files",  .required_argument),
       .init("help",    .no_argument),
@@ -325,7 +325,8 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
               options.Bflag = l
             }
           } else {
-            throw CmdErr(2, "invalid number -- \(v)")
+            // I prefer 'invalid number'
+            throw CmdErr(2, "Invalid argument -- \(v)")
           }
         case "a", "text":
           options.binbehave = .TEXT
@@ -361,14 +362,14 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
         case "E", "extended-regexp":
           options.grepbehave = .EXTENDED
         case "e", "regexp":
-          for token in v.split(separator: "\n") {
+          for token in v.split(separator: "\n", omittingEmptySubsequences: false) {
             add_pattern(String(token), &options)
           }
           options.needpattern = false
         case "F", "fixed-strings":
           options.grepbehave = .FIXED
         case "f", "file":
-          read_patterns(v)
+          try await read_patterns(v, &options)
           options.needpattern = false
         case "G", "basic-regexp":
           options.grepbehave = .BASIC
@@ -397,6 +398,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.mflag = true
           if let mcount = Int(v), mcount > 0 {
             options.mcount = mcount
+          } else {
             throw CmdErr(2, "invalid number for -m: \(v)")
           }
 
@@ -541,7 +543,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
 
       /* Process patterns from command line */
     if (options.args.count != 0 && options.needpattern) {
-      for token in options.args[0].split(separator: "\n") {
+      for token in options.args[0].split(separator: "\n", omittingEmptySubsequences: false) {
         add_pattern(String(token), &options )
       }
       options.args.removeFirst()
@@ -690,37 +692,43 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   /*
    * Reads searching patterns from a file and adds them with add_pattern().
    */
-  func read_patterns(_ fn : String) {
-    fatalError("not implemented yet")
+  func read_patterns(_ fn : String, _ options : inout CommandOptions) async throws(CmdErr) {
     /*
     struct stat st;
     FILE *f;
     char *line;
     size_t len;
     ssize_t rlen;
+     */
+    var f : FileHandle
+    if fn == "-" {
+      f = FileHandle.standardInput
+    } else {
+      do {
+        try f = FileHandle(forReadingFrom: URL(fileURLWithPath: fn))
+      } catch {
+        throw CmdErr(2, "read error: \(fn): \(error.localizedDescription)")
+      }
+    }
+    defer { if f != FileHandle.standardInput { try? f.close() } }
 
-    if (strcmp(fn, "-") == 0)
-      f = stdin;
-    else if ((f = fopen(fn, "r")) == NULL)
-      err(2, "%s", fn);
-    if ((fstat(fileno(f), &st) == -1) || (S_ISDIR(st.st_mode))) {
+/*    if ((fstat(fileno(f), &st) == -1) || (S_ISDIR(st.st_mode))) {
       fclose(f);
       return;
     }
     len = 0;
     line = NULL;
-    while ((rlen = getline(&line, &len, f)) != -1) {
-      if (line[0] == '\0')
-        continue;
-      add_pattern(line, line[0] == '\n' ? 0 : (size_t)rlen);
+ */
+    do {
+      for try await var line in f.bytes.linesNL {
+        //    while ((rlen = getline(&line, &len, f)) != -1) {
+        if line.isEmpty || line.first == "\0" { continue }
+        if line.last == "\n" { line.removeLast() }
+        add_pattern(line, &options)
+      }
+    } catch {
+      throw CmdErr(2, "read error: \(fn): \(error.localizedDescription)")
     }
-
-    free(line);
-    if (ferror(f))
-      err(2, "%s", fn);
-    if (strcmp(fn, "-") != 0)
-      fclose(f);
-     */
   }
 
   
@@ -781,11 +789,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
         exit(0)
 //      }
     } else {
-//      if file_err {
-//        exit(2)
-//      } else {
+      if grepDoer.file_err {
+        exit(2)
+      } else {
         exit(1)
-//      }
+      }
     }
   }
 }

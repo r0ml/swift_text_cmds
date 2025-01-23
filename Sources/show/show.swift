@@ -10,7 +10,7 @@ import Foundation
 import Shared
 import Compression
 
-@main final class show : ShellCommand {
+final class show : ShellCommand {
   
   var usage : String = "Not yet implemented"
   

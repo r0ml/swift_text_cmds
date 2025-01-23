@@ -33,7 +33,7 @@ import ShellTesting
 
 @Suite(.serialized) class sortTest : ShellTest {
   let cmd = "sort"
-  let suite = "text_cmds_sortTest"
+  let suiteBundle = "text_cmds_sortTest"
   
   @Test("Basic functionality test") func basic() async throws {
     let i = """
@@ -100,13 +100,13 @@ z b m f
   @Test("Tests with files containing non-printable/extended characters")
   func any_char() async throws {
     let a = try inFile("d_any_char_in.txt")
-    let b = try ShellProcess.fileData(suite, "d_any_char_dflag_out.txt")
+    let b = try ShellProcess.fileData(suiteBundle, "d_any_char_dflag_out.txt")
     try await run(output:b, args: "-d", "-k", "2", a, env: ["LANG":"C","LC_ALL":""])
     
-    let c = try ShellProcess.fileData(suite, "d_any_char_fflag_out.txt")
+    let c = try ShellProcess.fileData(suiteBundle, "d_any_char_fflag_out.txt")
     try await run(output: c, args: "-f", "-k", "2", a, env: ["LANG":"C","LC_ALL":""])
     
-    let d = try ShellProcess.fileData(suite, "d_any_char_iflag_out.txt")
+    let d = try ShellProcess.fileData(suiteBundle, "d_any_char_iflag_out.txt")
     try await run(output: d, args: "-i", "-k", "2", a, env: ["LC_ALL":""])
   }
   

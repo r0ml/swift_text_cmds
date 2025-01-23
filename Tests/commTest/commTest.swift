@@ -7,7 +7,7 @@ import ShellTesting
 
 @Suite(.serialized) class commTest : ShellTest {
   let cmd = "comm"
-  let suite = "text_cmds_commTest"
+  let suiteBundle = "text_cmds_commTest"
   
   @Test(arguments: [0, 1, 2]) func test0(_ n : Int) async throws {
     let a = try inFile("regress.0\(n)a.in")

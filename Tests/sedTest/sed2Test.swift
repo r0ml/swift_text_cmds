@@ -33,7 +33,7 @@ import ShellTesting
 @Suite("sed2_test", .serialized) class sed2Test : ShellTest {
 
   let cmd = "sed"
-  let suite = "text_cmds_sedTest"
+  let suiteBundle = "text_cmds_sedTest"
   
   @Test("Verify -i works with a hard linked source file")
   func inplace_hardlink_src() async throws {

@@ -6,7 +6,7 @@ import ShellTesting
 @Suite(.serialized) class unvisTest : ShellTest {
 
   let cmd = "unvis"
-  let suite = "text_cmds_unvisTest"
+  let suiteBundle = "text_cmds_unvisTest"
   
     @Test func basic1() async throws {
       try await run(withStdin: "\u{10}\n\t\n", output: "\\^P\\012\\011\\012", args: ["-w", "-t"])

@@ -21,7 +21,7 @@ import Foundation
 
 public protocol ShellCommand {
   associatedtype CommandOptions
-  func parseOptions() throws(CmdErr) -> CommandOptions
+  func parseOptions() async throws(CmdErr) -> CommandOptions
   func runCommand(_ options : CommandOptions) async throws(CmdErr)
   var usage : String { get }
   init()
@@ -37,7 +37,7 @@ extension ShellCommand {
   public func main() async -> Int32 {
     var options : CommandOptions
     do {
-      options = try parseOptions()
+      options = try await parseOptions()
     } catch(let e) {
       var fh = FileHandle.standardError
       if (!e.message.isEmpty) { print("\(e.message)", to: &fh) }

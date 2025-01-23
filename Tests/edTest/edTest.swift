@@ -5,7 +5,7 @@ import ShellTesting
 
 @Suite("edTest") class edTest : ShellTest {
   let cmd = "ed"
-  let suite = "text_cmds_edTest"
+  let suiteBundle = "text_cmds_edTest"
   
   @Test(arguments: [
     "a", "addr",
@@ -19,7 +19,7 @@ import ShellTesting
     let inp = try fileContents("\(n).t")
     let res = try fileContents("\(n).res")
     let dat = try inFile("\(n).dat")
-    let rd = try ShellProcess.geturl(suite)
+    let rd = try geturl()
     try await run(withStdin: inp+",p\n", output: res, args: "-", dat, cd: rd)
   }
   
@@ -32,7 +32,7 @@ import ShellTesting
     let inp = try fileContents("\(n).t")
     let res = try fileContents("\(n).res")
     let dat = try inFile("\(n).dat")
-    let rd = try ShellProcess.geturl(suite)
+    let rd = try geturl()
     let se = StringEmitter()
     let ss = se.stream
     let p = ShellProcess(cmd, "-", dat, env: ["NSUnbufferedIO" : "1"], cd: rd)
@@ -61,7 +61,7 @@ import ShellTesting
     "s8", "s9", "t1", "t2", "u", "w1", "w2", "w3", "x", "z",
   ]) func errs(_ n : String) async throws {
     let inp = try inFile("\(n).err")
-//    let rd = try geturl(suite)
+//    let rd = try geturl(suiteBundle)
     let se = StringEmitter()
     let ss = se.stream
     let p = ShellProcess(cmd, "-", inp, env: ["NSUnbufferedIO" : "1"])

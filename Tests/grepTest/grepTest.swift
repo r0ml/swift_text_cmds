@@ -33,7 +33,7 @@ import ShellTesting
 @Suite(.serialized) struct grepTest : ShellTest {
   
   var cmd = "grep"
-  var suite = "text_cmds_grepTest"
+  let suiteBundle = "text_cmds_grepTest"
   
   @Test("Checks basic functionality") func basic() async throws {
     let inp = ((1...10000).map { String($0)+"\n" }).joined()
@@ -123,7 +123,7 @@ import ShellTesting
           ("b", "-A3", "tilt"),
           ("c", "-B4", "Whig"),
         ]) func context(_ ex : String, _ opt : String, _ srch : String) async throws {
-    let dd = try ShellProcess.geturl("grepTest")
+    let dd = try geturl()
     let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
     
     let expected = try fileContents("d_context_\(ex).out")
@@ -138,7 +138,7 @@ import ShellTesting
   
   @Test("More checks displaying context with -A, -B and -C flags") func context3() async throws {
     // this command needs to be run from the directory containing the input files
-    let dd = try ShellProcess.geturl("grepTest")
+    let dd = try geturl()
     let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
     let inf2 = URL(filePath: "d_context_b.in", relativeTo: dd)
     
@@ -197,13 +197,13 @@ import ShellTesting
     rm(inf)
   }
   
-  @Test("Checks for zgrep wrapper problems with -f FILE (PR 247126)") func zgrep_fflag() async throws {
+  @Test("Checks for zgrep wrapper problems with -f FILE (PR 247126)", arguments: [false, true]) func zgrep_fflag(_ lo : Bool) async throws {
     let inf = try tmpfile("test5", "foobar\n")
     let inf2 = try tmpfile("pattern", "foo\n")
     let null = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
-    try await run(withStdin: null, output: "foobar\n", args: "-Z", "-f", inf2, inf)
-    
-    try await run(withStdin: null, output: "foobar\n", args: "-Z", "--file=\(inf2.path)",  inf)
+    try await run(withStdin: null, output: "foobar\n", args:
+                    lo ? ["-Z","--file=\(inf2.path)", inf]
+                  : ["-Z", "-f", inf2, inf])
     rm(inf, inf2)
   }
   
@@ -219,7 +219,7 @@ import ShellTesting
   
   @Test("Checks for zgrep wrapper problems with empty -e flags pattern (PR 247126)") func zgrep_empty_eflag() async throws {
     let inf = try tmpfile("test7", "foobar\n")
-    try await run(output: "foobar\n", args: "-Z", "-e", "", inf.relativePath)
+    try await run(output: "foobar\n", args: "-Z", "-e", "", inf)
     rm(inf)
   }
   
@@ -312,9 +312,13 @@ import ShellTesting
     try await run(status: 1, args: "-E", "{", "/dev/null")
   }
   
-  @Test("Check for successful zero-length matches with ^$") func zerolen() async throws {
-    try await run(withStdin: "Eggs\n\nCheese", output: "\n", args: "-e", "^$")
-    try await run(withStdin: "Eggs\n\nCheese", output: "Eggs\nCheese\n", args: "-v", "-e", "^$")
+  @Test("Check for successful zero-length matches with ^$", arguments: [1, 2]) func zerolen(_ n : Int) async throws {
+    switch n {
+      case 1: try await run(withStdin: "Eggs\n\nCheese", output: "\n", args: "-e", "^$")
+      case 2: try await run(withStdin: "Eggs\n\nCheese", output: "Eggs\nCheese\n", args: "-v", "-e", "^$")
+      default:
+        break
+    }
   }
   
   @Test("Check for proper handling of -w with an empty pattern (PR 105221)") func wflag_emptypat() async throws {
@@ -358,7 +362,7 @@ import ShellTesting
     #expect(n != n2)
   }
   
-  @Test("More checks for handling empty patterns with -x") func xflag_emptypat_plus() async throws {
+  @Test("More checks for handling empty patterns with -x", arguments: Array(1...5)) func xflag_emptypat_plus(_ n : Int) async throws {
     let target = "foo\n\nbar\n\nbaz\n"
     let target_spacelines = "foo\n \nbar\n \nbaz\n"
     let matches = "foo\nbar\nbaz\n"
@@ -367,12 +371,15 @@ import ShellTesting
     let patlist2 = try tmpfile("patlist2", "foo\n\nba\n\nbaz\n")
     let matches_not2 = "foo\n\n\nbaz\n"
     
-    try await run(withStdin: target, output: target , args: "-Fxf", patlist1)
-    try await run(withStdin: target_spacelines, output:  matches, args: "-Fxf", patlist1)
-    try await run(withStdin: target, output: matches_not2, args: "-Fxf", patlist2)
-    // -v handling
-    try await run(withStdin: target, status: 1, output: "", args: "-Fvxf", patlist1)
-    try await run(withStdin: target_spacelines, output: spacelines, args: "-Fxvf", patlist1)
+    switch n {
+      case 1:   try await run(withStdin: target, output: target , args: "-Fxf", patlist1)
+      case 2:  try await run(withStdin: target_spacelines, output:  matches, args: "-Fxf", patlist1)
+      case 3: try await run(withStdin: target, output: matches_not2, args: "-Fxf", patlist2)
+        // -v handling
+      case 4: try await run(withStdin: target, status: 1, output: "", args: "-Fvxf", patlist1)
+      case 5: try await run(withStdin: target_spacelines, output: spacelines, args: "-Fxvf", patlist1)
+      default: break
+    }
     rm(patlist1, patlist2)
   }
   
@@ -410,18 +417,17 @@ import ShellTesting
     try await run(withStdin: test2, output: "M{1}\n", args: args + ["M\\{1\\}"] )
   }
 
-  @Test("Check for grep sanity (BREs only)") func grep_sanity() async throws {
-    let test1 = "Foobar(ed)"
-    let test2 = "M{1}"
+  @Test("Check for grep sanity (BREs only)", arguments: [
+    ("Foo\n", "F..", "Foobar(ed)"),
+    ("Foobar\n", "F[a-z]*", "Foobar(ed)"),
+    ("Fo\n", "F\\(o\\)", "Foobar(ed)"),
+    ("(ed)\n", "(ed)", "Fobbar(ed)"),
+    ("M{1}\n", "M{1}", "M{1}"),
+    ("M\n", "M\\{1\\}", "M{1}"),
+  ]) func grep_sanity(_ x : String, _ p : String, _ t : String) async throws {
     let args: [String] = ["-o", "-e"]
-    try await run(withStdin: test1, output: "Foo\n", args: args + ["F.."] )
-    try await run(withStdin: test1, output: "Foobar\n", args: args + ["F[a-z]*"] )
-    try await run(withStdin: test1, output: "Fo\n", args: args + ["F\\(o\\)"] )
-    try await run(withStdin: test1, output: "(ed)\n", args: args + ["(ed)"] )
-    try await run(withStdin: test2, output: "M{1}\n", args: args + ["M{1}"] )
-    try await run(withStdin: test2, output: "M\n", args: args + ["M\\{1\\}"] )
+    try await run(withStdin: t, output: x, args: args + [p] )
   }
-
   
   @Test("Check for incorrectly matching lines with both -w and -v flags (PR 218467)",
         arguments: [
@@ -459,88 +465,128 @@ import ShellTesting
     try await run(withStdin: j3!, status: 1, args: "-Ev", check_expr)
   }
   
-  @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (PR 219077)") func grep_nomatch_flags() async throws {
+  @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (PR 219077)", arguments: [
+    "-C", "-B", "-A",
+  ]) func grep_nomatch_flags(_ f : String) async throws {
     let test1 = try tmpfile("test1", "A\nB\nC\n")
-    try await run(output: "1\n", args: "-c", "-C", "1", "-e", "B", test1)
-    try await run(output: "1\n", args: "-c", "-B", "1", "-e", "B", test1)
-    try await run(output: "1\n", args: "-c", "-A", "1", "-e", "B", test1)
-    
-    try await run(output: "test1\n", args: "-l", "-e", "B", test1)
-    try await run(output: "test1\n", args: "-l", "-B", "1", "-e", "B", test1)
-    try await run(output: "test1\n", args: "-l", "-A", "1", "-e", "B", test1)
-    try await run(output: "test1\n", args: "-l", "-C", "1", "-e", "B", test1)
-    
-    let test2 = try tmpfile("test2", "D\n")
-    try await run(status: 1, output: "test1\n", args: "-L", "-e", "D", test1)
-    try await run(output: "test1\n", args: "-L", "-e", "D", test1, test2)
-    
-    try await run(output: "", args: "-q", "-e", "B", test1)
-    try await run(output: "", args: "-q", "-B", "1", "-e", "B", test1)
-    try await run(output: "", args: "-q", "-A", "1", "-e", "B", test1)
-    try await run(output: "", args: "-q", "-C", "1", "-e", "B", test1)
-    
-    rm(test1, test2)
-  }
-  
-  @Test("Check for handling of invalid context arguments") func badcontext() async throws {
-    let test1 = try tmpfile("test1", "A\nB\nC\n")
-    try await run(status: 2, error: /context argument must be non-negative/, args: "-A", "-1", "B", test1)
-    try await run(status: 2, error: /context argument must be non-negative/, args: "-B", "-1", "B", test1)
-    try await run(status: 2, error: /context argument must be non-negative/, args: "-C", "-1", "B", test1)
-    try await run(status: 2, error: /Invalid argument/, args: "-A", "B", "B", test1)
-    try await run(status: 2, error: /Invalid argument/, args: "-B", "B", "B", test1)
-    try await run(status: 2, error: /Invalid argument/, args: "-C", "B", "B", test1)
+    try await run(output: "1\n", args: "-c", f, "1", "-e", "B", test1)
     rm(test1)
   }
   
-  @Test("Check output for binary flags (-a, -I, -U, --binary-files)") func binary_flags() async throws {
+  @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (3) (PR 219077)", arguments: [
+    "-C", "-B", "-A",
+  ]) func grep_nomatch_flags3(_ f : String) async throws {
+    let test1 = try tmpfile("test1", "A\nB\nC\n")
+    try await run(output: "test1\n", args: "-l", f, "1", "-e", "B", test1)
+    rm(test1)
+  }
+  
+  @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (2) (PR 219077)", arguments: Array(1...4) ) func grep_nomatch_flags2(_ n : Int) async throws {
+    let test1 = try tmpfile("test1", "A\nB\nC\n")
+    let test2 = try tmpfile("test2", "D\n")
+    switch n {
+      case 1: try await run(output: "test1\n", args: "-l", "-e", "B", test1)
+      case 2: try await run(status: 1, output: "test1\n", args: "-L", "-e", "D", test1)
+      case 3: try await run(output: "test1\n", args: "-L", "-e", "D", test1, test2)
+        
+      case 4: try await run(output: "", args: "-q", "-e", "B", test1)
+      default:
+        break
+    }
+    rm(test1, test2)
+  }
+  
+  @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (4) (PR 219077) (2)", arguments: ["-B", "-C", "-A"]) func grep_nomatch_flags4(_ f : String) async throws {
+    let test1 = try tmpfile("test1", "A\nB\nC\n")
+    try await run(output: "", args: "-q", f, "1", "-e", "B", test1)
+    rm(test1)
+  }
+  
+  @Test("Check for handling of invalid context arguments", arguments: Array(1...6) ) func badcontext(_ n : Int) async throws {
+    let test1 = try tmpfile("test1", "A\nB\nC\n")
+    switch n {
+      case 1: try await run(status: 2, error: /context argument must be non-negative/, args: "-A", "-1", "B", test1)
+      case 2: try await run(status: 2, error: /context argument must be non-negative/, args: "-B", "-1", "B", test1)
+      case 3: try await run(status: 2, error: /context argument must be non-negative/, args: "-C", "-1", "B", test1)
+      case 4: try await run(status: 2, error: /Invalid argument/, args: "-A", "B", "B", test1)
+      case 5: try await run(status: 2, error: /Invalid argument/, args: "-B", "B", "B", test1)
+      case 6: try await run(status: 2, error: /Invalid argument/, args: "-C", "B", "B", test1)
+      default:
+        break
+    }
+    rm(test1)
+  }
+  
+  @Test("Check output for binary flags (-a, -I, -U, --binary-files)", arguments:
+    [false, true], [false, true]
+  ) func binary_flags(_ u : Bool, _ c : Bool) async throws {
     let test1 = try tmpfile("test1", "A\0B\0C")
-    let test2 = try tmpfile("test2", "A\n\0B\n\0C")
     let binmatchtext = "Binary file test1 matches\n"
     
     // Binaries not treated as text (default, -U)
-    try await run(output: binmatchtext, args: "B", test1)
-    try await run(output: binmatchtext, args: "B", "-C", "1", test1)
-    
-    try await run(output: binmatchtext, args: "-U", "B", test1)
-    try await run(output: binmatchtext, args: "-U", "B", "-C", "1", test1)
-    
-    // Binary, -a, no newlines
-    try await run(output: "A\0B\0C\n", args: "-a", "B", test1)
-    try await run(output: "A\0B\0C\n", args: "-a", "B", "-C", "1", test1)
-    
-    // Binary, -a, newlines
-    try await run(output: "\0B\n", args: "-a", "B", test2)
-    try await run(output: "A\n\0B\n\0C\n", args: "-a", "B", "-C", "1", test2)
-
-    // Binary files ignored
-    try await run(status: 1, args: "-I", "B", test2)
-    
-    // --binary-files equivalence
-    try await run(output: binmatchtext, args: "--binary-files=binary", "B", test1)
-    try await run(output: "A\0B\0C\n", args: "--binary-files=text", "B", test1)
-    try await run(status: 1, args: "--binary-files=without-match", "B", test2)
-    
-    rm(test1, test2)
-  }
-  
-  @Test("Check basic matching with --mmap flag") func mmap() async throws {
-    let test1 = try tmpfile("test1", "A\nB\nC\n")
-    try await run(output: "B\n", args: "--mmap", "-oe", "B", test1)
-    try await run(status: 1, args: "--mmap", "-e", "Z", test1)
+    let a = u ? ["-U", "B"] : ["B"]
+    let b = c ? ["-C", "1"] : []
+    let aa = (a+b) as [Arguable]
+    try await run(output: binmatchtext, args: aa + [test1] )
     rm(test1)
   }
   
-  @Test("Check proper behavior of matching all with an empty string") func matchall() async throws {
+  @Test("Check output for binary flags (-a, -I, -U, --binary-files) (2)", arguments: Array(1...8) ) func binary_flags2(_ n : Int) async throws {
+      let binmatchtext = "Binary file test1 matches\n"
+
+      let test1 = try tmpfile("test1", "A\0B\0C")
+      let test2 = try tmpfile("test2", "A\n\0B\n\0C")
+    switch n {
+        // Binary, -a, no newlines
+      case 1: try await run(output: "A\0B\0C\n", args: "-a", "B", test1)
+      case 2: try await run(output: "A\0B\0C\n", args: "-a", "B", "-C", "1", test1)
+        
+        // Binary, -a, newlines
+      case 3: try await run(output: "\0B\n", args: "-a", "B", test2)
+      case 4: try await run(output: "A\n\0B\n\0C\n", args: "-a", "B", "-C", "1", test2)
+        
+        // Binary files ignored
+      case 5: try await run(status: 1, args: "-I", "B", test2)
+        
+        // --binary-files equivalence
+      case 6: try await run(output: binmatchtext, args: "--binary-files=binary", "B", test1)
+      case 7: try await run(output: "A\0B\0C\n", args: "--binary-files=text", "B", test1)
+      case 8: try await run(status: 1, args: "--binary-files=without-match", "B", test2)
+      default:
+        break
+    }
+    rm(test1, test2)
+  }
+  
+  @Test("Check basic matching with --mmap flag", arguments: [1, 2]) func mmap(_ n : Int) async throws {
+    let test1 = try tmpfile("test1", "A\nB\nC\n")
+    switch n {
+      case 1: try await run(output: "B\n", args: "--mmap", "-oe", "B", test1)
+      case 2:try await run(status: 1, args: "--mmap", "-e", "Z", test1)
+      default:
+        break
+    }
+    rm(test1)
+  }
+  
+  @Test("Check proper behavior of matching all with an empty string", arguments: [0,1,2] ) func matchall(_ n : Int) async throws {
     let test1 = try tmpfile("test1", "")
     let test2 = try tmpfile("test2", "A")
     let test3 = try tmpfile("test3", "A\nB")
     
-    try await run(output: "test2:A\ntest3:A\ntest3:B\n", args: "", test1, test2, test3)
-    try await run(output: "test3:A\ntest3:B\ntest2:A\n", args: "", test3, test1, test2)
-    try await run(output: "test2:A\ntest3:A\ntest3:B\n", args: "", test2, test3, test1)
-    try await run(status: 1, args: "", test1)
+    let output = n == 1 ? "test3:A\ntest3:B\ntest2:A\n" :
+    "test2:A\ntest3:A\ntest3:B\n"
+    let j = [test1, test2, test3]
+    let k = [""] + (Array(j.dropFirst(3-n) + j.prefix(3-n)) as [Arguable])
+    
+    try await run(output: output, args: k)
     rm(test1, test2, test3)
+  }
+  
+  @Test("Check proper behavior of matching with an empty string (2)") func matchall2() async throws {
+    let test1 = try tmpfile("test1", "")
+    try await run(status: 1, args: "", test1)
+    rm(test1)
   }
   
   @Test("Check proper behavior with multiple patterns supplied to fgrep") func fgrep_multipatterns() async throws {
@@ -588,13 +634,17 @@ import ShellTesting
     rm(test1)
   }
   
-  @Test("Check proper handling of -m") func mflag() async throws {
+  @Test("Check proper handling of -m", arguments: [
+    ("1", "a"), ("2", "a|b"), ("3", "a|b|c|f"),
+  ]) func mflag(_ n : String, _ p : String) async throws {
     let test1 = try tmpfile("test1", "a\nb\nc\nd\ne\nf\n")
     
-    try await run(output: "1\n", args: "-m", "1", "-Ec", "a", test1)
-    try await run(output: "2\n", args: "-m", "2", "-Ec", "a|b", test1)
-    try await run(output: "3\n", args: "-m", "3", "-Ec", "a|b|c|f", test1)
+    try await run(output: "\(n)\n", args: "-m", n, "-Ec", p, test1)
+    rm(test1)
+  }
 
+    @Test("Check proper handling of -m") func mflag2() async throws {
+      let test1 = try tmpfile("test1", "a\nb\nc\nd\ne\nf\n")
     try await run(output: "test1:2\n", args: "-m", "2", "-EHc", "a|b|e|f", test1)
     rm(test1)
   }

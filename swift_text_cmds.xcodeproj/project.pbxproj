@@ -459,32 +459,32 @@
 		E79737D02D0E947D0011846D /* i.t in Resources */ = {isa = PBXBuildFile; fileRef = E79736E72D0E947D0011846D /* i.t */; };
 		E79737D12D0E947D0011846D /* q1.err in Resources */ = {isa = PBXBuildFile; fileRef = E79737032D0E947D0011846D /* q1.err */; };
 		E79737E52D0E9C480011846D /* csplitTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E79737D32D0E98C70011846D /* csplitTest.swift */; };
-		E7E33C7A2D30E1A400478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C792D30E1A400478AF2 /* ShellTesting */; };
-		E7E33C7C2D30E1AB00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C7B2D30E1AB00478AF2 /* ShellTesting */; };
-		E7E33C7E2D30E1AF00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C7D2D30E1AF00478AF2 /* ShellTesting */; };
-		E7E33C802D30E1B300478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C7F2D30E1B300478AF2 /* ShellTesting */; };
-		E7E33C822D30E1B800478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C812D30E1B800478AF2 /* ShellTesting */; };
-		E7E33C842D30E1BC00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C832D30E1BC00478AF2 /* ShellTesting */; };
-		E7E33C862D30E1C100478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C852D30E1C100478AF2 /* ShellTesting */; };
-		E7E33C882D30E1C600478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C872D30E1C600478AF2 /* ShellTesting */; };
-		E7E33C8A2D30E1CB00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C892D30E1CB00478AF2 /* ShellTesting */; };
-		E7E33C8C2D30E1D700478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C8B2D30E1D700478AF2 /* ShellTesting */; };
-		E7E33C8E2D30E1DC00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C8D2D30E1DC00478AF2 /* ShellTesting */; };
-		E7E33C902D30E1E000478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C8F2D30E1E000478AF2 /* ShellTesting */; };
-		E7E33C922D30E1E400478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C912D30E1E400478AF2 /* ShellTesting */; };
-		E7E33C942D30E1EA00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C932D30E1EA00478AF2 /* ShellTesting */; };
-		E7E33C962D30E1F000478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C952D30E1F000478AF2 /* ShellTesting */; };
-		E7E33C982D30E1F500478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C972D30E1F500478AF2 /* ShellTesting */; };
-		E7E33C9A2D30E1F900478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C992D30E1F900478AF2 /* ShellTesting */; };
-		E7E33C9C2D30E1FE00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C9B2D30E1FE00478AF2 /* ShellTesting */; };
-		E7E33C9E2D30E20200478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C9D2D30E20200478AF2 /* ShellTesting */; };
-		E7E33CA02D30E20800478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33C9F2D30E20800478AF2 /* ShellTesting */; };
-		E7E33CA22D30E20D00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CA12D30E20D00478AF2 /* ShellTesting */; };
-		E7E33CA42D30E21300478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CA32D30E21300478AF2 /* ShellTesting */; };
-		E7E33CA62D30E21900478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CA52D30E21900478AF2 /* ShellTesting */; };
-		E7E33CA82D30E21D00478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CA72D30E21D00478AF2 /* ShellTesting */; };
-		E7E33CAA2D30E22200478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CA92D30E22200478AF2 /* ShellTesting */; };
-		E7E33CAC2D30E22700478AF2 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7E33CAB2D30E22700478AF2 /* ShellTesting */; };
+		E7C2936F2D417CB2007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2936E2D417CB2007721DE /* ShellTesting */; };
+		E7C293712D417CBB007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293702D417CBB007721DE /* ShellTesting */; };
+		E7C293732D417CBF007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293722D417CBF007721DE /* ShellTesting */; };
+		E7C293752D417CC3007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293742D417CC3007721DE /* ShellTesting */; };
+		E7C293772D417CC7007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293762D417CC7007721DE /* ShellTesting */; };
+		E7C293792D417CCB007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293782D417CCB007721DE /* ShellTesting */; };
+		E7C2937B2D417CCF007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2937A2D417CCF007721DE /* ShellTesting */; };
+		E7C2937D2D417CD3007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2937C2D417CD3007721DE /* ShellTesting */; };
+		E7C2937F2D417CD8007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2937E2D417CD8007721DE /* ShellTesting */; };
+		E7C293812D417CDD007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293802D417CDD007721DE /* ShellTesting */; };
+		E7C293832D417CE1007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293822D417CE1007721DE /* ShellTesting */; };
+		E7C293852D417CE5007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293842D417CE5007721DE /* ShellTesting */; };
+		E7C293872D417CE9007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293862D417CE9007721DE /* ShellTesting */; };
+		E7C293892D417CED007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293882D417CED007721DE /* ShellTesting */; };
+		E7C2938B2D417CF5007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2938A2D417CF5007721DE /* ShellTesting */; };
+		E7C2938D2D417CF9007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2938C2D417CF9007721DE /* ShellTesting */; };
+		E7C2938F2D417CFF007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2938E2D417CFF007721DE /* ShellTesting */; };
+		E7C293912D417D03007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293902D417D03007721DE /* ShellTesting */; };
+		E7C293932D417D07007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293922D417D07007721DE /* ShellTesting */; };
+		E7C293952D417D0D007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293942D417D0D007721DE /* ShellTesting */; };
+		E7C293972D417D11007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293962D417D11007721DE /* ShellTesting */; };
+		E7C293992D417D17007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293982D417D17007721DE /* ShellTesting */; };
+		E7C2939B2D417D1B007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939A2D417D1B007721DE /* ShellTesting */; };
+		E7C2939D2D417D1F007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939C2D417D1F007721DE /* ShellTesting */; };
+		E7C2939F2D417D23007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939E2D417D23007721DE /* ShellTesting */; };
+		E7C293A12D418BFD007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293A02D418BFD007721DE /* ShellTesting */; };
 		E7E621422D1095DB00E26DA9 /* regress.01a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213D2D1095DB00E26DA9 /* regress.01a.in */; };
 		E7E621432D1095DB00E26DA9 /* regress.02a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E621402D1095DB00E26DA9 /* regress.02a.in */; };
 		E7E621442D1095DB00E26DA9 /* regress.01.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213C2D1095DB00E26DA9 /* regress.01.out */; };
@@ -2566,7 +2566,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CA82D30E21D00478AF2 /* ShellTesting in Frameworks */,
+				E7C2939B2D417D1B007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2574,7 +2574,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C7A2D30E1A400478AF2 /* ShellTesting in Frameworks */,
+				E7C2936F2D417CB2007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2582,7 +2582,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C802D30E1B300478AF2 /* ShellTesting in Frameworks */,
+				E7C293732D417CBF007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2590,7 +2590,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C842D30E1BC00478AF2 /* ShellTesting in Frameworks */,
+				E7C293772D417CC7007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2598,7 +2598,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C822D30E1B800478AF2 /* ShellTesting in Frameworks */,
+				E7C293752D417CC3007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2615,7 +2615,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C8A2D30E1CB00478AF2 /* ShellTesting in Frameworks */,
+				E7C2937D2D417CD3007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2630,7 +2630,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C7C2D30E1AB00478AF2 /* ShellTesting in Frameworks */,
+				E7C293A12D418BFD007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2638,7 +2638,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C882D30E1C600478AF2 /* ShellTesting in Frameworks */,
+				E7C2937B2D417CCF007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2646,7 +2646,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C7E2D30E1AF00478AF2 /* ShellTesting in Frameworks */,
+				E7C293712D417CBB007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2654,7 +2654,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C902D30E1E000478AF2 /* ShellTesting in Frameworks */,
+				E7C293832D417CE1007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2662,7 +2662,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C962D30E1F000478AF2 /* ShellTesting in Frameworks */,
+				E7C293892D417CED007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2670,7 +2670,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C982D30E1F500478AF2 /* ShellTesting in Frameworks */,
+				E7C2938B2D417CF5007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2678,7 +2678,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C9A2D30E1F900478AF2 /* ShellTesting in Frameworks */,
+				E7C2938D2D417CF9007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2686,7 +2686,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C9C2D30E1FE00478AF2 /* ShellTesting in Frameworks */,
+				E7C2938F2D417CFF007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2694,7 +2694,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C9E2D30E20200478AF2 /* ShellTesting in Frameworks */,
+				E7C293912D417D03007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2702,7 +2702,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CA02D30E20800478AF2 /* ShellTesting in Frameworks */,
+				E7C293932D417D07007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2710,7 +2710,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CA22D30E20D00478AF2 /* ShellTesting in Frameworks */,
+				E7C293952D417D0D007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2718,7 +2718,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CA42D30E21300478AF2 /* ShellTesting in Frameworks */,
+				E7C293972D417D11007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2726,7 +2726,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CA62D30E21900478AF2 /* ShellTesting in Frameworks */,
+				E7C293992D417D17007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2734,7 +2734,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CAC2D30E22700478AF2 /* ShellTesting in Frameworks */,
+				E7C2939F2D417D23007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2742,7 +2742,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C8C2D30E1D700478AF2 /* ShellTesting in Frameworks */,
+				E7C2937F2D417CD8007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2750,7 +2750,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C8E2D30E1DC00478AF2 /* ShellTesting in Frameworks */,
+				E7C293812D417CDD007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2758,7 +2758,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C922D30E1E400478AF2 /* ShellTesting in Frameworks */,
+				E7C293852D417CE5007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2766,7 +2766,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C942D30E1EA00478AF2 /* ShellTesting in Frameworks */,
+				E7C293872D417CE9007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2774,7 +2774,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33C862D30E1C100478AF2 /* ShellTesting in Frameworks */,
+				E7C293792D417CCB007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2782,7 +2782,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E7E33CAA2D30E22200478AF2 /* ShellTesting in Frameworks */,
+				E7C2939D2D417D1F007721DE /* ShellTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -5015,7 +5015,7 @@
 			);
 			name = unvisTest;
 			packageProductDependencies = (
-				E7E33CA72D30E21D00478AF2 /* ShellTesting */,
+				E7C2939A2D417D1B007721DE /* ShellTesting */,
 			);
 			productName = unvisTest;
 			productReference = E70C04742D20886700442F2D /* unvisTest.xctest */;
@@ -5036,7 +5036,7 @@
 			);
 			name = bintransTest;
 			packageProductDependencies = (
-				E7E33C792D30E1A400478AF2 /* ShellTesting */,
+				E7C2936E2D417CB2007721DE /* ShellTesting */,
 			);
 			productName = bintransTest;
 			productReference = E70C05BF2D246FA500442F2D /* bintransTest.xctest */;
@@ -5057,7 +5057,7 @@
 			);
 			name = colrmTest;
 			packageProductDependencies = (
-				E7E33C7F2D30E1B300478AF2 /* ShellTesting */,
+				E7C293722D417CBF007721DE /* ShellTesting */,
 			);
 			productName = colrmTest;
 			productReference = E73639892CFEBE8600D56A6B /* colrmTest.xctest */;
@@ -5078,7 +5078,7 @@
 			);
 			name = commTest;
 			packageProductDependencies = (
-				E7E33C832D30E1BC00478AF2 /* ShellTesting */,
+				E7C293762D417CC7007721DE /* ShellTesting */,
 			);
 			productName = commTest;
 			productReference = E73639A32CFF5F3000D56A6B /* commTest.xctest */;
@@ -5099,7 +5099,7 @@
 			);
 			name = columnTest;
 			packageProductDependencies = (
-				E7E33C812D30E1B800478AF2 /* ShellTesting */,
+				E7C293742D417CC3007721DE /* ShellTesting */,
 			);
 			productName = columnTest;
 			productReference = E73A010A2D2C883100BFE085 /* columnTest.xctest */;
@@ -5140,7 +5140,7 @@
 			);
 			name = edTest;
 			packageProductDependencies = (
-				E7E33C892D30E1CB00478AF2 /* ShellTesting */,
+				E7C2937C2D417CD3007721DE /* ShellTesting */,
 			);
 			productName = edTest;
 			productReference = E754C6342D0E4EFA00D5A3D7 /* edTest.xctest */;
@@ -5180,7 +5180,7 @@
 			);
 			name = catTest;
 			packageProductDependencies = (
-				E7E33C7B2D30E1AB00478AF2 /* ShellTesting */,
+				E7C293A02D418BFD007721DE /* ShellTesting */,
 			);
 			productName = catTest;
 			productReference = E76970E72CF55D0200F3903F /* catTest.xctest */;
@@ -5201,7 +5201,7 @@
 			);
 			name = cutTest;
 			packageProductDependencies = (
-				E7E33C872D30E1C600478AF2 /* ShellTesting */,
+				E7C2937A2D417CCF007721DE /* ShellTesting */,
 			);
 			productName = cutTest;
 			productReference = E769715D2CF62BF500F3903F /* cutTest.xctest */;
@@ -5222,7 +5222,7 @@
 			);
 			name = colTest;
 			packageProductDependencies = (
-				E7E33C7D2D30E1AF00478AF2 /* ShellTesting */,
+				E7C293702D417CBB007721DE /* ShellTesting */,
 			);
 			productName = colTest;
 			productReference = E76971682CF62C2700F3903F /* colTest.xctest */;
@@ -5243,7 +5243,7 @@
 			);
 			name = headTest;
 			packageProductDependencies = (
-				E7E33C8F2D30E1E000478AF2 /* ShellTesting */,
+				E7C293822D417CE1007721DE /* ShellTesting */,
 			);
 			productName = headTest;
 			productReference = E76971732CF62C4800F3903F /* headTest.xctest */;
@@ -5264,7 +5264,7 @@
 			);
 			name = md5Test;
 			packageProductDependencies = (
-				E7E33C952D30E1F000478AF2 /* ShellTesting */,
+				E7C293882D417CED007721DE /* ShellTesting */,
 			);
 			productName = md5Test;
 			productReference = E76971812CF62C5700F3903F /* md5Test.xctest */;
@@ -5285,7 +5285,7 @@
 			);
 			name = prTest;
 			packageProductDependencies = (
-				E7E33C972D30E1F500478AF2 /* ShellTesting */,
+				E7C2938A2D417CF5007721DE /* ShellTesting */,
 			);
 			productName = prTest;
 			productReference = E769718F2CF62C5F00F3903F /* prTest.xctest */;
@@ -5306,7 +5306,7 @@
 			);
 			name = rsTest;
 			packageProductDependencies = (
-				E7E33C992D30E1F900478AF2 /* ShellTesting */,
+				E7C2938C2D417CF9007721DE /* ShellTesting */,
 			);
 			productName = rsTest;
 			productReference = E769719D2CF62C7800F3903F /* rsTest.xctest */;
@@ -5327,7 +5327,7 @@
 			);
 			name = sedTest;
 			packageProductDependencies = (
-				E7E33C9B2D30E1FE00478AF2 /* ShellTesting */,
+				E7C2938E2D417CFF007721DE /* ShellTesting */,
 			);
 			productName = sedTest;
 			productReference = E76971AB2CF62C8200F3903F /* sedTest.xctest */;
@@ -5348,7 +5348,7 @@
 			);
 			name = sortTest;
 			packageProductDependencies = (
-				E7E33C9D2D30E20200478AF2 /* ShellTesting */,
+				E7C293902D417D03007721DE /* ShellTesting */,
 			);
 			productName = sortTest;
 			productReference = E76971B92CF62C8800F3903F /* sortTest.xctest */;
@@ -5369,7 +5369,7 @@
 			);
 			name = splitTest;
 			packageProductDependencies = (
-				E7E33C9F2D30E20800478AF2 /* ShellTesting */,
+				E7C293922D417D07007721DE /* ShellTesting */,
 			);
 			productName = splitTest;
 			productReference = E76971C72CF62C9000F3903F /* splitTest.xctest */;
@@ -5390,7 +5390,7 @@
 			);
 			name = tailTest;
 			packageProductDependencies = (
-				E7E33CA12D30E20D00478AF2 /* ShellTesting */,
+				E7C293942D417D0D007721DE /* ShellTesting */,
 			);
 			productName = tailTest;
 			productReference = E76971D52CF62C9600F3903F /* tailTest.xctest */;
@@ -5411,7 +5411,7 @@
 			);
 			name = trTest;
 			packageProductDependencies = (
-				E7E33CA32D30E21300478AF2 /* ShellTesting */,
+				E7C293962D417D11007721DE /* ShellTesting */,
 			);
 			productName = trTest;
 			productReference = E76971E32CF62C9D00F3903F /* trTest.xctest */;
@@ -5432,7 +5432,7 @@
 			);
 			name = uniqTest;
 			packageProductDependencies = (
-				E7E33CA52D30E21900478AF2 /* ShellTesting */,
+				E7C293982D417D17007721DE /* ShellTesting */,
 			);
 			productName = uniqTest;
 			productReference = E76971F12CF62CA200F3903F /* uniqTest.xctest */;
@@ -5453,7 +5453,7 @@
 			);
 			name = wcTest;
 			packageProductDependencies = (
-				E7E33CAB2D30E22700478AF2 /* ShellTesting */,
+				E7C2939E2D417D23007721DE /* ShellTesting */,
 			);
 			productName = wcTest;
 			productReference = E76971FF2CF62CAF00F3903F /* wcTest.xctest */;
@@ -5474,7 +5474,7 @@
 			);
 			name = foldTest;
 			packageProductDependencies = (
-				E7E33C8B2D30E1D700478AF2 /* ShellTesting */,
+				E7C2937E2D417CD8007721DE /* ShellTesting */,
 			);
 			productName = foldTest;
 			productReference = E769721D2CF6355500F3903F /* foldTest.xctest */;
@@ -5495,7 +5495,7 @@
 			);
 			name = grepTest;
 			packageProductDependencies = (
-				E7E33C8D2D30E1DC00478AF2 /* ShellTesting */,
+				E7C293802D417CDD007721DE /* ShellTesting */,
 			);
 			productName = grepTest;
 			productReference = E769722B2CF6355E00F3903F /* grepTest.xctest */;
@@ -5516,7 +5516,7 @@
 			);
 			name = joinTest;
 			packageProductDependencies = (
-				E7E33C912D30E1E400478AF2 /* ShellTesting */,
+				E7C293842D417CE5007721DE /* ShellTesting */,
 			);
 			productName = joinTest;
 			productReference = E76972392CF6358B00F3903F /* joinTest.xctest */;
@@ -5537,7 +5537,7 @@
 			);
 			name = jqTest;
 			packageProductDependencies = (
-				E7E33C932D30E1EA00478AF2 /* ShellTesting */,
+				E7C293862D417CE9007721DE /* ShellTesting */,
 			);
 			productName = jqTest;
 			productReference = E769724A2CF6368100F3903F /* jqTest.xctest */;
@@ -5558,7 +5558,7 @@
 			);
 			name = csplitTest;
 			packageProductDependencies = (
-				E7E33C852D30E1C100478AF2 /* ShellTesting */,
+				E7C293782D417CCB007721DE /* ShellTesting */,
 			);
 			productName = csplitTest;
 			productReference = E79737DB2D0E99010011846D /* csplitTest.xctest */;
@@ -5579,7 +5579,7 @@
 			);
 			name = visTest;
 			packageProductDependencies = (
-				E7E33CA92D30E22200478AF2 /* ShellTesting */,
+				E7C2939C2D417D1F007721DE /* ShellTesting */,
 			);
 			productName = visTest;
 			productReference = E7E6C4A32CFA6C3D000D0B42 /* visTest.xctest */;
@@ -6307,8 +6307,8 @@
 			mainGroup = FC7A7B2E149865C70086576A;
 			packageReferences = (
 				E7E6250B2D14995000E26DA9 /* XCRemoteSwiftPackageReference "libxo" */,
-				E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */,
 				E73DCDA22D3D97BA0053BB7C /* XCRemoteSwiftPackageReference "SWCompression" */,
+				E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */,
 			);
 			productRefGroup = FC7A7B3A149865C80086576A /* Products */;
 			projectDirPath = "";
@@ -11987,7 +11987,7 @@
 				minimumVersion = 4.8.6;
 			};
 		};
-		E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */ = {
+		E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/r0ml/ShellTesting";
 			requirement = {
@@ -12011,134 +12011,134 @@
 			package = E73DCDA22D3D97BA0053BB7C /* XCRemoteSwiftPackageReference "SWCompression" */;
 			productName = SWCompression;
 		};
-		E7E33C792D30E1A400478AF2 /* ShellTesting */ = {
+		E7C2936E2D417CB2007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C7B2D30E1AB00478AF2 /* ShellTesting */ = {
+		E7C293702D417CBB007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C7D2D30E1AF00478AF2 /* ShellTesting */ = {
+		E7C293722D417CBF007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C7F2D30E1B300478AF2 /* ShellTesting */ = {
+		E7C293742D417CC3007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C812D30E1B800478AF2 /* ShellTesting */ = {
+		E7C293762D417CC7007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C832D30E1BC00478AF2 /* ShellTesting */ = {
+		E7C293782D417CCB007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C852D30E1C100478AF2 /* ShellTesting */ = {
+		E7C2937A2D417CCF007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C872D30E1C600478AF2 /* ShellTesting */ = {
+		E7C2937C2D417CD3007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C892D30E1CB00478AF2 /* ShellTesting */ = {
+		E7C2937E2D417CD8007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C8B2D30E1D700478AF2 /* ShellTesting */ = {
+		E7C293802D417CDD007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C8D2D30E1DC00478AF2 /* ShellTesting */ = {
+		E7C293822D417CE1007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C8F2D30E1E000478AF2 /* ShellTesting */ = {
+		E7C293842D417CE5007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C912D30E1E400478AF2 /* ShellTesting */ = {
+		E7C293862D417CE9007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C932D30E1EA00478AF2 /* ShellTesting */ = {
+		E7C293882D417CED007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C952D30E1F000478AF2 /* ShellTesting */ = {
+		E7C2938A2D417CF5007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C972D30E1F500478AF2 /* ShellTesting */ = {
+		E7C2938C2D417CF9007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C992D30E1F900478AF2 /* ShellTesting */ = {
+		E7C2938E2D417CFF007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C9B2D30E1FE00478AF2 /* ShellTesting */ = {
+		E7C293902D417D03007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C9D2D30E20200478AF2 /* ShellTesting */ = {
+		E7C293922D417D07007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33C9F2D30E20800478AF2 /* ShellTesting */ = {
+		E7C293942D417D0D007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CA12D30E20D00478AF2 /* ShellTesting */ = {
+		E7C293962D417D11007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CA32D30E21300478AF2 /* ShellTesting */ = {
+		E7C293982D417D17007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CA52D30E21900478AF2 /* ShellTesting */ = {
+		E7C2939A2D417D1B007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CA72D30E21D00478AF2 /* ShellTesting */ = {
+		E7C2939C2D417D1F007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CA92D30E22200478AF2 /* ShellTesting */ = {
+		E7C2939E2D417D23007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
-		E7E33CAB2D30E22700478AF2 /* ShellTesting */ = {
+		E7C293A02D418BFD007721DE /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E7E33C782D30E19200478AF2 /* XCRemoteSwiftPackageReference "ShellTesting" */;
+			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
 		};
 		E7E625092D13755D00E26DA9 /* xo */ = {
