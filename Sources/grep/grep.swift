@@ -173,7 +173,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     var options = CommandOptions()
     
   
-    let flags = "A:aB:bC:cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ0123456789"
+    let flags =
+    "0123456789A:B:C:D:EFGHIJLMOSRUVXZabcd:e:f:hilm:nopqrsuvwxyz"
+//    "0123456789A:aB:bC:cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ"
     let long_options : [Shared.option] = [
       .init("binary-files",  .required_argument),
       .init("help",    .no_argument),
@@ -500,16 +502,16 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.nullflag = true
         case "include":
           options.finclude = true
-          add_fpattern(v, PAT.INCL)
+          add_fpattern(v, PAT.INCL, &options)
         case "exclude":
           options.fexclude = true
-          add_fpattern(v, PAT.EXCL);
+          add_fpattern(v, PAT.EXCL, &options);
         case "include-dir":
           options.dinclude = true
-          add_dpattern(v, PAT.INCL);
+          add_dpattern(v, PAT.INCL, &options);
         case "exclude-dir":
           options.dexclude = true
-          add_dpattern(v, PAT.EXCL);
+          add_dpattern(v, PAT.EXCL, &options);
         case "help", "?":
           fallthrough
         default:
@@ -635,49 +637,22 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     }
   }
 
-  /*
-   * Adds a file include/exclude pattern to the internal array.
-   */
-  func add_fpattern(_ pat : String , _ mode : PAT)
+  // Adds a file include/exclude pattern to the internal array.
+  func add_fpattern(_ pat : String , _ mode : PAT, _ options : inout CommandOptions)
   {
-/*
-    /* Increase size if necessary */
-    if (fpatterns == fpattern_sz) {
-      fpattern_sz *= 2;
-      fpattern = grep_realloc(fpattern, ++fpattern_sz *
-          sizeof(struct epat));
-    }
-    fpattern[fpatterns].pat = grep_strdup(pat);
-    fpattern[fpatterns].mode = mode;
-    ++fpatterns;
- */
+    options.fpatterns.append(epat(pat: pat, mode: mode) )
   }
 
-  /*
-   * Adds a directory include/exclude pattern to the internal array.
-   */
-  func add_dpattern(_ pat : String , _ mode : PAT)
+  // Adds a directory include/exclude pattern to the internal array.
+  func add_dpattern(_ pat : String , _ mode : PAT, _ options: inout CommandOptions)
   {
-
-    /* Increase size if necessary */
-    /*
-    if (dpatterns == dpattern_sz) {
-      dpattern_sz *= 2;
-      dpattern = grep_realloc(dpattern, ++dpattern_sz *
-          sizeof(struct epat));
-    }
-    dpattern[dpatterns].pat = grep_strdup(pat);
-    dpattern[dpatterns].mode = mode;
-    ++dpatterns;
-     */
+    options.dpatterns.append(epat(pat: pat, mode: mode) )
   }
 
-  /*
-   * Adds a searching pattern to the internal array.
-   */
+  // Adds a searching pattern to the internal array.
   func add_pattern(_ pat : String, _ options : inout CommandOptions ) {
 
-    /* Check if we can do a shortcut */
+    // Check if we can do a shortcut
     if pat.isEmpty {
       options.matchall = true;
       return;
@@ -689,17 +664,8 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   }
 
 
-  /*
-   * Reads searching patterns from a file and adds them with add_pattern().
-   */
+   // Reads searching patterns from a file and adds them with add_pattern().
   func read_patterns(_ fn : String, _ options : inout CommandOptions) async throws(CmdErr) {
-    /*
-    struct stat st;
-    FILE *f;
-    char *line;
-    size_t len;
-    ssize_t rlen;
-     */
     var f : FileHandle
     if fn == "-" {
       f = FileHandle.standardInput
@@ -731,14 +697,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     }
   }
 
-  
-  
-  
   func runCommand(_ optionsx: CommandOptions) throws(CmdErr) {
     // FIXME: create the queue when I know what it does
     //    initqueue();
-    var options = optionsx
-    var grepDoer = grepDoer(options)
+    let options = optionsx
+    let grepDoer = grepDoer(options)
     
     //  #ifdef __APPLE__
     if options.args.count == 0 && options.dirbehave != .RECURSE {
@@ -783,11 +746,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     
     // FIXME: implement file_err ?
     if matched {
-//      if file_err {
-//        exit(options.qflag ? 0 : 2)
-//      } else {
+      if grepDoer.file_err {
+        exit(options.qflag ? 0 : 2)
+      } else {
         exit(0)
-//      }
+      }
     } else {
       if grepDoer.file_err {
         exit(2)

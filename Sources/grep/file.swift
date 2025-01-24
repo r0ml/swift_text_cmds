@@ -101,7 +101,7 @@ class file {
   
   private func grep_refill() -> Bool {
     //   ssize_t nr;
-    var refillbehave = behave
+    let refillbehave = behave
     
     if (refillbehave == .MMAP) {
       return true
@@ -270,7 +270,13 @@ class file {
     let t = buffer.range(of: fileeold, in: bufrange) ?? bufrange
     let str = buffer.subdata(in: bufrange.startIndex..<t.upperBound)
     bufrange = t.upperBound ..< bufrange.upperBound
-    let ss = String(data: str, encoding: .utf8) ??
+    
+    if String(data: str, encoding: .utf8) == nil {
+      binary = true
+    }
+    
+    let ss =
+    binary ? String(data: str, encoding: .isoLatin1)! : String(data: str, encoding: .utf8) ??
     String(data: str, encoding: .isoLatin1)!
     pc.ln.dat = ss
     return ss
@@ -329,7 +335,7 @@ class file {
         }
         else {
           buffer = Data.init(bytesNoCopy: bbuffer!, count: fsiz, deallocator: .unmap)
-          let bufrange = 0..<fsiz
+          bufrange = 0..<fsiz
           madvise(bbuffer, fsiz, MADV_SEQUENTIAL)
         }
       }
@@ -412,8 +418,9 @@ class file {
     /* Check for binary stuff, if necessary */
 //    #ifdef __APPLE__
 
-    // FIXME: put me back
-    if binbehav != .TEXT && fileeol != "\0" &&
+    // FIXME: put me back ?
+    if // binbehav != .TEXT &&
+      fileeol != "\0" &&
         buffer.contains(0) {
 //        memchr(bufpos, "\0", bufrem) != NULL) {
       

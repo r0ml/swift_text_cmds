@@ -67,21 +67,21 @@ class grepDoer {
     var binary : Bool = false    /* Binary file? */
     var cntlines : Bool = false  /* Count lines? */
     
-    init(ln: str, f: file) {
+    init(f: file) {
       self.f = f
-      self.ln = ln
+      self.ln = str(file: f.name)
       self.lnstart = ln.dat.startIndex
     }
   };
 
   struct str {
-    var boff : Int
-    var off : Int
+    var boff : Int = 0
+    var off : Int = -1
 //    var len : Int
     // FIXME: maybe Data?
-    var dat : String
+    var dat : String = ""
     var file : String
-    var line_no : Int
+    var line_no : Int = 0
   }
 
 
@@ -396,8 +396,8 @@ class grepDoer {
             return (false)
           }
         }
-        f = file(fn, options.filebehave, options.fileeol, options.binbehave)
       }
+      f = file(fn, options.filebehave, options.fileeol, options.binbehave)
     }
     guard let f else {
       file_err = true;
@@ -407,8 +407,8 @@ class grepDoer {
       return (false)
     }
     
-    let ln = str(boff: 0, off: -1, dat: "", file: fn, line_no: 0)
-    myParsec = parsec(ln: ln, f: f)
+//    let ln = str(boff: 0, off: -1, dat: "", file: fn, line_no: 0)
+    myParsec = parsec(f: f)
     // Initialize here? !!
     myMprintc = mprintc()
     
@@ -713,12 +713,14 @@ class grepDoer {
 
       /* Loop to compare with all the patterns */
       for var pati in options.patterns {
+        
+        // FIXME: does this do anything?
         //          #ifdef __APPLE__
         /* rdar://problem/10462853: Treat binary files as binary. */
         if (myParsec.f.binary) {
           setlocale(LC_ALL, "C");
         }
-        
+       
         // #endif /* __APPLE__ */
         pmatch.rm_so = Int64(myParsec.ln.dat.distance(from: myParsec.ln.dat.startIndex, to: st))
         pmatch.rm_eo = Int64(myParsec.ln.dat.count)
@@ -729,9 +731,16 @@ class grepDoer {
 //        }
 //        else {
           // #endif
-        r = regexec(&pati.1, myParsec.ln.dat, 1, &pmatch,
-                      leflags)
-//        }
+        
+        if myParsec.f.binary {
+          r = myParsec.ln.dat.data(using: .isoLatin1)!.withUnsafeBytes { p in
+            regexec(&pati.1, p.baseAddress, 1, &pmatch, leflags)
+          }
+        } else {
+          r = regexec(&pati.1, myParsec.ln.dat, 1, &pmatch, leflags)
+        }
+
+                // FIXME: does this do anything?
         //          #ifdef __APPLE__
         /* rdar://problem/10462853: Treat binary files as binary. */
         if (myParsec.f.binary) {
