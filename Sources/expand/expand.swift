@@ -37,21 +37,33 @@
 import Foundation
 import Shared
 
-@main final class expand : ShellCommand {
+// MARK: - Constants and Global Variables
 
-  var usage : String = "Not yet implemented"
+let SILLY: Int = Int.max // Represents a value that should never be a genuine line length
+let MAX_TABSTOPS = 100    // Maximum number of tab stops
+
+@main final class expand : ShellCommand {
+  
+  var usage : String = "usage: expand [-t tablist] [file ...]"
   
   struct CommandOptions {
+    var nstops: Int = 0
+    var tabstops: [Int] = Array(repeating: 0, count: MAX_TABSTOPS)
+    
     var args : [String] = CommandLine.arguments
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
+    let supportedFlags = "0123456789t:"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    
+    while let (k, v) = try go.getopt() {
       switch k {
+        case "t":
+          try getstops(cp: v, &options)
+        case "?": fallthrough
         default: throw CmdErr(1)
       }
     }
@@ -60,6 +72,184 @@ import Shared
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+    setlocale(LC_CTYPE, "")
+    
+    var rval : Int32 = 0
+    
+    if !options.args.isEmpty {
+      for file in options.args {
+        do {
+          if file == "-" {
+            // Read from standard input
+            try processInput(fileHandle: FileHandle.standardInput, curfile: "stdin", options: options)
+          } else {
+            // Open the file
+            let url = URL(fileURLWithPath: file)
+            let fileHandle = try FileHandle(forReadingFrom: url)
+            try processInput(fileHandle: fileHandle, curfile: file, options: options)
+            try fileHandle.close()
+          }
+        } catch {
+          warn("Warning: \(file): \(error.localizedDescription)")
+          rval = 1
+        }
+      }
+    } else {
+      do {
+        // No files provided, read from standard input
+        try processInput(fileHandle: FileHandle.standardInput, curfile: "stdin", options: options)
+      } catch {
+        warn("Warning: stdin: \(error.localizedDescription)")
+        rval = 1
+      }
+    }
+    exit(rval)
   }
+  
+  
+  // MARK: - Helper Functions
+  
+  /// Parses the tab stops from a given string.
+  /// - Parameter cp: A string containing comma or space-separated tab stop numbers.
+  func getstops(cp: String, _ options : inout CommandOptions) throws(CmdErr) {
+    var currentIndex = cp.startIndex
+    options.nstops = 0
+    
+    while currentIndex < cp.endIndex {
+      // Skip any leading whitespace or commas
+      while currentIndex < cp.endIndex && (cp[currentIndex].isWhitespace || cp[currentIndex] == ",") {
+        currentIndex = cp.index(after: currentIndex)
+      }
+      
+      // Parse the number
+      var numberString = ""
+      while currentIndex < cp.endIndex && cp[currentIndex].isNumber {
+        numberString.append(cp[currentIndex])
+        currentIndex = cp.index(after: currentIndex)
+      }
+      
+      if numberString.isEmpty {
+        fputs("Error: bad tab stop spec\n", stderr)
+        exit(EXIT_FAILURE)
+      }
+      
+      if let number = Int(numberString), number > 0 {
+        if options.nstops > 0 && number <= options.tabstops[options.nstops - 1] {
+          fputs("Error: bad tab stop spec\n", stderr)
+          exit(EXIT_FAILURE)
+        }
+        if options.nstops >= MAX_TABSTOPS {
+          fputs("Error: too many tab stops\n", stderr)
+          exit(EXIT_FAILURE)
+        }
+        options.tabstops[options.nstops] = number
+        options.nstops += 1
+      } else {
+        throw CmdErr(Int(EXIT_FAILURE), "Error: bad tab stop spec")
+      }
+      
+      // After a number, expect a comma or whitespace or end of string
+      if currentIndex < cp.endIndex && cp[currentIndex] != "," && !cp[currentIndex].isWhitespace {
+        throw CmdErr(Int(EXIT_FAILURE), "Error: bad tab stop spec")
+      }
+    }
+  }
+  
+  /// Writes a message to stderr.
+  /// - Parameter message: The message to write.
+  func warn(_ message: String) {
+    FileHandle.standardError.write("\(message)\n".data(using: .utf8)!)
+  }
+  
+  /// Determines the display width of a Unicode character.
+  /// - Parameter wc: The Unicode scalar to measure.
+  /// - Returns: The width of the character in column positions.
+  func wcwidthSwift(_ wc: Unicode.Scalar) -> Int {
+    // Simplified version: Most characters occupy width 1.
+    // You can enhance this function to handle wide characters appropriately.
+    if wc.properties.isEmoji {
+      return 2
+    } else if wc.properties.generalCategory == .control {
+      return 0
+    } else {
+      return 1
+    }
+  }
+  
+  /// Processes input from a given file handle.
+  /// - Parameters:
+  ///   - fileHandle: The file handle to read from.
+  ///   - curfile: The current file name being processed.
+  func processInput(fileHandle: FileHandle, curfile: String, options: CommandOptions) throws {
+    var column = 0
+    
+    // Read data in chunks]
+    while let data = try fileHandle.read(upToCount: 4096) {
+      
+      // Convert data to a string using the current locale's encoding
+      guard let string = String(data: data, encoding: .utf8) else {
+        warn("Warning: Could not decode data from \(curfile)")
+        exit(EXIT_FAILURE)
+      }
+      
+      // Iterate over each Unicode scalar in the string
+      for scalar in string.unicodeScalars {
+        let wc = scalar
+        
+        switch wc {
+          case "\t":
+            if options.nstops == 0 {
+              // Default tab stops every 8 columns
+              let nextTab = ((column / 8) + 1) * 8
+              let spacesToAdd = nextTab - column
+              for _ in 0..<spacesToAdd {
+                print(" ", terminator: "")
+                column += 1
+              }
+            } else if options.nstops == 1 {
+              // Single tab stop
+              let tabStop = options.tabstops[0]
+              while ((column - 1) % tabStop) != (tabStop - 1) {
+                print(" ", terminator: "")
+                column += 1
+              }
+            } else {
+              // Multiple tab stops
+              var n: Int = 0
+              while n < options.nstops && options.tabstops[n] <= column {
+                n += 1
+              }
+              if n == options.nstops {
+                print(" ", terminator: "")
+                column += 1
+              } else {
+                let tabStop = options.tabstops[n]
+                while column < tabStop {
+                  print(" ", terminator: "")
+                  column += 1
+                }
+              }
+            }
+            
+          case "\u{07}":
+            if column > 0 {
+              column -= 1
+            }
+            print("\u{07}", terminator: "")
+            
+          case "\n":
+            print("\n", terminator: "")
+            column = 0
+            
+          default:
+            print(wc, terminator: "")
+            let width = wcwidthSwift(wc)
+            if width > 0 {
+              column += width
+            }
+        }
+      }
+    }
+  }
+  
 }

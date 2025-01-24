@@ -151,28 +151,542 @@ import Foundation
 import Shared
 
 @main final class fmt : ShellCommand {
-
-  var usage : String = "Not yet implemented"
+  
+  var usage : String =  """
+    usage:   fmt [-cmps] [-d chars] [-l num] [-t num]
+                 [-w width | -width | goal [maximum]] [file ...]
+    Options: -c     center each line instead of formatting
+             -d <chars> double-space after <chars> at line end
+             -l <n> turn each <n> spaces at start of line into a tab
+             -m     try to make sure mail header lines stay separate
+             -n     format lines beginning with a dot
+             -p     allow indented paragraphs
+             -s     coalesce whitespace inside lines
+             -t <n> have tabs every <n> columns
+             -w <n> set maximum width to <n>
+             goal   set target width to goal
+    """
+  
   
   struct CommandOptions {
+    var centerP = false                      // Try to center lines?
+    var goalLength: Int = 0                  // Target length for output lines
+    var maxLength: Int = 0                   // Maximum length for output lines
+    var coalesceSpaces = false               // Coalesce multiple whitespace into a single space
+    var allowIndentedParagraphs = false      // Allow first line to have different indentation
+    var tabWidth: Int = 8                     // Number of spaces per tab stop
+    var outputTabWidth: Int = 8               // Number of spaces per tab when squashing leading spaces
+    var sentenceEnders: [Character] = [".", "?", "!"] // Characters after which to double-space
+    var grokMailHeaders = false              // Treat embedded mail headers specially
+    var formatTroff = false                   // Format troff?
+    
     var args : [String] = CommandLine.arguments
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
+    let supportedFlags = "0123456789cd:l:mnpst:w:"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    thewhile: while let (k, v) = try go.getopt() {
       switch k {
+        case "-":
+          break thewhile
+        case "c":
+          options.centerP = true
+          options.formatTroff = true
+        case "d":
+          if !v.isEmpty {
+            options.sentenceEnders = Array(v)
+          } else {
+            throw CmdErr(Int(EX_USAGE), "Error: -d requires an argument")
+          }
+        case "l":
+          if !v.isEmpty {
+            options.outputTabWidth = getNonNegative(v, errMess: "output tab width must be non-negative", fussyP: true)
+          } else {
+            throw CmdErr(Int(EX_USAGE), "Error: -l requires an argument")
+          }
+        case "m":
+          options.grokMailHeaders = true
+        case "n":
+          options.formatTroff = true
+        case "p":
+          options.allowIndentedParagraphs = true
+        case "s":
+          options.coalesceSpaces = true
+        case "t":
+          if !v.isEmpty {
+            options.tabWidth = getPositive(v, errMess: "tab width must be positive", fussyP: true)
+          } else {
+            throw CmdErr(Int(EX_USAGE), "Error: -t requires an argument")
+          }
+        case "w":
+          if !v.isEmpty {
+            options.goalLength = getPositive(v, errMess: "width must be positive", fussyP: true)
+            options.maxLength = options.goalLength
+          } else {
+            throw CmdErr(Int(EX_USAGE), "Error: -w requires an argument")
+          }
+        case "0"..."9":
+          if options.goalLength == 0 {
+            let numberString = String(k)
+            options.goalLength = getPositive(numberString, errMess: "width must be nonzero", fussyP: true)
+            options.maxLength = options.goalLength
+          }
+        case "h": fallthrough
         default: throw CmdErr(1)
       }
     }
+    
     options.args = go.remaining
+    
+    
+    // Handle positional arguments: [goal [maximum]]
+    if let firstArg = options.args.first, options.goalLength == 0 {
+      options.goalLength = getPositive(firstArg, errMess: "goal length must be positive", fussyP: false)
+      options.args.removeFirst()
+      if let secondArg = options.args.first {
+        options.maxLength = getPositive(secondArg, errMess: "max length must be positive", fussyP: false)
+        options.args.removeFirst()
+        if options.maxLength < options.goalLength {
+          throw CmdErr(Int(EX_USAGE), "Error: max length must be >= goal length")
+        }
+      }
+    }
+    
+    if options.goalLength == 0 {
+      options.goalLength = 65
+    }
+    if options.maxLength == 0 {
+      options.maxLength = options.goalLength + 10
+    }
+    if options.maxLength >= Int.max {
+      throw CmdErr(Int(EX_USAGE), "Error: max length too large")
+    }
+    
+    
+    
     return options
   }
   
+  
+  var nErrors = 0                           // Number of failed files. Return on exit.
+  var outputBuffer = ""                     // Output line buffer
+  var outputInParagraph = false             // Indicates if any part of the current paragraph has been written out
+  var x: Int = 0                            // Horizontal position in output line
+  var x0: Int = 0                           // Horizontal position ignoring leading whitespace
+  var pendingSpaces: Int = 0                // Spaces to add before the next word
+
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+    
+    setlocale(LC_CTYPE, "")
+    var goalLengthSet = false
+    
+    // Initialize the output buffer
+    outputBuffer = ""
+    
+    // Process files or standard input
+    if !options.args.isEmpty {
+      for file in options.args {
+        process_named_file(file, options)
+      }
+    } else {
+      // Read from standard input
+      if let standardInput = InputStream(fileAtPath: "/dev/stdin") {
+        processStream(stream: standardInput, name: "standard input", options)
+      } else {
+        throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
+      }
+    }
+    
+    // Exit with appropriate status
+    exit(nErrors > 0 ? EX_NOINPUT : 0)
   }
+  
+  
+  
+  // MARK: - Constants
+  
+  let SILLY: Int = Int.max // Represents a value that should never be a genuine line length
+  
+  // MARK: - Helper Functions
+  
+  /// Converts a string to an array of wide characters.
+  /// Swift's `Character` type handles Unicode scalars, which suffices for most cases.
+  func stringToWideCharacters(_ string: String) -> [Character] {
+    return Array(string)
+  }
+  
+  /// Safely converts a string to a positive integer. Exits with an error message if conversion fails.
+  func getPositive(_ s: String, errMess: String, fussyP: Bool) -> Int {
+    if let result = Int(s), result > 0 {
+      return result
+    } else {
+      if fussyP {
+        fputs("Error: \(errMess)\n", stderr)
+        exit(EX_USAGE)
+      } else {
+        return 0
+      }
+    }
+  }
+  
+  /// Safely converts a string to a non-negative integer. Exits with an error message if conversion fails.
+  func getNonNegative(_ s: String, errMess: String, fussyP: Bool) -> Int {
+    if let result = Int(s), result >= 0 {
+      return result
+    } else {
+      if fussyP {
+        fputs("Error: \(errMess)\n", stderr)
+        exit(EX_USAGE)
+      } else {
+        return 0
+      }
+    }
+  }
+  
+  /// Checks if a line might be a mail header based on specific criteria.
+  func mightBeHeader(_ line: String) -> Bool {
+    guard let first = line.first, first.isUppercase else {
+      return false
+    }
+    let pattern = "^[A-Z][-A-Za-z0-9]*:\\s"
+    if let _ = line.range(of: pattern, options: .regularExpression) {
+      return true
+    }
+    return false
+  }
+  
+  /// Calculates the length of indentation (number of leading spaces) in a line.
+  func indentLength(_ line: String) -> Int {
+    return line.prefix { $0 == " " }.count
+  }
+  
+  // MARK: - Paragraph Handling
+  
+  /// Begins a new paragraph with specified indentation.
+  func newParagraph(oldIndent: Int, indent: Int, _ options : CommandOptions) {
+    if !outputBuffer.isEmpty {
+      if oldIndent > 0 {
+        outputIndent(nSpaces: oldIndent, options)
+      }
+      print(outputBuffer)
+    }
+    x = indent
+    x0 = 0
+    outputBuffer = ""
+    pendingSpaces = 0
+    outputInParagraph = false
+  }
+  
+  /// Outputs spaces or tabs for leading indentation.
+  func outputIndent(nSpaces: Int, _ options : CommandOptions) {
+    var spaces = nSpaces
+    if options.outputTabWidth > 0 {
+      while spaces >= options.outputTabWidth {
+        print("\t", terminator: "")
+        spaces -= options.outputTabWidth
+      }
+    }
+    for _ in 0..<spaces {
+      print(" ", terminator: "")
+    }
+  }
+  
+  /// Outputs a single word or adds it to the buffer.
+  func outputWord(indent0: Int, indent1: Int, word: String, spaces: Int, _ options : CommandOptions) {
+    let indent = outputInParagraph ? indent1 : indent0
+    let width = word.reduce(0) { $0 + wcwidthSwift($1) }
+    let newX = x + pendingSpaces + width
+    
+    // Determine the number of spaces to add
+    var actualSpaces = spaces
+    if options.coalesceSpaces || spaces == 0 {
+      if let lastChar = word.last, options.sentenceEnders.contains(lastChar) {
+        actualSpaces = 2
+      } else {
+        actualSpaces = 1
+      }
+    }
+    
+    if newX <= options.goalLength {
+      // Add spaces and word to the buffer
+      outputBuffer += String(repeating: " ", count: pendingSpaces)
+      outputBuffer += word
+      x += pendingSpaces + width
+      pendingSpaces = actualSpaces
+    } else {
+      // Output the current buffer
+      if indent > 0 {
+        outputIndent(nSpaces: indent, options)
+      }
+      print(outputBuffer, terminator: "")
+      if x0 == 0 || (newX <= options.maxLength && (newX - options.goalLength) <= (options.goalLength - x)) {
+        // Add spaces before the word
+        print(String(repeating: " ", count: pendingSpaces), terminator: "")
+        // Add the word to the buffer
+        outputBuffer = word
+        x = indent1 + width
+        pendingSpaces = actualSpaces
+      } else {
+        // If the word itself exceeds maxLength, print it on a new line
+        if indent + width > options.maxLength {
+          print()
+          if indent > 0 {
+            outputIndent(nSpaces: indent, options)
+          }
+          print(word, terminator: "")
+          x = indent1
+          pendingSpaces = 0
+          outputBuffer = ""
+        } else {
+          // Start a new buffer with the word
+          outputBuffer = word
+          x = indent1 + width
+          pendingSpaces = actualSpaces
+        }
+      }
+      print()
+      outputInParagraph = true
+    }
+  }
+  
+  /// Centers each line in the stream.
+  func centerStream(stream: InputStream, name: String, _ options : CommandOptions) {
+    let buffer = StreamReader(stream: stream)
+    while let line = buffer.nextLine() {
+      let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+      let lineWidth = trimmedLine.reduce(0) { $0 + wcwidthSwift($1) }
+      var padding = ""
+      var currentWidth = 0
+      while currentWidth < options.goalLength - lineWidth {
+        padding += " "
+        currentWidth += 1
+      }
+      print("\(padding)\(trimmedLine)")
+    }
+    if buffer.hasError {
+      fputs("Error reading \(name)\n", stderr)
+      nErrors += 1
+    }
+  }
+  
+  /// Reads a single line from the stream, handling tabs, control characters, and backspaces.
+  func getLine(stream: InputStream, _ options : CommandOptions) -> String? {
+    var line = ""
+    var spacesPending = 0
+    var troff = false
+    var col = 0
+    
+    let buffer = StreamReader(stream: stream)
+    if let rawLine = buffer.nextLine() {
+      var characters = Array(rawLine)
+      if !characters.isEmpty && characters[0] == "." && !options.formatTroff {
+        troff = true
+      }
+      for ch in characters {
+        if ch == " " {
+          spacesPending += 1
+        } else if ch == "\t" {
+          spacesPending += options.tabWidth - (col + spacesPending) % options.tabWidth
+        } else if ch == "\u{07}" {
+          if !line.isEmpty {
+            line.removeLast()
+            if col > 0 { col -= 1 }
+          }
+        } else if troff || 0 != iswprint(Int32(ch.unicodeScalars.first!.value) ) {
+          line += String(repeating: " ", count: spacesPending)
+          spacesPending = 0
+          line.append(ch)
+          col += wcwidthSwift(ch)
+        }
+      }
+      return line
+    }
+    return nil
+  }
+  
+  /// Safely reallocates memory. In Swift, memory management is handled automatically,
+  /// so this function is not needed. Included for completeness.
+  func xrealloc(_ ptr: Any?, _ nbytes: Int) -> Any? {
+    // Swift handles memory automatically. Placeholder function.
+    return nil
+  }
+  
+  /// Calculates the display width of a character.
+  /// Swift does not have a direct equivalent to C's `wcwidth`, so we provide a basic implementation.
+  func wcwidthSwift(_ ch: Character) -> Int {
+    // Simplified: Most characters occupy width 1. You can enhance this with more accurate width calculations if needed.
+    let scalars = String(ch).unicodeScalars
+    for scalar in scalars {
+      if scalar.properties.isEmoji {
+        return 2
+      }
+    }
+    return 1
+  }
+  
+  // MARK: - Stream Reader
+  
+  /// A simple line reader for InputStream.
+  class StreamReader {
+    let stream: InputStream
+    let bufferSize: Int
+    var buffer: [UInt8]
+    var atEOF: Bool = false
+    
+    init(stream: InputStream, bufferSize: Int = 4096) {
+      self.stream = stream
+      self.bufferSize = bufferSize
+      self.buffer = [UInt8](repeating: 0, count: bufferSize)
+      stream.open()
+    }
+    
+    deinit {
+      stream.close()
+    }
+    
+    var hasError: Bool = false
+    
+    func nextLine() -> String? {
+      var line = ""
+      while true {
+        let bytesRead = stream.read(&buffer, maxLength: bufferSize)
+        if bytesRead < 0 {
+          hasError = true
+          return nil
+        }
+        if bytesRead == 0 {
+          return line.isEmpty ? nil : line
+        }
+        if let range = buffer[0..<bytesRead].firstIndex(of: UInt8(ascii: "\n")) {
+          if range > 0 {
+            if let str = String(bytes: Array(buffer[0..<range]), encoding: .utf8) {
+              line += str
+            }
+          }
+          // Move the stream's read position past the newline
+          let remaining = bytesRead - (range + 1)
+          if remaining > 0 {
+            let newBuffer = Array(buffer[(range + 1)..<bytesRead])
+            buffer = newBuffer + Array(repeating: 0, count: bufferSize - remaining)
+          }
+          return line
+        } else {
+          if let str = String(bytes: Array(buffer[0..<bytesRead]), encoding: .utf8) {
+            line += str
+          }
+        }
+      }
+    }
+  }
+  
+  // MARK: - Processing Functions
+  
+  /// Processes a single named file.
+  func processNamedFile(_ name: String, _ options : CommandOptions) {
+    guard let fileStream = InputStream(fileAtPath: name) else {
+      fputs("Warning: Could not open file \(name)\n", stderr)
+      nErrors += 1
+      return
+    }
+    processStream(stream: fileStream, name: name, options)
+    if fileStream.streamStatus == .error {
+      fputs("Warning: Error reading file \(name)\n", stderr)
+      nErrors += 1
+    }
+  }
+  
+  /// Processes a stream. This is where the real work happens, except centering is handled separately.
+  func processStream(stream: InputStream, name: String, _ options: CommandOptions) {
+    var lastIndent = SILLY
+    var paraLineNumber = 0
+    var firstIndent = SILLY
+    var prevHeaderType: HdrType = .paragraphStart
+    
+    if options.centerP {
+      centerStream(stream: stream, name: name, options)
+      return
+    }
+    
+    let buffer = StreamReader(stream: stream)
+    while let line = buffer.nextLine() {
+      let np = indentLength(line)
+      var headerType: HdrType = .nonHeader
+      
+      if options.grokMailHeaders && prevHeaderType != .nonHeader {
+        if np == 0 && mightBeHeader(line) {
+          headerType = .header
+        } else if np > 0 && prevHeaderType.rawValue > HdrType.nonHeader.rawValue {
+          headerType = .continuation
+        }
+      }
+      
+      // Determine if a new paragraph should be started
+      let isBlank = line.trimmingCharacters(in: .whitespaces).isEmpty
+      let isTroff = line.starts(with: ".") && !options.formatTroff
+      let shouldStartNewParagraph = isBlank ||
+      isTroff ||
+      headerType == .header ||
+      (headerType == .nonHeader && prevHeaderType.rawValue > HdrType.nonHeader.rawValue) ||
+      (np != lastIndent && headerType != .continuation && (!options.allowIndentedParagraphs || paraLineNumber != 1))
+      
+      if shouldStartNewParagraph {
+        newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: np, options)
+        paraLineNumber = 0
+        firstIndent = np
+        lastIndent = np
+        if headerType == .header {
+          lastIndent = 2 // For continuation lines
+        }
+        if isBlank || isTroff {
+          if isBlank {
+            print()
+          } else {
+            print(line)
+          }
+          prevHeaderType = .paragraphStart
+          continue
+        }
+      } else {
+        if np != lastIndent && headerType != .continuation {
+          lastIndent = np
+        }
+      }
+      prevHeaderType = headerType
+      
+      // Process the words in the line
+      let words = line.split(separator: " ", omittingEmptySubsequences: false)
+      for (index, wordSlice) in words.enumerated() {
+        let word = String(wordSlice)
+        let spaces = (index < words.count - 1) ? 1 : 0
+        outputWord(indent0: firstIndent, indent1: lastIndent, word: word, spaces: spaces, options)
+      }
+      paraLineNumber += 1
+    }
+    
+    // Finish the last paragraph
+    newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
+    if buffer.hasError {
+      fputs("Warning: Error reading \(name)\n", stderr)
+      nErrors += 1
+    }
+  }
+  
+  /// Processes a named file by opening it and passing its stream to `processStream`.
+  func process_named_file(_ name: String, _ options : CommandOptions) {
+    processNamedFile(name, options)
+  }
+  
+  // MARK: - Enumeration
+  
+  /// Types of mail header continuation lines.
+  enum HdrType: Int {
+    case paragraphStart = -1
+    case nonHeader = 0
+    case header = 1
+    case continuation = 2
+  }
+  
 }

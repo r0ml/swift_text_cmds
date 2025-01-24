@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "385D844B-3CB7-4826-974A-624551725C29",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73F986B2D44341900E89FF3",
+        "name" : "fmtTest"
+      }
+    }
+  ],
+  "version" : 1
+}
