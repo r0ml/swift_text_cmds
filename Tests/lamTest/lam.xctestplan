@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "C56D96B1-2A3E-469C-89E3-EA6A00DF3DB5",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:swift_text_cmds.xcodeproj",
+        "identifier" : "E73F989F2D44995500E89FF3",
+        "name" : "lamTest"
+      }
+    }
+  ],
+  "version" : 1
+}

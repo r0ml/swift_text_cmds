@@ -3,10 +3,10 @@
 
 import ShellTesting
 
-@Suite(.serialized) class expandTest  : ShellTest {
+@Suite(.serialized) class lamTest  : ShellTest {
 
-  let cmd = "expand"
-  let suiteBundle = "text_cmds_expandTest"
+  let cmd = "lam"
+  let suiteBundle = "text_cmds_lamTest"
 
   @Test func basic() async throws {
     let input = "The merit of all things\nlies\nin their difficulty\n"
