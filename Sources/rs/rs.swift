@@ -70,7 +70,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "Ttc::s:CS:w:Kk::mg::G::eEjnyHhzpo:b:B:"
+    let supportedFlags = "Ttc::s::C::S::w:K::k::mg::G::eEjnyHhzpo:b:B:"
     let go = BSDGetopt(supportedFlags)
     
     if CommandLine.arguments.count == 1 {
@@ -86,9 +86,8 @@ let LINE_MAX: Int = 1024 // Adjust as needed
           options.flags.insert(.TRANSPOSE)
         case "c":
           options.flags.insert(.ONEISEPONLY)
-          options.isep = v.isEmpty ? "\t" : v.first!
+          fallthrough
         case "s":
-          options.flags.insert(.ONEISEPONLY)
           options.isep = v.isEmpty ? "\t" : v.first!
         case "C":
           options.flags.insert(.ONEOSEPONLY)
@@ -267,7 +266,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     if options.flags.contains(.ONEPERLINE) {
       options.icols = 1
       } else {
-        let m = firstLine.split(separator: options.isep, omittingEmptySubsequences: true )          // Count columns on first line
+        let m = firstLine.split(separator: options.isep, omittingEmptySubsequences: !options.flags.contains(.ONEISEPONLY) )          // Count columns on first line
         options.icols = m.count
       }
       
@@ -281,7 +280,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
               continue
           }
           
-        let components = curline.split(separator: options.isep, omittingEmptySubsequences: false).map { String($0) }
+      let components = curline.split(separator: options.isep, omittingEmptySubsequences: !options.flags.contains(.ONEISEPONLY)).map { String($0) }
           for component in components {
             if component == String(options.isep) {
               options.elem.append(options.blank)

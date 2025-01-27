@@ -152,7 +152,7 @@ try fileContents(void)
 			if (*p == isep && multisep)
 				continue;
 			icols++;
-			while (*p && *p != isep)
+			while (*p && *p !=  )
 				p++;
 		}
 	ep = getptrs(elem);
