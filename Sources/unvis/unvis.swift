@@ -33,7 +33,7 @@
 
 
 import Foundation
-import Shared
+import CMigration
 
 // copied from vis.swift
 struct visOptions : OptionSet {

@@ -90,11 +90,19 @@ o=
     rm(t)
   }
   
-  @Test("exit code when incorrect usage") func ex_usage() async throws {
+  @Test("exit code when incorrect usage", arguments: Array(1...3)) func ex_usage(_ n : Int) async throws {
+    
     let t = try tmpfile("inFile", sampinp+"\n")
-    try await run(status: 1, error: /requires an argument/, args: "base64", "-b")
-    try await run(status: 1, error: /requires an argument/, args: "base64", "-w")
-    try await run(status: 1, error: /invalid argument/, args: "base64", t)
+    switch n {
+      case 1:
+        try await run(status: 1, error: /requires an argument/, args: "base64", "-b")
+      case 2:
+        try await run(status: 1, error: /requires an argument/, args: "base64", "-w")
+      case 3:
+        try await run(status: 1, error: /invalid argument/, args: "base64", t)
+      default:
+        break
+    }
     rm(t)
   }
   

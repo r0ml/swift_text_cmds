@@ -34,7 +34,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 struct Decoder {
   var inFile : String = "stdin"

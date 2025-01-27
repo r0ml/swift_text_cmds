@@ -3,7 +3,7 @@
 // from a file with the following notice:
 
 import Foundation
-import Shared
+import CMigration
 
 @main final class jq : ShellCommand {
 

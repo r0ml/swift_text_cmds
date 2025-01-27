@@ -32,15 +32,17 @@ let package = Package(
   dependencies: [
     .package(name: "libxo", path: "../libxo"),
 //    .package(name: "ShellTesting", path: "../ShellTesting"),
-    .package(url: "https://github.com/r0ml/ShellTesting.git" , branch: "main")
+    .package(url: "https://github.com/r0ml/ShellTesting.git" , branch: "main"),
+// .package(name: "CMigration", path: "../CMigration"),
+    .package(url: "https://github.com/r0ml/CMigration.git", branch: "main"),
   ],
-  targets: [
+  targets:
     // Targets are the basic building blocks of a package, defining a module or a test suite.
     // Targets can depend on other targets in this package and products from dependencies.
-    .target(name: "Shared",
-            path: "Shared")
-    ]
-  + generateTargets()
+//  [
+//    .target(name: "Shared", path: "Shared")
+//    ]
+  generateTargets()
   + generateTestTargets()
 )
 
@@ -52,12 +54,12 @@ func generateTargets() -> [Target] {
       if i == "wc" {
         let t = Target.executableTarget(
           name: i,
-          dependencies: [.target(name: "Shared"),
+          dependencies: [.product(name: "CMigration", package: "CMigration"),
                          .product(name: "xo", package: "libxo"),
           ] )
         res.append(t)
       } else {
-        let t = Target.executableTarget(name: i, dependencies: [.target(name: "Shared")] )
+        let t = Target.executableTarget(name: i, dependencies: [.product(name: "CMigration", package: "CMigration" t)] )
         res.append(t)
       }
     }

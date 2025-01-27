@@ -38,7 +38,7 @@
 
 
 import Foundation
-import Shared
+import CMigration
 
 // Constants
 let DEFLINEWIDTH = 80

@@ -31,7 +31,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 extension FileHandle {
   func readLine() -> String? {
@@ -92,9 +92,9 @@ extension FileHandle {
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var opts = CommandOptions()
     
-    let oo : [Shared.option] = [
-      Shared.option.init("bytes", .required_argument),
-      Shared.option.init("lines", .required_argument),
+    let oo : [CMigration.option] = [
+      CMigration.option.init("bytes", .required_argument),
+      CMigration.option.init("lines", .required_argument),
     ]
     
     let go = BSDGetopt_long("c:n:", oo)

@@ -35,7 +35,7 @@
 
 
 import Foundation
-import Shared
+import CMigration
 
 // MARK: - Constants and Global Variables
 

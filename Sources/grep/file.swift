@@ -32,7 +32,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 import zlib
 // import Compression
 

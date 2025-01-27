@@ -31,7 +31,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 import System
 
 let MB_CUR_MAX = 4

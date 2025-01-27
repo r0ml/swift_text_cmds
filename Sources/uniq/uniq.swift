@@ -37,13 +37,13 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 @main final class uniq : ShellCommand {
 
   var usage : String = "Not yet implemented"
   
-  var long_opts : [Shared.option] = [
+  var long_opts : [CMigration.option] = [
     option("all-repeated", .optional_argument),
     option("count",  .no_argument),
     option("repeated", .no_argument),

@@ -35,7 +35,7 @@
 
 
 import Foundation
-import Shared
+import CMigration
 import Darwin
 
 let IESC : Character = "\u{1b}"

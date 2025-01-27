@@ -30,7 +30,7 @@
    SUCH DAMAGE.
  */
 import Foundation
-import Shared
+import CMigration
 import SwiftUI
 
 @main final class banner : ShellCommand {

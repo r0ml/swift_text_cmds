@@ -34,7 +34,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 extension bintrans {
   func main_base64_encode(_ inp : String?, _ outp : String?,  _ w : String?, _ options : inout CommandOptions) throws(CmdErr) {

@@ -30,7 +30,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 extension bintrans {
   

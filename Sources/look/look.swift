@@ -37,7 +37,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 @main final class look : ShellCommand {
 

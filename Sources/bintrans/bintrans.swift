@@ -30,7 +30,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 @main final class bintrans : ShellCommand {
 
@@ -101,15 +101,15 @@ usage: [bintrans] <uuencode | uudecode> ...
     
   func parseOptions_base64_encode_or_decode(_ options : inout CommandOptions, _ bintflag : Bool) throws(CmdErr) {
 
-    let oo : [Shared.option] = [
-      Shared.option.init("decode", .no_argument),
-      Shared.option.init("break", .required_argument),
-      Shared.option.init("breaks", .required_argument),
-      Shared.option.init("input", .required_argument),
-      Shared.option.init("output", .required_argument),
-      Shared.option.init("wrap", .required_argument),
-      Shared.option.init("help", .no_argument),
-      Shared.option.init("version", .no_argument),
+    let oo : [CMigration.option] = [
+      .init("decode", .no_argument),
+      .init("break", .required_argument),
+      .init("breaks", .required_argument),
+      .init("input", .required_argument),
+      .init("output", .required_argument),
+      .init("wrap", .required_argument),
+      .init("help", .no_argument),
+      .init("version", .no_argument),
     ]
     
     let go = BSDGetopt_long("b:Ddhi:o:w:", oo, Array(CommandLine.arguments.dropFirst(bintflag ? 2 : 1)))

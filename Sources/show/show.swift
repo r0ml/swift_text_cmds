@@ -7,7 +7,7 @@
 // from a file with the following notice:
 
 import Foundation
-import Shared
+import CMigration
 import Compression
 
 final class show : ShellCommand {

@@ -33,7 +33,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 import libxo
 import Darwin
 import Synchronization

@@ -2,7 +2,7 @@
 // from a file containing the following notice:
 
 import Foundation
-import Shared
+import CMigration
 
 /*-
   SPDX-License-Identifier: BSD-2-Clause-FreeBSD

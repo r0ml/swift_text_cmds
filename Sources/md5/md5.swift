@@ -16,7 +16,7 @@
  */
 
 import Foundation
-import Shared
+import CMigration
 
 @main final class md5 : ShellCommand {
 
