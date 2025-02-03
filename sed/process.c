@@ -729,7 +729,7 @@ regexec_e(regex_t *preg, const char *string, int eflags, int nomatch,
 /*
  * regsub - perform substitutions after a regexp match
  * Based on a routine by Henry Spencer
- */
+ */Fs
 static void
 regsub(SPACE *sp, char *string, char *src)
 {
