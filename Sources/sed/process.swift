@@ -137,6 +137,7 @@ extension sed {
     
     // The loop: for each line from the input, store it in PS
     var st = sedState.inpst
+    st.nflag = options.nflag
     st.script = options.files.map { s_compunit.CU_FILE($0) }
     
     while let ppp = try await mf_fgets(&st, options) {

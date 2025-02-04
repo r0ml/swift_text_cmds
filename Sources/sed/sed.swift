@@ -216,18 +216,24 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   struct inp_state {
 //    var f: AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator? = nil
 //    var s: String? = nil
-    var inp : inpSource = .ST_EOF
+    var inp : inpSource = inpSource()
     var linenum : Int = 0
     var fname : String = "?"
     var script: [s_compunit] = []
     var nflag : Bool = false
   }
   
-  enum inpSource {
+  enum inpSourceType {
     case ST_EOF
-    case ST_FILE(AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator, FileHandle?)
-    case ST_STRING(Substring)
-//    case ST_UNKNOWN
+    case ST_FILE
+    case ST_STRING
+  }
+  
+  class inpSource {
+    var type = inpSourceType.ST_EOF
+    var fh : FileHandle?
+    var ai  : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
+    var string : Substring!
   }
 
 //  var current_script : FileHandle = FileHandle.standardInput
@@ -243,7 +249,9 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       case .CU_FILE(let fnam):
       // open file
       if fnam == "-"  || fnam == "/dev/stdin" {
-        st.inp = .ST_FILE(FileHandle.standardInput.bytes.lines.makeAsyncIterator(), nil)
+        st.inp.type = .ST_FILE
+        st.inp.fh = FileHandle.standardInput
+        st.inp.ai = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
         st.fname = "stdin"
         
         if options.inplace != nil {
@@ -255,7 +263,10 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       } else {
         do {
           let fh = try FileHandle(forReadingFrom: URL(filePath: fnam))
-          st.inp =  .ST_FILE( fh.bytes.lines.makeAsyncIterator(), fh)
+//          st.inp =  .ST_FILE( fh.bytes.lines.makeAsyncIterator(), fh)
+          st.inp.type = .ST_FILE
+          st.inp.fh = fh
+          st.inp.ai = fh.bytes.lines.makeAsyncIterator( )
         } catch {
           throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
         }
@@ -268,7 +279,9 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       } else {
         st.fname = "\"\(sref)\""
       }
-        st.inp = .ST_STRING(Substring(sref))
+//        st.inp = .ST_STRING(Substring(sref))
+        st.inp.type = .ST_STRING
+        st.inp.string = Substring(sref)
       // goto again
       return true
     }
@@ -284,14 +297,14 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   func cu_fgets(_ st : inout inp_state, _ options : CommandOptions) async throws(CmdErr) -> String? {
     
   again: while true {
-    switch st.inp {
+    switch st.inp.type {
           case .ST_EOF:
           if try next_file(&st, options) { continue again }
             else { return nil}
 
-          case .ST_FILE(var fp, let fh):
+      case .ST_FILE:
             do {
-              if let got = try await fp.next() {
+              if let got = try await st.inp.ai.next() {
                 st.linenum += 1
                 if st.linenum == 1 && got.hasPrefix("#n") {
                   st.nflag = true
@@ -299,28 +312,28 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
                 return got
               }
               
-              try fh?.close()
-              st.inp = .ST_EOF
+              try st.inp.fh?.close()
+              st.inp.type = .ST_EOF
               continue again
             } catch {
               throw CmdErr(1, "reading \(st.fname): \(error.localizedDescription)")
             }
-          case .ST_STRING(var p):
+      case .ST_STRING:
             if st.linenum == 0,
-                p.hasPrefix("#n") {
+               st.inp.string.hasPrefix("#n") {
               st.nflag = true
             }
-            if p.isEmpty {
-              st.inp = .ST_EOF
+        if st.inp.string.isEmpty {
+              st.inp.type = .ST_EOF
               continue again
             }
-            let sPtr = p.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+        let sPtr = st.inp.string.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
             if sPtr.count == 2 {
-              p = sPtr[1]
+              st.inp.string = sPtr[1]
               return String(sPtr[0])
             } else if sPtr.count == 1 {
-              p = ""
-              st.inp = .ST_EOF
+              st.inp.string = ""
+              st.inp.type = .ST_EOF
               return String(sPtr[0])
             } else {
               fatalError("not possible")
@@ -374,24 +387,23 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     while true {
       
       // open file if needed
-      switch st.inp {
+      switch st.inp.type {
         case .ST_EOF:
           if try next_file(&st, options) { continue }
           else { return nil }
           
-        case .ST_FILE(var fp, let fh):
+        case .ST_FILE: // (var fp, let fh):
           do {
             
-            if let got = try await fp.next() {
+            if let got = try await st.inp.ai.next() {
               st.linenum += 1
               if st.linenum == 1 && got.hasPrefix("#n") {
                 st.nflag = true
               }
               return got
             }
-            NSLog("EOF")
-            try fh?.close()
-            st.inp = .ST_EOF
+            try st.inp.fh?.close()
+            st.inp.type = .ST_EOF
             continue
           }
           // FIXME: handle the 'inplace' option
