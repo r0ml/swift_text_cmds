@@ -150,15 +150,17 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand(_ optionsx: CommandOptions) async throws(CmdErr) {
 
     var cs : CompileState
     
+    // FIXME: this is because somewhere in the bowels, nflag might be set.
+    var options = optionsx
     // compile() the sed commands
     do {
-      cs = try await compile(options)
+      cs = try await compile(&options)
       // Process
-      try await process(cs.prog, cs, options)
+      try await process(cs.prog, cs, &options)
       
     } catch {
       throw CmdErr(1, error.localizedDescription)
@@ -210,9 +212,6 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   }
   */
   
-  // We simulate static with a global or static var. For demonstration, we store in a global.
-  // But let's do it with a single static instance:
-  // local static states in C code
   struct inp_state {
 //    var f: AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator? = nil
 //    var s: String? = nil
@@ -222,19 +221,14 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     var script: [s_compunit] = []
     var nflag : Bool = false
   }
-  
-  enum inpSourceType {
-    case ST_EOF
-    case ST_FILE
-    case ST_STRING
-  }
-  
+
   class inpSource {
     var type = inpSourceType.ST_EOF
     var fh : FileHandle?
     var ai  : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
     var string : Substring!
   }
+
 
 //  var current_script : FileHandle = FileHandle.standardInput
   
@@ -294,7 +288,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
    * cu_fgets: like fgets, but reads from the chain of compilation units, ignoring empty strings/files.
    * Fills `buf` with up to `n` characters. If `more` is non-nil, it’s set to 1 if more data might be available, else 0.
    */
-  func cu_fgets(_ st : inout inp_state, _ options : CommandOptions) async throws(CmdErr) -> String? {
+  func cu_fgets(_ st : inout inp_state, _ options : inout CommandOptions) async throws(CmdErr) -> String? {
     
   again: while true {
     switch st.inp.type {
@@ -308,6 +302,8 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
                 st.linenum += 1
                 if st.linenum == 1 && got.hasPrefix("#n") {
                   st.nflag = true
+                  options.nflag = true
+                  continue
                 }
                 return got
               }
@@ -322,6 +318,8 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
             if st.linenum == 0,
                st.inp.string.hasPrefix("#n") {
               st.nflag = true
+              options.nflag = true
+              continue
             }
         if st.inp.string.isEmpty {
               st.inp.type = .ST_EOF
@@ -343,6 +341,35 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     }
     
   
+  
+  
+  func mf_next_file(_ st : inout mf_inp_state, _ options : CommandOptions ) throws(CmdErr) -> Bool {
+    // script is a global list
+    if st.filelist.isEmpty {
+      return false
+    }
+//    st.linenum = 0
+    
+    let fnam = st.filelist.removeFirst()
+      // open file
+      if fnam == "-"  || fnam == "/dev/stdin" {
+        st.inp = PeekableAsyncIterator(FileHandle.standardInput, "stdin")
+        
+        if options.inplace != nil {
+          throw CmdErr(1, "-I or -i may not be used with stdin")
+        }
+
+      } else {
+        do {
+          st.inp = try PeekableAsyncIterator(fnam)
+        } catch {
+          throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
+        }
+      }
+      return true
+  }
+  
+  
   /**
    * mf_fgets: read next line from the list of files, storing in SPACE sp.
    * If spflag == REPLACE, we replace contents; if APPEND, we append.
@@ -356,63 +383,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   // FIXME: mf_fgets is different than cu_fgets --
   // including resetstate
   
-  func mf_fgets(_ st : inout inp_state, _ options : CommandOptions) async throws -> String? {
-    // The code in C references static vars, handles inFile, oldfname, etc.
-    // We'll replicate in simpler Swift form. A direct translation is tricky
-    // because it uses POSIX I/O with FILE*, rename, unlink, etc. We'll do our best.
-    
-    // We skip some checks for S_ISREG, lstat, etc. for brevity. In real code, you'd
-    // call the Swift equivalents via `FileManager`.
-    // We'll replicate the logic that tries to read one line from the current inFile,
-    // or else open the next file, possibly do backups, etc.
-    
-    // 1) If inFile is nil, open the first file or handle stdin
-    // 2) If we read a character => we have data
-    // 3) Else, move on to next file, etc.
-    
-    // Because a fully literal translation requires bridging all these calls
-    // (fopen, rename, link, unlink, fchmod, fchown), below is a partial replication:
-    
-    // We'll do a partial approach: attempt to read a line from the current file handle
-    // using a Swift helper, etc.
-    
-    /*
-     var inFile = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
-     while let l = try await inFile.next() {
-     
-     }
-     */
-    
-    // Pseudocode:
-    while true {
-      
-      // open file if needed
-      switch st.inp.type {
-        case .ST_EOF:
-          if try next_file(&st, options) { continue }
-          else { return nil }
-          
-        case .ST_FILE: // (var fp, let fh):
-          do {
-            
-            if let got = try await st.inp.ai.next() {
-              st.linenum += 1
-              if st.linenum == 1 && got.hasPrefix("#n") {
-                st.nflag = true
-              }
-              return got
-            }
-            try st.inp.fh?.close()
-            st.inp.type = .ST_EOF
-            continue
-          }
-          // FIXME: handle the 'inplace' option
-          
-        case .ST_STRING:
-          fatalError("not possible")
-      }
-    }
-  }
+
       
     // If we got here, we have an open inFile with data available. We'll read one line
 /*
@@ -472,4 +443,129 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   }
   */
   
+}
+
+
+enum inpSourceType {
+  case ST_EOF
+  case ST_FILE
+  case ST_STRING
+}
+
+struct mf_inp_state {
+  var inp : PeekableAsyncIterator?
+  // here rather than in PeekableAsyncIterator because it continues across files
+  var linenum : Int = 0
+  var nflag : Bool = false
+  var filelist : [String]
+  
+  mutating func mf_fgets() async throws -> String? {
+    // The code in C references static vars, handles inFile, oldfname, etc.
+    // We'll replicate in simpler Swift form. A direct translation is tricky
+    // because it uses POSIX I/O with FILE*, rename, unlink, etc. We'll do our best.
+    
+    // We skip some checks for S_ISREG, lstat, etc. for brevity. In real code, you'd
+    // call the Swift equivalents via `FileManager`.
+    // We'll replicate the logic that tries to read one line from the current inFile,
+    // or else open the next file, possibly do backups, etc.
+    
+    // 1) If inFile is nil, open the first file or handle stdin
+    // 2) If we read a character => we have data
+    // 3) Else, move on to next file, etc.
+    
+    // Because a fully literal translation requires bridging all these calls
+    // (fopen, rename, link, unlink, fchmod, fchown), below is a partial replication:
+    
+    // We'll do a partial approach: attempt to read a line from the current file handle
+    // using a Swift helper, etc.
+    
+    /*
+     var inFile = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
+     while let l = try await inFile.next() {
+     
+     }
+     */
+    
+    while true {
+      if let sti = self.inp {
+        do {
+          
+          if let got = try await sti.next() {
+            self.linenum += 1
+            if self.linenum == 1 && got.hasPrefix("#n") {
+              self.nflag = true
+              //              options.nflag = true
+            }
+            return got
+          }
+          try sti.fh?.close()
+          self.inp = nil
+          continue
+        }
+        // FIXME: handle the 'inplace' option
+      } else {
+        if self.filelist.isEmpty { return nil }
+        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
+      }
+    }
+    
+    
+  }
+  
+  mutating func peek() async throws -> String? {
+    while true {
+      if let sti = self.inp {
+        do {
+          
+          if let got = try await sti.peek() {
+            return got
+          }
+          try sti.fh?.close()
+          self.inp = nil
+          continue
+        }
+        // FIXME: handle the 'inplace' option
+      } else {
+        if self.filelist.isEmpty { return nil }
+        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
+      }
+    }
+  }
+}
+
+class PeekableAsyncIterator {
+  var iter : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator
+  var peeked : String? = nil
+  var fh : FileHandle?
+  var fname : String = "?"
+  
+  init(_ f : String) throws {
+    self.fname = f
+    let fh = try FileHandle(forReadingFrom: URL(fileURLWithPath: f))
+    self.fh = fh
+    self.iter = fh.bytes.lines.makeAsyncIterator()
+  }
+  
+  init(_ fh : FileHandle, _ f : String) {
+    self.fh = fh
+    self.iter = fh.bytes.lines.makeAsyncIterator()
+    self.fname = f
+  }
+  
+  func next() async throws -> String? {
+    if peeked != nil {
+      let t = peeked
+      peeked = nil
+      return t
+    }
+    
+    return try await iter.next()
+  }
+  
+  func peek() async throws -> String? {
+    if peeked == nil {
+      peeked = try await iter.next()
+    }
+    return peeked
+  }
 }

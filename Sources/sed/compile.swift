@@ -143,13 +143,14 @@ extension sed {
   
   // We replicate the function signatures. (In Swift, we simply define them.)
   
-  func compile(_ options : CommandOptions) async throws -> CompileState {
+  // 'FIXME: all of these inout CommandOptions are because deep in the bowels, the nflag could be set 
+  func compile(_ options : inout CommandOptions) async throws -> CompileState {
     // *compile_stream(&prog) = NULL in C: We'll replicate that logic in Swift
     var cs = CompileState()
     cs.st.script = options.script
     
     var pp = Substring("")
-    cs.prog = try await compile_stream(&pp, &cs, options)
+    cs.prog = try await compile_stream(&pp, &cs, &options)
     
     let appendnum = try fixuplabel(cmd: &cs.prog, cs)
     return cs
@@ -164,19 +165,19 @@ extension sed {
    * compile_stream: parse the script lines into the array of s_command.
    */
   // FIXME: can throw CompileError or CmdErr
-  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : CommandOptions) async throws -> [s_command] {
+  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions) async throws -> [s_command] {
     
     var prog: [s_command] = []
     
     while true {
       if p.isEmpty {
-        if let pp = try await cu_fgets(&cs.st, options) { // nextline
+        if let pp = try await cu_fgets(&cs.st, &options) { // nextline
           p = Substring(pp)
         } else {
           return prog
         }
       }
-      let c = try await compile_line(&p, options, &cs)
+      let c = try await compile_line(&p, &options, &cs)
       prog.append(contentsOf: c)
     }
     
@@ -188,7 +189,7 @@ extension sed {
       return prog
   }
   
-  func compile_line(_ p : inout Substring, _ options : CommandOptions, _ cs : inout CompileState) async throws -> [s_command] {
+  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState) async throws -> [s_command] {
     
     var pro = [s_command]()
     
@@ -198,7 +199,8 @@ extension sed {
       var cmd = s_command()
       
       if p.hasPrefix("#") || p.isEmpty  {
-        break
+        p = ""
+        continue
       } else if p.hasPrefix(";") {
         p.removeFirst()
         pro.append(cmd)
@@ -220,14 +222,14 @@ extension sed {
         }
       }
       
-      try await compile_postaddr(&p, options, &cmd, &cs)
+      try await compile_postaddr(&p, &options, &cmd, &cs)
       pro.append(cmd)
       
     }
     return pro
   }
   
-  func compile_postaddr(_ p : inout Substring, _ options : CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState) async throws {
+  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState) async throws {
     // ======================================
     // Parsing the command(s) for the address
     // ======================================
@@ -257,7 +259,7 @@ extension sed {
           // '{'
           EATSPACE(&p)
           
-          let c = try await compile_stream(&p, &cs, options)
+          let c = try await compile_stream(&p, &cs, &options)
           cmd.u = .c(c)
           
           if !p.isEmpty {
@@ -301,7 +303,7 @@ extension sed {
           if !p.isEmpty {
             throw CompileErr("extra characters after \\ at the end of \(cmd.code) command")
           }
-          cmd.t = try await compile_text(&cs.st, options)
+          cmd.t = try await compile_text(&cs.st, &options)
           
         case .COMMENT:
           // '\0' or '#' => do nothing
@@ -378,7 +380,7 @@ extension sed {
           // compile_subst => produce the s->new
  */
           //FIXME: this should be used
-          let ns = try await compile_subst(&p, &mysubst, &cs.st, options )
+          let ns = try await compile_subst(&p, &mysubst, &cs.st, &options )
           // compile_flags => sets s->n, s->p, s->wfile, etc.
           try compile_flags(&p, &mysubst, options.aflag)
           
@@ -684,7 +686,7 @@ extension sed {
    * point to a saved copy of it.  Nsub is the number of parenthesized regular
    * expressions.
    */
-  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout inp_state, _ options : CommandOptions) async throws -> String? {
+  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout inp_state, _ options : inout CommandOptions) async throws -> String? {
     guard !p.isEmpty else { return nil }
 
     s.maxbref = 0
@@ -760,7 +762,7 @@ extension sed {
         }
       }
 
-      pp = try await cu_fgets(&st, options)
+      pp = try await cu_fgets(&st, &options)
       if let pp {
         p = Substring(pp)
       }
@@ -912,10 +914,10 @@ extension sed {
   /**
    * compile_text: gather lines until an unescaped newline.
    */
-  func compile_text(_ st : inout inp_state, _ options: CommandOptions) async throws -> String {
+  func compile_text(_ st : inout inp_state, _ options: inout CommandOptions) async throws -> String {
     
     var text = ""
-    while let nextline = try await cu_fgets(&st, options) {
+    while let nextline = try await cu_fgets(&st, &options) {
       text.append(nextline)
       if nextline.last == "\\" {
         text.append("\n")
@@ -935,7 +937,8 @@ extension sed {
     guard !p.isEmpty else {
       fatalError("expected context address")
     }
-    switch p.removeFirst() {
+    let char = p.removeFirst()
+    switch char {
       case "\\", "/":
         // regex
         guard let reString = try compile_delimited(&p, false) else {
@@ -964,7 +967,7 @@ extension sed {
       case "0"..."9":
         let k = p.prefix(while: { $0.isNumber } )
         p.removeFirst(k.count)
-        return .AT_LINE(UInt(k)!)
+        return .AT_LINE(UInt( String(char) + k)!)
       default:
         throw CompileErr("expected context address")
     }
@@ -988,9 +991,8 @@ extension sed {
    */
   func fixuplabel(cmd: inout [s_command], _ cs : CompileState) throws(CompileErr) -> Int {
     var appendnum = 0
-//    var cmd = cp
-    while cmd.count > 1 {
-      let c = cmd.removeFirst()
+    for i in 0..<cmd.count {
+      let c = cmd[i]
       switch c.code {
         case "a", "r":
           appendnum += 1

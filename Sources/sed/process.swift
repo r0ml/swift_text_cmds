@@ -106,7 +106,7 @@ extension sed {
 
     var maxnsub : Int = 0
 
-    var inpst = inp_state()
+    var inpst : mf_inp_state!
     
     // The C code references a few other global variables or functions not shown here:
     var outfile: FileHandle = FileHandle.standardOutput
@@ -128,7 +128,7 @@ extension sed {
   /**
    * The main function from process.c
    */
-  func process(_ prog : [s_command], _ cs : CompileState, _ options : CommandOptions) async throws {
+  func process(_ prog : [s_command], _ cs : CompileState, _ options : inout CommandOptions) async throws {
     
     // FIXME: create sedstate from compilestate?
     var sedState = SedState()
@@ -136,18 +136,18 @@ extension sed {
     sedState.match = Array(repeating: regmatch_t(), count: cs.maxnsub+1)
     
     // The loop: for each line from the input, store it in PS
-    var st = sedState.inpst
-    st.nflag = options.nflag
-    st.script = options.files.map { s_compunit.CU_FILE($0) }
+//    var st = sedState.inpst
+    sedState.inpst = mf_inp_state(filelist: options.files )
+    sedState.inpst.nflag = options.nflag
     
-    while let ppp = try await mf_fgets(&st, options) {
+    while let ppp = try await sedState.inpst.mf_fgets() {
       var PS = SPACE(ppp)
       // FIXME: could be false if last line doesn't end in \n
       PS.append_newline = true
       
-      try await process_line(&PS, prog, options, &sedState)
+      try await process_line(&PS, prog, &options, &sedState)
     newLineLabel:
-      if !st.nflag && !PS.deleted {
+      if !sedState.inpst.nflag && !PS.deleted {
         try OUT(PS, sedState)
       }
       try flush_appends(&sedState)
@@ -159,17 +159,17 @@ extension sed {
     
   } // while lines in input
 
-  func process_line(_ PS : inout SPACE, _ prog : [s_command], _ options : CommandOptions, _ sedState : inout SedState) async throws {
+  func process_line(_ PS : inout SPACE, _ prog : [s_command], _ options : inout CommandOptions, _ sedState : inout SedState) async throws {
     
     var HS = SPACE("")
     
     for cp in prog {
-      guard try applies(PS, cp, &sedState) else { continue }
+      guard try await applies(PS, cp, &sedState) else { continue }
       
       switch cp.code {
         case "{":
           if case .c(let cc) = cp.u {
-            try await process_line(&PS, cc, options, &sedState)
+            try await process_line(&PS, cc, &options, &sedState)
             return
           }
           fatalError("not possible")
@@ -178,7 +178,7 @@ extension sed {
           
         case "b":
           if case .c(let cc) = cp.u {
-            try await process_line(&PS, cc, options, &sedState)
+            try await process_line(&PS, cc, &options, &sedState)
             return
           }
           fatalError("not possible")
@@ -210,7 +210,7 @@ extension sed {
           if pp.count == 2 {
             PS.space = String(pp[1])
             // goto top
-            try await process_line(&PS, prog, options, &sedState)
+            try await process_line(&PS, prog, &options, &sedState)
             return
           } else {
             PS.deleted = true
@@ -242,7 +242,7 @@ extension sed {
             try OUT(PS, sedState)
           }
           try flush_appends(&sedState)
-          if let nl = try await mf_fgets(&sedState.inpst, options) {
+          if let nl = try await sedState.inpst.mf_fgets() {
             PS.space = nl
             PS.deleted = false
             // FIXME: could be false if last line does not end in newline
@@ -256,7 +256,7 @@ extension sed {
         case "N":
           try flush_appends(&sedState)
           PS.space.append("\n")
-          if let nl = try await mf_fgets(&sedState.inpst, options) {
+          if let nl = try await sedState.inpst.mf_fgets() {
             PS.space.append(nl)
             // FIXME: could be false if last line does not end in newline
             PS.append_newline = true
@@ -361,7 +361,7 @@ extension sed {
    * The function that determines if a command applies to the current line.
    * Matches addresses, etc. Return 1 if it applies, 0 if not.
    */
-  func applies(_ PS : SPACE, _ cp: s_command, _ sedState : inout SedState) throws -> Bool {
+  func applies(_ PS : SPACE, _ cp: s_command, _ sedState : inout SedState) async throws -> Bool {
     sedState.lastaddr = false
     if cp.a1 == nil && cp.a2 == nil {
       return !cp.nonsel // if ! flag then invert
@@ -377,7 +377,7 @@ extension sed {
               return cp.nonsel
             }
           default:
-            if try MATCH(PS, a2, &sedState) {
+            if try await MATCH(PS, a2, &sedState) {
               cp.startline = 0
               sedState.lastaddr = true
               return !cp.nonsel
@@ -388,7 +388,7 @@ extension sed {
               return !cp.nonsel
             }
         }
-      } else if let a1 = cp.a1, try MATCH(PS, a1, &sedState) {
+      } else if let a1 = cp.a1, try await MATCH(PS, a1, &sedState) {
         // If the second address is a number <= the line number first selected
         // or if relative line is zero => single line selected
         if let a2 = cp.a2, case let .AT_LINE(u_int) = a2, sedState.inpst.linenum >= u_int {
@@ -403,7 +403,7 @@ extension sed {
         return cp.nonsel
       }
     } else if let a1 = cp.a1 {
-      if try MATCH(PS, a1, &sedState) {
+      if try await MATCH(PS, a1, &sedState) {
         return !cp.nonsel
       } else {
         return cp.nonsel
@@ -416,7 +416,7 @@ extension sed {
    * Helper function that checks if an address matches the current line.
    * In the original code: #define MATCH(a) ...
    */
-  func MATCH(_ PS : SPACE, _ a: s_addr, _ sedState : inout SedState) throws -> Bool {
+  func MATCH(_ PS : SPACE, _ a: s_addr, _ sedState : inout SedState) async throws -> Bool {
     switch a {
       case .AT_RE(let regexp):
         return try regexec_e(regexp, PS.space, 0, true, 0, Int64(PS.space.count), &sedState)
@@ -427,7 +427,8 @@ extension sed {
         // but the code does check for relative line within applies().
         return false
       case .AT_LAST:
-      fatalError("unimplemented")
+        return try await nil == sedState.inpst.peek()
+
     }
   }
   
