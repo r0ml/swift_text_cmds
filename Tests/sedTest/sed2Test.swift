@@ -110,7 +110,7 @@ import ShellTesting
     try await run(withStdin: "a\tb c\rx\n", output: "abcx\n", args: "s/[ \\r\\t]//g")
   }
   
-  @Test("Verify poper conversion of hex escapes")
+  @Test("Verify proper conversion of hex escapes")
   func hex_subst() async throws {
     let a = try tmpfile("a", "test='foo'")
     let b = try tmpfile("b", "test='27foo'")
@@ -177,7 +177,7 @@ import ShellTesting
     (["-HE", "-e"], "o_0\n", true), // order of -E and -H does not matter
     ])
   func enhanced(_ opts : [String], _ res : String, _ f: Bool) async throws {
-    let k = f ?"s/\\<(\\d)/o/" :  "s/\\<\\d/o/"
+    let k = f ? "s/\\<(\\d)/o/" : "s/\\<\\d/o/"
     try await run(withStdin: "0_0\n", output: res, args: opts + [k] )
   }
 }

@@ -47,59 +47,11 @@ extension sed {
     case AT_RELLINE
   }
   
-  /* Global variables used throughout process.c */
-  
-//  var HS = SPACE("")
- // var PS = SPACE("")
-//  var SS = SPACE("")
-//  var YS = SPACE("")
-
-//  var pd : Bool {
-//    get { PS.deleted }
-//    set { PS.deleted = newValue }
-//  }
-  
-//  var ps : String {
-//    get { PS.space }
-//    set { PS.space = newValue }
-//  }
-  
-//  var psl : Int {
-//    get { PS.space.count }
-//  }
-  
-  //  #define psanl PS.append_newline
-
-//  var hs : String {
-//    get { HS.space }
-//    set { HS.space = newValue }
-//   }
-
-  //  #define hsl HS.len
-  
-  /*
-   * Additional global variables from the original code.
-   */
-  
-  /* We’ll store a global reference to default regex, plus the array of regmatch_t.
-   * In the original code, maxnsub is size_t; match is an array of regmatch_t.
-   * We replicate the spirit using Swift’s NSRegularExpression matches.
-   */
-//  var defpreg: NSRegularExpression? = nil
-  
-  // We'll store matches in a global array or just keep them ephemeral in regexec_e
-  // but to keep the translation near-literal, we define a placeholder structure:
-/*  struct regmatch_t {
-    var rm_so: Int = -1
-    var rm_eo: Int = -1
-  }
-  */
-  
   struct SedState {
     var defpreg : regex_t? = nil
     var sdone : Bool = false
     
-    var appends: [s_appends] = []
+    var appends: [any Appendable] = []
 
     var lastaddr = false
     var match: [regmatch_t] = []
@@ -111,6 +63,7 @@ extension sed {
     // The C code references a few other global variables or functions not shown here:
     var outfile: FileHandle = FileHandle.standardOutput
     var outfname: String = "(standard output)"   // used in error messages
+    var HS = SPACE("")
   }
     
 
@@ -128,7 +81,7 @@ extension sed {
   /**
    * The main function from process.c
    */
-  func process(_ prog : [s_command], _ cs : CompileState, _ options : inout CommandOptions) async throws {
+  func process(_ prog : inout [s_command], _ cs : CompileState, _ options : inout CommandOptions) async throws {
     
     // FIXME: create sedstate from compilestate?
     var sedState = SedState()
@@ -141,11 +94,8 @@ extension sed {
     sedState.inpst.nflag = options.nflag
     
     while let ppp = try await sedState.inpst.mf_fgets() {
-      var PS = SPACE(ppp)
-      // FIXME: could be false if last line doesn't end in \n
-      PS.append_newline = true
-      
-      try await process_line(&PS, prog, &options, &sedState)
+      var PS = SPACE( ppp )
+      try await process_line(&PS, &prog, &options, &sedState)
     newLineLabel:
       if !sedState.inpst.nflag && !PS.deleted {
         try OUT(PS, sedState)
@@ -159,36 +109,41 @@ extension sed {
     
   } // while lines in input
 
-  func process_line(_ PS : inout SPACE, _ prog : [s_command], _ options : inout CommandOptions, _ sedState : inout SedState) async throws {
+  func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ options : inout CommandOptions, _ sedState : inout SedState) async throws {
     
-    var HS = SPACE("")
-    
-    for cp in prog {
-      guard try await applies(PS, cp, &sedState) else { continue }
+    for (i, cp) in prog.enumerated() {
+      let (sl, b) = try await applies(PS, cp, &sedState)
+      prog[i].startline = sl
+      if (!b) { continue }
       
       switch cp.code {
         case "{":
-          if case .c(let cc) = cp.u {
-            try await process_line(&PS, cc, &options, &sedState)
+          if case .c(var cc) = cp.u {
+            try await process_line(&PS, &cc, &options, &sedState)
+            prog[i].u = .c(cc)
             return
           }
           fatalError("not possible")
         case "a":
-          sedState.appends.append(s_appends(type: .AP_STRING, s: cp.t))
+          sedState.appends.append(cp.t) // s_appends(type: .AP_STRING, s: cp.t))
           
         case "b":
-          if case .c(let cc) = cp.u {
-            try await process_line(&PS, cc, &options, &sedState)
+          if case .c(var cc) = cp.u {
+            try await process_line(&PS, &cc, &options, &sedState)
+            prog[i].u = .c(cc)
             return
           }
           fatalError("not possible")
         case "c":
           PS.deleted = true
           PS.space = ""
-          if cp.a2 == nil || sedState.lastaddr
-              // FIXME: I don't know how to do this test!!
-//              || lastline()
-          {
+          let b = cp.a2 == nil || sedState.lastaddr
+          let bb = if b {
+            b
+          } else {
+            await lastline(&sedState)
+          }
+          if bb {
             // c command prints cp->t
             try writeStringToOutfile(cp.t, sedState)
           }
@@ -210,7 +165,7 @@ extension sed {
           if pp.count == 2 {
             PS.space = String(pp[1])
             // goto top
-            try await process_line(&PS, prog, &options, &sedState)
+            try await process_line(&PS, &prog, &options, &sedState)
             return
           } else {
             PS.deleted = true
@@ -218,18 +173,18 @@ extension sed {
           }
           
         case "g":
-          PS.space = HS.space
+          PS.space = sedState.HS.space
           
         case "G":
           PS.space.append("\n")
-          PS.space.append(HS.space)
+          PS.space.append(sedState.HS.space)
           
         case "h":
-          HS.space = PS.space
+          sedState.HS.space = PS.space
           
         case "H":
-          HS.space.append("\n")
-          HS.space.append(PS.space)
+          sedState.HS.space.append("\n")
+          sedState.HS.space.append(PS.space)
           
         case "i":
           try writeStringToOutfile(cp.t, sedState)
@@ -243,10 +198,13 @@ extension sed {
           }
           try flush_appends(&sedState)
           if let nl = try await sedState.inpst.mf_fgets() {
-            PS.space = nl
+            PS = SPACE(nl)
+            /*
+              PS.space = nl
             PS.deleted = false
             // FIXME: could be false if last line does not end in newline
             PS.append_newline = true
+             */
           } else {
             exit(0)
             // We'll treat this as done. Return from process().
@@ -257,9 +215,12 @@ extension sed {
           try flush_appends(&sedState)
           PS.space.append("\n")
           if let nl = try await sedState.inpst.mf_fgets() {
+            PS = SPACE(nl)
+            /*
             PS.space.append(nl)
             // FIXME: could be false if last line does not end in newline
             PS.append_newline = true
+             */
           } else {
             exit(0)
             return
@@ -295,7 +256,7 @@ extension sed {
           quit = true
           
         case "r":
-          sedState.appends.append(s_appends(type: .AP_FILE, s: cp.t))
+          sedState.appends.append(URL(filePath: cp.t)) // s_appends(type: .AP_FILE, s: cp.t))
           
         case "s":
           let j = try substitute(&PS, cp, &sedState)
@@ -321,7 +282,7 @@ extension sed {
             if fh == nil {
               // open file for writing
               fh = try openFileForWCommand(cp.t)
-              cp.u = .fd(fh)
+              prog[i].u = .fd(fh)
               //            cp.fd = fh
             }
             try fh!.write(contentsOf: PS.space.data(using: .utf8)!)
@@ -330,9 +291,9 @@ extension sed {
         case "x":
           // swap PS and HS
           let tspace = PS
-          PS = HS
+          PS = sedState.HS
           PS.append_newline = tspace.append_newline
-          HS = tspace
+          sedState.HS = tspace
           
         case "y":
           if !PS.deleted && !PS.space.isEmpty {
@@ -357,35 +318,38 @@ extension sed {
     }
   }
 
+  func lastline(_ sedState : inout SedState) async -> Bool {
+    let t = try? await sedState.inpst.peek()
+    return t == nil
+  }
   /**
    * The function that determines if a command applies to the current line.
    * Matches addresses, etc. Return 1 if it applies, 0 if not.
    */
-  func applies(_ PS : SPACE, _ cp: s_command, _ sedState : inout SedState) async throws -> Bool {
+  // inout s_command is for cp.startline
+  func applies(_ PS : SPACE, _ cp: s_command, _ sedState : inout SedState) async throws -> (Int, Bool) {
     sedState.lastaddr = false
+    var res = cp.startline
     if cp.a1 == nil && cp.a2 == nil {
-      return !cp.nonsel // if ! flag then invert
+      return (res, !cp.nonsel) // if ! flag then invert
     } else if let a2 = cp.a2 {
       if cp.startline > 0 {
         switch a2 {
           case .AT_RELLINE(let u_int):
             // if (linenum - cp->startline <= cp->a2->u.l)
             if sedState.inpst.linenum - cp.startline <= u_int {
-              return !cp.nonsel
+              return (res, !cp.nonsel)
             } else {
-              cp.startline = 0
-              return cp.nonsel
+              return (0, cp.nonsel)
             }
           default:
             if try await MATCH(PS, a2, &sedState) {
-              cp.startline = 0
               sedState.lastaddr = true
-              return !cp.nonsel
+              return (0, !cp.nonsel)
             } else if case let .AT_LINE(u_int) = a2, sedState.inpst.linenum > u_int {
-              cp.startline = 0
-              return cp.nonsel
+              return (0, cp.nonsel)
             } else {
-              return !cp.nonsel
+              return (res, !cp.nonsel)
             }
         }
       } else if let a1 = cp.a1, try await MATCH(PS, a1, &sedState) {
@@ -396,20 +360,21 @@ extension sed {
         } else if case let .AT_RELLINE(u_int) = a2, u_int == 0 {
           sedState.lastaddr = true
         } else {
-          cp.startline = sedState.inpst.linenum
+          // FIXME: move startline to sedState?
+          res = sedState.inpst.linenum
         }
-        return !cp.nonsel
+        return (res, !cp.nonsel)
       } else {
-        return cp.nonsel
+        return (res, cp.nonsel)
       }
     } else if let a1 = cp.a1 {
       if try await MATCH(PS, a1, &sedState) {
-        return !cp.nonsel
+        return (res, !cp.nonsel)
       } else {
-        return cp.nonsel
+        return (res, cp.nonsel)
       }
     }
-    return false
+    return (res, false)
   }
 
   /*
@@ -503,7 +468,7 @@ extension sed {
       if lastempty || Int(sedState.match[0].rm_so) - le != 0 || sedState.match[0].rm_eo != sedState.match[0].rm_so {
         if n <= 1 {
           // Want this match: append replacement
-          regsub(sedState.match, &SS, s, ssub.new! )
+          regsub(sedState.match, &SS, PS.space, ssub.new! )
           if n == 1 { n = -1 }
         } else {
           // Want a later match: append original.
@@ -535,7 +500,7 @@ extension sed {
       } else {
         lastempty = false
       }
-    } while try n >= 0 && s.count >= 0 && regexec_e(re, PS.space,
+    } while try n >= 0 && s.count > 0 && regexec_e(re, PS.space,
                                                     Int(REG_NOTBOL),
 //                                             NSRegularExpression.Options(rawValue: 0),
                                              false, Int64(le), Int64(PS.space.count),
@@ -603,13 +568,13 @@ extension sed {
    */
   func flush_appends(_ sedState : inout SedState) throws {
     for ap in sedState.appends {
-      switch ap.type {
-        case .AP_STRING:
-          try writeStringToOutfile(ap.s, sedState)
-        case .AP_FILE:
+      switch ap {
+        case is String: // .AP_STRING:
+          try writeStringToOutfile(ap as! String, sedState)
+        case is URL: // .AP_FILE:
           // read the file and write it to outfile
           do {
-            let f = try FileHandle(forReadingFrom: URL(filePath: ap.s))
+            let f = try FileHandle(forReadingFrom: ap as! URL)
               // read in chunks
             while let data = try f.read(upToCount: 8*1024) {
               try sedState.outfile.write(contentsOf: data)
@@ -618,6 +583,8 @@ extension sed {
           } catch {
             // In the original code, it's not necessarily an error if the file doesn't exist
           }
+        default:
+          fatalError("unexpected append type")
       }
     }
     sedState.appends.removeAll()
@@ -885,6 +852,7 @@ extension sed {
   func openFileForWCommand(_ path: String) throws(CompileErr) -> FileHandle {
     // O_WRONLY|O_APPEND|O_CREAT|O_TRUNC in the original code => open for writing
     do {
+      FileManager.default.createFile(atPath: path, contents: nil, attributes: nil)
       let fd = try FileHandle(forWritingTo: URL(filePath: path))
       //    let fd = open(path, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0o666)
       //    if fd == -1 {

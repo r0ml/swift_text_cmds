@@ -88,8 +88,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
         case "H":
           // for Apple
           // rflags |= REG_ENHANCED, but that is non-standard, so we just define a placeholder:
-          let REG_ENHANCED: UInt32 = 0x80000000
-          options.rflags |= REG_ENHANCED
+          options.rflags |= UInt32(REG_ENHANCED)
         case "I":
           options.inplace = v
           options.ispan = true
@@ -160,10 +159,14 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     do {
       cs = try await compile(&options)
       // Process
-      try await process(cs.prog, cs, &options)
+      try await process(&cs.prog, cs, &options)
       
     } catch {
-      throw CmdErr(1, error.localizedDescription)
+      if let e = error as? CompileErr {
+        throw CmdErr(1, e.localizedDescription)
+      } else {
+        throw CmdErr(1, error.localizedDescription)
+      }
     }
     
     // close commands
@@ -225,7 +228,8 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   class inpSource {
     var type = inpSourceType.ST_EOF
     var fh : FileHandle?
-    var ai  : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
+    var ai  : FileHandle.AsyncBytes.AsyncLineIterator!
+    // var ai  : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
     var string : Substring!
   }
 
@@ -245,7 +249,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       if fnam == "-"  || fnam == "/dev/stdin" {
         st.inp.type = .ST_FILE
         st.inp.fh = FileHandle.standardInput
-        st.inp.ai = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
+        st.inp.ai = FileHandle.standardInput.bytes.linesNL.makeAsyncIterator()
         st.fname = "stdin"
         
         if options.inplace != nil {
@@ -260,7 +264,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
 //          st.inp =  .ST_FILE( fh.bytes.lines.makeAsyncIterator(), fh)
           st.inp.type = .ST_FILE
           st.inp.fh = fh
-          st.inp.ai = fh.bytes.lines.makeAsyncIterator( )
+          st.inp.ai = fh.bytes.linesNL.makeAsyncIterator( )
         } catch {
           throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
         }
@@ -534,21 +538,22 @@ struct mf_inp_state {
 }
 
 class PeekableAsyncIterator {
-  var iter : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator
+//  var iter : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator
+    var iter : FileHandle.AsyncBytes.AsyncLineIterator
   var peeked : String? = nil
   var fh : FileHandle?
   var fname : String = "?"
   
   init(_ f : String) throws {
     self.fname = f
-    let fh = try FileHandle(forReadingFrom: URL(fileURLWithPath: f))
+    let fh = try FileHandle(forReadingFrom: URL(filePath: f))
     self.fh = fh
-    self.iter = fh.bytes.lines.makeAsyncIterator()
+    self.iter = fh.bytes.linesNL.makeAsyncIterator()
   }
   
   init(_ fh : FileHandle, _ f : String) {
     self.fh = fh
-    self.iter = fh.bytes.lines.makeAsyncIterator()
+    self.iter = fh.bytes.linesNL.makeAsyncIterator()
     self.fname = f
   }
   

@@ -291,7 +291,7 @@ p
     try await run(output: res, args: "-n", "12,+1p", flines1, flines2)
   }
   
-  @Test("Brance and other grouping (3.1)") func test_group_31() async throws {
+  @Test("Branch and other grouping (3.1)") func test_group_31() async throws {
     let res = try fileContents("multi.3.1.out")
     try await run(output: res, args: "-e", """
 4,12 {
@@ -302,7 +302,7 @@ p
 """, flines1)
   }
   
-  @Test("Brance and other grouping (3.2)") func test_group_32() async throws {
+  @Test("Branch and other grouping (3.2)") func test_group_32() async throws {
     let res = try fileContents("multi.3.2.out")
     try await run(output: res, args: "-e", """
 4,12 {
@@ -315,7 +315,7 @@ p
 """, flines1)
   }
   
-  @Test("Brance and other grouping (3.3)") func test_group_33() async throws {
+  @Test("Branch and other grouping (3.3)") func test_group_33() async throws {
     let res = try fileContents("multi.3.3.out")
     try await run(output: res, args: "-e", """
 4,12 !{
@@ -328,7 +328,7 @@ p
 """, flines1)
   }
   
-  @Test("Brance and other grouping (3.4)") func test_group_34() async throws {
+  @Test("Branch and other grouping (3.4)") func test_group_34() async throws {
     let res = try fileContents("multi.3.4.out")
     try await run(output: res, args: "-e", "4,12!s/^/^/", flines1)
   }
@@ -646,7 +646,7 @@ p
           try await run(output: res, args: "-e", s, flines1)
   }
   
-  @Test("Substitution command (8.11") func test_subst_811() async throws {
+  @Test("Substitution command (8.11)") func test_subst_811() async throws {
     let l4 = URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory)
     rm(l4)
     let p = ShellProcess(cmd, "-e", "s/1/X/w lines4", flines1)
@@ -710,7 +710,7 @@ p
   }
 
   @Test("Error cases", arguments: [
-    "-x", "-f", "-e", "{", "/hello/", "1,/hello/", "/jj", "a hello",
+    "-x", "-f", "-e", "{", "}", "/hello/", "1,/hello/", "/jj", "a hello",
     "a \\ hello", "b foo", "d hello", "s/aa", "s/a/b", "s/a/b/c/d",
     "s/a/b/1 2", "s/a/b/ 1 g", "s/a/b/w", "y/aa", "y/aa/b/",
     "y/aa/", "y/a/b", "y/a/b/c/d", "!",

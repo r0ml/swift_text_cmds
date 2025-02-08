@@ -57,12 +57,20 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "s/^/e1_/p"
+            argument = "-f"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/zzz"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-H"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-f"
-            isEnabled = "YES">
+            argument = "&quot;y10\\123456789198765432\\101&quot;"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/yyy"
@@ -70,7 +78,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/xxx"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

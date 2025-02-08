@@ -49,59 +49,22 @@ public struct CompileErr : Error {
   public init(_ message : String = "") {
     self.message = message
   }
+  
+  public var localizedDescription: String {
+    return message
+  }
 }
 
 extension sed {
   struct CompileState {
     var st = inp_state()
     var prog : [s_command] = []
-
     var maxnsub : Int = 0
-    
     var labels: [String : s_command] = [:]
   }
   
-
-  /**
-   * This code assumes that the same Swift types and global variables from
-   * the translation of `process.c` are also in scope: e.g. s_command, s_addr,
-   * s_subst, rflags, linenum, fname, etc.
-   *
-   * We replicate the data structures and references found in compile.c here
-   * in Swift form, preserving names and logic as much as possible.
-   */
-  
-  // The labhash structure from compile.c
-  struct labhash {
-    var lh_hash: UInt32 = 0
-    var lh_cmd: s_command? = nil
-    var lh_ref: Int = 0
-  }
-  
-  
-  /*
-   /**
-    * The s_format struct (command specification).
-    */
-   enum e_args {
-   case GROUP       // '{'
-   case ENDGROUP    // '}'
-   case TEXT        // 'a', 'c', 'i'
-   case BRANCH      // 'b', 't'
-   case EMPTY       // 'd', 'D', 'g', 'G', 'h', 'H', ...
-   case COMMENT     // '\0', '#'
-   case WFILE       // 'w'
-   case RFILE       // 'r'
-   case SUBST       // 's'
-   case TR          // 'y'
-   case NONSEL      // '!'
-   case LABEL       // ':'
-   }
-   */
-  
   // Each entry: code, naddr, args
   struct s_format {
-//    var code: Character
     var naddr: Int
     var args: e_args
   }
@@ -139,20 +102,15 @@ extension sed {
 //    "\0" : s_format(naddr: 0, args: .COMMENT)  // sentinel
   ]
   
-  // MARK: - Prototypes of compile.c logic in Swift
-  
-  // We replicate the function signatures. (In Swift, we simply define them.)
-  
   // 'FIXME: all of these inout CommandOptions are because deep in the bowels, the nflag could be set 
   func compile(_ options : inout CommandOptions) async throws -> CompileState {
-    // *compile_stream(&prog) = NULL in C: We'll replicate that logic in Swift
     var cs = CompileState()
     cs.st.script = options.script
     
     var pp = Substring("")
-    cs.prog = try await compile_stream(&pp, &cs, &options)
+    cs.prog = try await compile_stream(&pp, &cs, &options, false)
     
-    let appendnum = try fixuplabel(cmd: &cs.prog, cs)
+    try fixuplabel(cmd: &cs.prog, cs)
     return cs
   }
   
@@ -165,19 +123,22 @@ extension sed {
    * compile_stream: parse the script lines into the array of s_command.
    */
   // FIXME: can throw CompileError or CmdErr
-  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions) async throws -> [s_command] {
+  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions, _ needClosing : Bool ) async throws -> [s_command] {
     
     var prog: [s_command] = []
     
     while true {
       if p.isEmpty {
-        if let pp = try await cu_fgets(&cs.st, &options) { // nextline
+        if let pp = try await cu_fgets(&cs.st, &options) {
           p = Substring(pp)
         } else {
+          if needClosing {
+            throw CompileErr("unexpected EOF (pending }'s)")
+          }
           return prog
         }
       }
-      let c = try await compile_line(&p, &options, &cs)
+      let c = try await compile_line(&p, &options, &cs, needClosing)
       prog.append(contentsOf: c)
     }
     
@@ -189,7 +150,7 @@ extension sed {
       return prog
   }
   
-  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState) async throws -> [s_command] {
+  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState, _ needClosing : Bool) async throws -> [s_command] {
     
     var pro = [s_command]()
     
@@ -222,18 +183,21 @@ extension sed {
         }
       }
       
-      try await compile_postaddr(&p, &options, &cmd, &cs)
+      if p.isEmpty {
+        throw CompileErr("command expected")
+      }
+      try await compile_postaddr(&p, &options, &cmd, &cs, needClosing)
       pro.append(cmd)
       
     }
     return pro
   }
   
-  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState) async throws {
+  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState, _ needClosing : Bool) async throws {
     // ======================================
     // Parsing the command(s) for the address
     // ======================================
-    nonsel: while !p.isEmpty {
+    while !p.isEmpty {
       let cval = p.removeFirst()
       cmd.code = cval
       
@@ -251,7 +215,7 @@ extension sed {
           // '!'
           EATSPACE(&p)
           cmd.nonsel = true
-          continue nonsel
+          continue
    
           // ================================
           // stack only gets used for group / endgroup
@@ -259,7 +223,7 @@ extension sed {
           // '{'
           EATSPACE(&p)
           
-          let c = try await compile_stream(&p, &cs, &options)
+          let c = try await compile_stream(&p, &cs, &options, true)
           cmd.u = .c(c)
           
           if !p.isEmpty {
@@ -268,15 +232,10 @@ extension sed {
           
         case .ENDGROUP:
           // '}'
-          cmd.nonsel = true
-
-          // FIXME: detect this case
-          /*
-          if stack.isEmpty {
+          if ( !needClosing ) {
             throw CompileErr("unexpected }")
           }
-           */
-          
+          cmd.nonsel = true
           return
           
           // ================================
@@ -358,15 +317,16 @@ extension sed {
             throw CompileErr("substitute pattern cannot be delimited by newline or backslash")
           }
           var mysubst = s_subst()
-          // compile_delimited => fill rebuf
           let os = try compile_delimited(&p, false)
           if os == nil {
             throw CompileErr("unterminated substitute pattern")
           }
           
-          let re = try compile_re(os!, false, &cs, options)
-          mysubst.re = re
-/*
+          // FIXME: the original does the compile twice
+//          let re = try compile_re(os!, false, &cs, options)
+//          mysubst.re = re
+
+          /*
  mysubst.re = os!
           // We do a pre-check: if *re == '\0', then re is empty => cmd->u.s->re = NULL
           let reString = cStringFromBuffer(rebuf)
@@ -391,6 +351,10 @@ extension sed {
             cmd?.u.s?.re = compile_re(reString, cmd!.u.s!.icase)
           }
 */
+          
+          let re2 = try compile_re(os!, mysubst.icase, &cs, options)
+          mysubst.re = re2
+
           cmd.u = .s(mysubst)
 
           EATSPACE(&p)
@@ -413,8 +377,9 @@ extension sed {
           }
       }
     }
-    // FIXME: when should I throw this
-//    throw CompileErr("command expected")
+    if cmd.code == "!" {
+      throw CompileErr("command expected")
+    }
     return
   }
   
@@ -448,9 +413,7 @@ extension sed {
       return false
     }
   }
-  
-  // MARK: - compile_delimited, compile_ccl, etc.
-  
+    
   /**
    * compile_delimited(p, d, is_tr): read a delimited string, store result in `d`.
    * Return (newp, success) => pointer after final delimiter, or nil if error.
@@ -523,9 +486,6 @@ extension sed {
           }
         }
       } else if p.first == delimiter {
-        if is_tr {
-          p.removeFirst()
-        }
         return dst
       }
       dst.append(p.removeFirst())
@@ -562,6 +522,9 @@ extension sed {
               c != "]" || c != d {
           dst.append(s.removeFirst())
         }
+        // FIXME: not sure if this is an else
+      } else {
+        dst.append(s.removeFirst())
       }
       
       if s.first == nil { return nil }
@@ -611,15 +574,15 @@ extension sed {
   {
     var rep = regex_t()
 
-    var flags = Int32(options.rflags)
+    var flags = UInt32(options.rflags)
     if case_insensitive {
-      flags |= REG_ICASE
+      flags |= UInt32(REG_ICASE)
     }
- 
+    
     let eval =
     withUnsafeMutablePointer(to: &rep) { rr in
       re.withCString {
-        regcomp(rr, $0, flags)
+        regcomp(rr, $0, Int32(flags) )
       }
     }
     
@@ -828,7 +791,9 @@ extension sed {
       if p.isEmpty {
         return
       }
-      let c = p.removeFirst()
+      let c = p.first!
+      if !(c == "\n" || c == ";") { p.removeFirst()
+      }
       switch c {
         case "\n",";":
           return
@@ -897,6 +862,7 @@ extension sed {
     if newStr == nil {
       throw CompileErr("unterminated transform target string")
     }
+    if !p.isEmpty { p.removeFirst() }
     // EATSPACE
     EATSPACE(&p)
     
@@ -918,10 +884,12 @@ extension sed {
     
     var text = ""
     while let nextline = try await cu_fgets(&st, &options) {
-      text.append(nextline)
       if nextline.last == "\\" {
+        text.append(contentsOf: nextline.dropLast())
         text.append("\n")
       } else {
+        text.append(nextline)
+        text.append("\n")
         break
       }
     }
@@ -937,14 +905,19 @@ extension sed {
     guard !p.isEmpty else {
       fatalError("expected context address")
     }
-    let char = p.removeFirst()
-    switch char {
-      case "\\", "/":
+    switch p.first! {
+      case "\\":
+        p.removeFirst()
+        fallthrough
+      case "/":
         // regex
         guard let reString = try compile_delimited(&p, false) else {
           throw CompileErr("unterminated regular expression")
         }
 
+        // Because I changed compile_delimited to leave the trailing delimiter in (for s///)
+        p.removeFirst()
+        
         // check for 'I' case
         var icase = false
         if p.first == "I" {
@@ -958,16 +931,18 @@ extension sed {
           return try s_addr.AT_RE( compile_re(reString, icase, &cs, options))
         }
       case "$":
+        p.removeFirst()
         return s_addr.AT_LAST
       case "+":
         // relative line
+        p.removeFirst()
         let k = p.prefix(while: { $0.isNumber } )
         p.removeFirst(k.count)
         return .AT_RELLINE(UInt(k)!)
       case "0"..."9":
         let k = p.prefix(while: { $0.isNumber } )
         p.removeFirst(k.count)
-        return .AT_LINE(UInt( String(char) + k)!)
+        return .AT_LINE(UInt(k)!)
       default:
         throw CompileErr("expected context address")
     }
@@ -982,6 +957,7 @@ extension sed {
     if ptr.allSatisfy( { $0.isWhitespace } ) {
       throw CompileErr("whitespace after \(ctype)")
     }
+    s = s.dropFirst(ptr.count)
     return String(ptr)
   }
 
@@ -989,10 +965,12 @@ extension sed {
   /**
    * fixuplabel: convert branch label names to addresses, count a/r commands, etc.
    */
-  func fixuplabel(cmd: inout [s_command], _ cs : CompileState) throws(CompileErr) -> Int {
+  func fixuplabel(cmd: inout [s_command], _ cs : CompileState) throws(CompileErr) {
     var appendnum = 0
     for i in 0..<cmd.count {
-      let c = cmd[i]
+      // FIXME: do I have to use cmd[i] instead of c everywhere
+      // for the 'inout' to work?
+      var c = cmd[i]
       switch c.code {
         case "a", "r":
           appendnum += 1
@@ -1009,14 +987,13 @@ extension sed {
           }
         case "{":
           if case var .c(cc) = c.u {
-            let a = try fixuplabel(cmd: &cc, cs)
-            appendnum += a
+            try fixuplabel(cmd: &cc, cs)
           }
         default:
           break
       }
     }
-    return appendnum
+    return
   }
   
   /**
