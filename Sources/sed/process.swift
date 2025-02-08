@@ -214,13 +214,14 @@ extension sed {
         case "N":
           try flush_appends(&sedState)
           PS.space.append("\n")
-          if let nl = try await sedState.inpst.mf_fgets() {
-            PS = SPACE(nl)
-            /*
+          if var nl = try await sedState.inpst.mf_fgets() {
+            if nl.last == "\n" {
+              nl.removeLast()
+              PS.append_newline = true
+            } else {
+              PS.append_newline = false
+            }
             PS.space.append(nl)
-            // FIXME: could be false if last line does not end in newline
-            PS.append_newline = true
-             */
           } else {
             exit(0)
             return
@@ -455,7 +456,6 @@ extension sed {
     var lastempty = true
     
     var le: Int = 0
-    var sPtr = 0
     
     repeat {
       // Copy the leading retained string

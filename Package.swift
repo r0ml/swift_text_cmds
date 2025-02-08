@@ -59,7 +59,10 @@ func generateTargets() -> [Target] {
           ] )
         res.append(t)
       } else {
-        let t = Target.executableTarget(name: i, dependencies: [.product(name: "CMigration", package: "CMigration" t)] )
+        let t = Target.executableTarget(
+          name: i,
+          dependencies: [.product(name: "CMigration", package: "CMigration"),
+                        ] )
         res.append(t)
       }
     }

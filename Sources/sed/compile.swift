@@ -108,7 +108,8 @@ extension sed {
     cs.st.script = options.script
     
     var pp = Substring("")
-    cs.prog = try await compile_stream(&pp, &cs, &options, false)
+    var needClosing = 0
+    cs.prog = try await compile_stream(&pp, &cs, &options, &needClosing)
     
     try fixuplabel(cmd: &cs.prog, cs)
     return cs
@@ -123,7 +124,7 @@ extension sed {
    * compile_stream: parse the script lines into the array of s_command.
    */
   // FIXME: can throw CompileError or CmdErr
-  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions, _ needClosing : Bool ) async throws -> [s_command] {
+  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions, _ needClosing : inout Int ) async throws -> [s_command] {
     
     var prog: [s_command] = []
     
@@ -132,13 +133,13 @@ extension sed {
         if let pp = try await cu_fgets(&cs.st, &options) {
           p = Substring(pp)
         } else {
-          if needClosing {
+          if needClosing > 0 {
             throw CompileErr("unexpected EOF (pending }'s)")
           }
           return prog
         }
       }
-      let c = try await compile_line(&p, &options, &cs, needClosing)
+      let c = try await compile_line(&p, &options, &cs, &needClosing)
       prog.append(contentsOf: c)
     }
     
@@ -150,7 +151,7 @@ extension sed {
       return prog
   }
   
-  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState, _ needClosing : Bool) async throws -> [s_command] {
+  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState, _ needClosing : inout Int) async throws -> [s_command] {
     
     var pro = [s_command]()
     
@@ -186,14 +187,14 @@ extension sed {
       if p.isEmpty {
         throw CompileErr("command expected")
       }
-      try await compile_postaddr(&p, &options, &cmd, &cs, needClosing)
+      try await compile_postaddr(&p, &options, &cmd, &cs, &needClosing)
       pro.append(cmd)
       
     }
     return pro
   }
   
-  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState, _ needClosing : Bool) async throws {
+  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState, _ needClosing : inout Int) async throws {
     // ======================================
     // Parsing the command(s) for the address
     // ======================================
@@ -222,8 +223,8 @@ extension sed {
         case .GROUP:
           // '{'
           EATSPACE(&p)
-          
-          let c = try await compile_stream(&p, &cs, &options, true)
+          needClosing += 1
+          let c = try await compile_stream(&p, &cs, &options, &needClosing)
           cmd.u = .c(c)
           
           if !p.isEmpty {
@@ -232,9 +233,10 @@ extension sed {
           
         case .ENDGROUP:
           // '}'
-          if ( !needClosing ) {
+          if ( needClosing == 0 ) {
             throw CompileErr("unexpected }")
           }
+          needClosing -= 1
           cmd.nonsel = true
           return
           
@@ -661,9 +663,9 @@ extension sed {
     
     // for the repeat/while
     var pp : String?
-    
+    var sp = ""
+
     repeat {
-      var sp = ""
       while !p.isEmpty {
         if p.hasPrefix("\\") || sawesc {
           if sawesc {
@@ -673,6 +675,7 @@ extension sed {
           }
           if p.isEmpty {
             sawesc = true
+            sp.append("\n")
             continue
           } else if let n = Array("123456789").firstIndex(of: p.first!) {
             sp.append("\\")
@@ -834,11 +837,13 @@ extension sed {
           s.wfile = String(wbuf)
           if !aflag {
             do {
+              FileManager.default.createFile(atPath: s.wfile!, contents: nil, attributes: nil)
               s.wfd = try FileHandle(forWritingTo: URL(filePath: s.wfile!))
             } catch {
               err(1, "writing to \(s.wfile!): \(error.localizedDescription)")
             }
           }
+          p.removeFirst(wbuf.count)
             return
         default:
           throw CompileErr("bad flag in substitute command: '\(c)'")
@@ -985,9 +990,11 @@ extension sed {
             }
             c.t = ""
           }
+          cmd[i]=c
         case "{":
           if case var .c(cc) = c.u {
             try fixuplabel(cmd: &cc, cs)
+            cmd[i].u = .c(cc)
           }
         default:
           break

@@ -57,7 +57,7 @@ enum s_addr {
  * Matches `struct s_subst` in defs.h
  */
 class s_subst {
-  var n: Int = 0             // Occurrence to substitute
+  var n: Int = 1             // Occurrence to substitute
   var p = false              // True if 'p' flag
   var icase: Bool = false    // True if 'I' flag
   var wfile: String? = nil   // wfile path, or nil
