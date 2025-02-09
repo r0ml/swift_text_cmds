@@ -91,6 +91,7 @@ enum command_u {
   case s(s_subst)
   case y(s_tr)
   case fd(FileHandle?)
+  case b(ArraySlice<Int>)
 }
 
 /**

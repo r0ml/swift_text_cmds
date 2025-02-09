@@ -164,7 +164,10 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     } catch {
       if let e = error as? CompileErr {
         throw CmdErr(1, e.localizedDescription)
-      } else {
+      } else if let e = error as? CmdErr {
+        throw e
+      }
+      else {
         throw CmdErr(1, error.localizedDescription)
       }
     }

@@ -39,6 +39,10 @@
 import Foundation
 import CMigration
 
+public enum Branch : Error {
+  case to(ArraySlice<Int>)
+}
+
 extension sed {
   /* The s_addr structure references the type of address. */
   enum at_type {
@@ -64,6 +68,8 @@ extension sed {
     var outfile: FileHandle = FileHandle.standardOutput
     var outfname: String = "(standard output)"   // used in error messages
     var HS = SPACE("")
+    
+    var labels : [String:ArraySlice<Int>] = [:]
   }
     
 
@@ -87,6 +93,7 @@ extension sed {
     var sedState = SedState()
     sedState.maxnsub = cs.maxnsub
     sedState.match = Array(repeating: regmatch_t(), count: cs.maxnsub+1)
+    sedState.labels = cs.labels
     
     // The loop: for each line from the input, store it in PS
 //    var st = sedState.inpst
@@ -95,8 +102,23 @@ extension sed {
     
     while let ppp = try await sedState.inpst.mf_fgets() {
       var PS = SPACE( ppp )
-      try await process_line(&PS, &prog, &options, &sedState)
-    newLineLabel:
+      
+      // FIXME: branching is tricky if I don't have linked lists with pointers.
+      // the solution is to pop up the stack to here (either with a throw or by multiple returns)
+      // and providing an array of command indices to navigate to:
+      // e.g. [4,2] means starting with the original prog -- go to the fourth command, and then the second command of that block
+      var branch : ArraySlice<Int> = []
+      while true {
+        do {
+          try await process_line(&PS, &prog, branch, &options, &sedState)
+          break
+        } catch Branch.to(let e) {
+//          print("branch to \(e)")
+          if e.isEmpty { break }
+          branch = e
+        }
+      }
+      
       if !sedState.inpst.nflag && !PS.deleted {
         try OUT(PS, sedState)
       }
@@ -109,9 +131,10 @@ extension sed {
     
   } // while lines in input
 
-  func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ options : inout CommandOptions, _ sedState : inout SedState) async throws {
+  func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ branch : ArraySlice<Int>, _ options : inout CommandOptions, _ sedState : inout SedState) async throws {
     
-    for (i, cp) in prog.enumerated() {
+    for (i, cp) in prog.enumerated().dropFirst(branch.first ?? 0) {
+      
       let (sl, b) = try await applies(PS, cp, &sedState)
       prog[i].startline = sl
       if (!b) { continue }
@@ -119,19 +142,28 @@ extension sed {
       switch cp.code {
         case "{":
           if case .c(var cc) = cp.u {
-            try await process_line(&PS, &cc, &options, &sedState)
+            try await process_line(&PS, &cc, branch.dropFirst(), &options, &sedState)
             prog[i].u = .c(cc)
-            return
+          } else {
+            fatalError("not possible")
           }
-          fatalError("not possible")
         case "a":
           sedState.appends.append(cp.t) // s_appends(type: .AP_STRING, s: cp.t))
           
         case "b":
-          if case .c(var cc) = cp.u {
+          if cp.t.isEmpty { throw Branch.to([]) }
+          if let b = sedState.labels[cp.t] {
+            throw Branch.to(b)
+          } else {
+            throw CmdErr(1, "undefined label '\(cp.t)'")
+
+/*
             try await process_line(&PS, &cc, &options, &sedState)
+            // FIXME: this finds the label -- but it should give me the subarray from the label to the end
+            // probably mucked up by "fixlabels"
             prog[i].u = .c(cc)
             return
+ */
           }
           fatalError("not possible")
         case "c":
@@ -165,7 +197,8 @@ extension sed {
           if pp.count == 2 {
             PS.space = String(pp[1])
             // goto top
-            try await process_line(&PS, &prog, &options, &sedState)
+            // FIXME: is this right?
+            try await process_line(&PS, &prog, [], &options, &sedState)
             return
           } else {
             PS.deleted = true
@@ -252,7 +285,7 @@ extension sed {
               try OUT(PS, sedState)
             }
             try flush_appends(&sedState)
-            return
+            exit(0)
           }
           quit = true
           
@@ -265,16 +298,16 @@ extension sed {
           
           
         case "t":
-          fatalError("not yet implemented")
-          // FIXME: put this back
-          /*
           if sedState.sdone {
             sedState.sdone = false
-            cp = cp.c
-            continue redirect
+            if cp.t.isEmpty { throw Branch.to([]) }
+            if let b = sedState.labels[cp.t] {
+              throw Branch.to(b)
+            } else {
+              throw CmdErr(1, "undefined label '\(cp.t)'")
+            }
           }
-          */
-          
+
         case "w":
           if PS.deleted {
             break
@@ -450,12 +483,11 @@ extension sed {
     
     // Probably this just needs to be a String
     var SS = SPACE("") // substitute space
-    
-    var slen = PS.space.count
     var n = ssub.n  // 'n' is the numeric suffix of s/// (e.g. s/xxx/yyy/2)
     var lastempty = true
     
     var le: Int = 0
+    var done = false
     
     repeat {
       // Copy the leading retained string
@@ -487,7 +519,7 @@ extension sed {
       if sedState.match[0].rm_so == sedState.match[0].rm_eo {
         // zero-length match
         if s.isEmpty || s.first == "\n" {
-          slen = -1
+          done = true
         }
         
         if !s.isEmpty {
@@ -500,7 +532,7 @@ extension sed {
       } else {
         lastempty = false
       }
-    } while try n >= 0 && s.count > 0 && regexec_e(re, PS.space,
+    } while try n >= 0 && s.count >= 0 && !done && regexec_e(re, PS.space,
                                                     Int(REG_NOTBOL),
 //                                             NSRegularExpression.Options(rawValue: 0),
                                              false, Int64(le), Int64(PS.space.count),

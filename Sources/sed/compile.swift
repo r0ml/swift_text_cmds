@@ -60,7 +60,8 @@ extension sed {
     var st = inp_state()
     var prog : [s_command] = []
     var maxnsub : Int = 0
-    var labels: [String : s_command] = [:]
+    // labels are represented as an array of command indices
+    var labels: [String : ArraySlice<Int> ] = [:]
   }
   
   // Each entry: code, naddr, args
@@ -111,7 +112,11 @@ extension sed {
     var needClosing = 0
     cs.prog = try await compile_stream(&pp, &cs, &options, &needClosing)
     
-    try fixuplabel(cmd: &cs.prog, cs)
+    // Now resolve all the labels
+    definelabels(cs.prog, [], &cs)
+    try checklabels(cs.prog, cs)
+    // FIXME: I need fix appendnums
+//    try fixuplabel(cmd: &cs.prog, cs)
     return cs
   }
   
@@ -127,7 +132,7 @@ extension sed {
   func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions, _ needClosing : inout Int ) async throws -> [s_command] {
     
     var prog: [s_command] = []
-    
+
     while true {
       if p.isEmpty {
         if let pp = try await cu_fgets(&cs.st, &options) {
@@ -140,7 +145,14 @@ extension sed {
         }
       }
       let c = try await compile_line(&p, &options, &cs, &needClosing)
-      prog.append(contentsOf: c)
+//      if c.last?.code == "}" {
+//          break
+//      } else {
+        prog.append(contentsOf: c)
+//      }
+      if c.last?.code == "}" {
+        break
+      }
     }
     
     // FIXME: keep track of nesting level
@@ -189,7 +201,7 @@ extension sed {
       }
       try await compile_postaddr(&p, &options, &cmd, &cs, &needClosing)
       pro.append(cmd)
-      
+      if cmd.code == "}" { break }
     }
     return pro
   }
@@ -311,7 +323,7 @@ extension sed {
           if cmd.t.isEmpty {
             throw CompileErr("empty label")
           }
-          try enterlabel(cmd, &cs)
+          // try enterlabel(cmd, &cs)
           
         case .SUBST:
           // 's'
@@ -354,9 +366,10 @@ extension sed {
           }
 */
           
-          let re2 = try compile_re(os!, mysubst.icase, &cs, options)
-          mysubst.re = re2
-
+          if !os!.isEmpty {
+            let re2 = try compile_re(os!, mysubst.icase, &cs, options)
+            mysubst.re = re2
+          }
           cmd.u = .s(mysubst)
 
           EATSPACE(&p)
@@ -962,16 +975,50 @@ extension sed {
     if ptr.allSatisfy( { $0.isWhitespace } ) {
       throw CompileErr("whitespace after \(ctype)")
     }
-    s = s.dropFirst(ptr.count)
+    s = s.dropFirst(ptr.count+1)
     return String(ptr)
   }
+  
+  func definelabels(_ p : [s_command], _ stk : [Int], _ cs : inout CompileState) {
+    for i in 0..<p.count {
+      if p[i].code == ":" {
+        cs.labels[p[i].t] = [i] + stk
+      }
+      if p[i].code == "{" {
+        if case let .c(cc) = p[i].u {
+          definelabels(cc, [i]+stk, &cs)
+        }
+      }
+    }
+  }
 
+  func checklabels(_ p : [s_command], _ cs : CompileState) throws {
+    for i in 0..<p.count {
+      if p[i].code == "b" || p[i].code == "t" {
+        if !p[i].t.isEmpty {
+          guard let _ = cs.labels[p[i].t] else {
+            throw CompileErr("undefined label '\(p[i].t)'")
+          }
+        }
+      }
+      if p[i].code == "{" {
+        if case let .c(cc) = p[i].u {
+          try checklabels(cc, cs)
+        }
+      }
+    }
+  }
+
+  
   
   /**
    * fixuplabel: convert branch label names to addresses, count a/r commands, etc.
    */
-  func fixuplabel(cmd: inout [s_command], _ cs : CompileState) throws(CompileErr) {
+    
+    // FIXME: do the appendnum thing
+/*  func fixuplabel(cmd: inout [s_command], _ cs : CompileState) throws(CompileErr) {
     var appendnum = 0
+
     for i in 0..<cmd.count {
       // FIXME: do I have to use cmd[i] instead of c everywhere
       // for the 'inout' to work?
@@ -981,10 +1028,11 @@ extension sed {
           appendnum += 1
         case "b", "t":
           if c.t.isEmpty {
-            c.u = .c([])
+            // this means branch to end
+            c.u = .b([])
           } else {
-            if let dest = findlabel(c.t, cs) {
-              c.u = .c([dest])
+            if let dest = cs.labels[c.t] {
+              c.u = .b(dest)
             } else {
               throw CompileErr("undefined label '\(c.t)'")
             }
@@ -1002,21 +1050,25 @@ extension sed {
     }
     return
   }
-  
+  */
+    
   /**
    * enterlabel: store the given command in labels[] for later lookup
    */
-  func enterlabel(_ cp: s_command, _ cs : inout CompileState) throws(CompileErr) {
+/*  func enterlabel(_ cp: s_command, _ cs : inout CompileState) throws(CompileErr) {
     if cs.labels[cp.t] != nil {
       throw CompileErr("duplicate label '\(cp.t)'")
     }
     cs.labels[cp.t] = cp
   }
+  */
   
+  /*
   /**
    * findlabel: look for a label in labels[] that matches name
    */
   func findlabel(_ name: String, _ cs : CompileState) -> s_command? {
     return cs.labels[name]
   }
+   */
 }
