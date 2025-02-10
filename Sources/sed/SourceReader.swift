@@ -16,7 +16,7 @@ extension SedProcess {
   }
   */
   
-  func mf_fgets(_ options : sed.CommandOptions) async throws -> String? {
+  func mf_fgets() async throws -> String? {
     
     /*
      var inFile = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
@@ -25,7 +25,7 @@ extension SedProcess {
      }
      */
     
-    while true {
+    while !quit {
       if let sti = self.inp {
         do {
           
@@ -38,19 +38,23 @@ extension SedProcess {
             return got
           }
           // reached EOF
-          try mf_close_file(options)
+          try mf_close_file()
           continue
         }
         // FIXME: handle the 'inplace' option
       } else {
         // This is where the next file is opened
         if self.filelist.isEmpty { return nil }
-        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
+        if try !mf_next_file() {
+          return nil
+        }
+/*        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
         if options.inplace != nil {
           if self.inp?.fh == FileHandle.standardInput {
             throw CmdErr(1, "-I or -i may not be used with stdin")
           }
         }
+ */
 /*
         if firstfile == .initial {
           firstfile = .yes
@@ -60,8 +64,8 @@ extension SedProcess {
  */
       }
     }
-    
-    
+    try mf_close_file()
+    return nil
   }
   
   func peek() async throws -> String? {
@@ -85,20 +89,21 @@ extension SedProcess {
     }
   }
   
-  func mf_close_file(_ options : sed.CommandOptions) throws {
+  func mf_close_file() throws {
     if let sti = self.inp {
       if sti.fh != FileHandle.standardInput {
         try sti.fh?.close()
         // if there was a backup file, remove it
         if let oldfname {
-          try FileManager.default.removeItem(at: URL(filePath: oldfname))
+          // make sure the backup name is available
+          try? FileManager.default.removeItem(at: URL(filePath: oldfname))
           
           // FIXME: should oldfname be a URL?
           do {
             try FileManager.default.linkItem(at: URL(filePath: sti.fname), to: URL(filePath: oldfname))
           } catch {
             do {
-              try FileManager.default.moveItem(at: URL(filePath: sti.fname), to: URL(filePath: oldfname))
+              try posixRename(from: sti.fname, to: oldfname)
             } catch {
               if let tmpfname {
                 try? FileManager.default.removeItem(at: tmpfname)
@@ -117,16 +122,24 @@ extension SedProcess {
               try? FileManager.default.removeItem(at: tmpfname)
               throw CmdErr(1, "closing \(outfname): \(error.localizedDescription)")
             }
+            
+            do {
+              try posixRename(from: tmpfname.path, to: inp!.fname)
+            } catch {
+              try? FileManager.default.removeItem(at: tmpfname)
+              throw CmdErr(1, "rename \(tmpfname) to \(inp!.fname): \(error.localizedDescription)")
+            }
+            
           }
           self.tmpfname = nil
         }
-        
+        // outfname = NULL;
       }
       self.inp = nil
     }
   }
   
-  func mf_next_file(_ options : sed.CommandOptions ) throws(CmdErr) -> Bool {
+  func mf_next_file() throws(CmdErr) -> Bool {
     // script is a global list
     if self.filelist.isEmpty {
       return false
@@ -167,16 +180,24 @@ extension SedProcess {
           try? outfile.close()
         }
         outfname = tmpfname!.relativePath
-        do {
-          outfile = try FileHandle(forWritingTo:  tmpfname!)
-        } catch {
-          throw CmdErr(1, "opening for writing: \(stmpfname): \(error.localizedDescription)")
+        if FileManager.default.createFile(atPath: tmpfname!.path, contents: nil, attributes: [:]) {
+          do {
+            
+            outfile = try FileHandle(forWritingTo:  tmpfname!)
+          } catch {
+            throw CmdErr(1, "opening for writing: \(stmpfname): \(error.localizedDescription)")
+          }
+          outfname = tmpfname!.path
+        } else {
+          throw CmdErr(1, "creating \(stmpfname): failed")
         }
         // fchown
         // fchmod
         if !options.ispan {
           linenum = 0
-          resetstate()
+          prog = resetstate(prog)
+          // clear out the hold space
+          HS = SPACE("")
         }
         
       } else {
@@ -193,9 +214,20 @@ extension SedProcess {
     }
     return true
   }
-  
-  func resetstate() {
-    fatalError("not yet implemented")
+
+  // reset all in-range markers
+  func resetstate(_ pro : [s_command]) -> [s_command] {
+    var pr = pro
+    for i in 0..<pr.count {
+      if case let .c(v) = pr[i].u {
+        pr[i].u = .c(resetstate(v))
+      } else {
+        if let _ = pr[i].a2 {
+          pr[i].startline = 0
+        }
+      }
+    }
+    return pr
   }
   
   /**

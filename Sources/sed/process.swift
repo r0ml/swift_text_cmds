@@ -75,6 +75,9 @@ class SedProcess {
   
   var labels : [String:ArraySlice<Int>] = [:]
 
+  var prog : [s_command]
+  var options : sed.CommandOptions
+  
   var quit = false
       
 
@@ -101,7 +104,7 @@ class SedProcess {
   /**
    * The main function from process.c
    */
-  init( _ cs : sed.CompileState, _ options : inout sed.CommandOptions) {
+  init( _ cs : sed.CompileState, _ options : sed.CommandOptions) {
     
     // FIXME: create sedstate from compilestate?
     
@@ -113,10 +116,13 @@ class SedProcess {
     //    var st = sedState.inpst
     filelist = options.files
     nflag = options.nflag
+    
+    prog = cs.prog
+    self.options = options
   }
   
-  func process(_ prog : inout [s_command], _ options : inout sed.CommandOptions) async throws {
-    while let ppp = try await mf_fgets(options) {
+  func process() async throws {
+    while let ppp = try await mf_fgets() {
       var PS = SPACE( ppp )
       
       // FIXME: branching is tricky if I don't have linked lists with pointers.
@@ -126,7 +132,7 @@ class SedProcess {
       var branch : ArraySlice<Int> = []
       while true {
         do {
-          try await process_line(&PS, &prog, branch, &options)
+          try await process_line(&PS, &prog, branch)
           break
         } catch Branch.to(let e) {
 //          print("branch to \(e)")
@@ -147,7 +153,7 @@ class SedProcess {
     
   } // while lines in input
 
-  func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ branch : ArraySlice<Int>, _ options : inout sed.CommandOptions) async throws {
+  func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ branch : ArraySlice<Int>) async throws {
     
     for (i, cp) in prog.enumerated().dropFirst(branch.first ?? 0) {
       
@@ -158,7 +164,7 @@ class SedProcess {
       switch cp.code {
         case "{":
           if case .c(var cc) = cp.u {
-            try await process_line(&PS, &cc, branch.dropFirst(), &options)
+            try await process_line(&PS, &cc, branch.dropFirst())
             prog[i].u = .c(cc)
           } else {
             fatalError("not possible")
@@ -214,7 +220,7 @@ class SedProcess {
             PS.space = String(pp[1])
             // goto top
             // FIXME: is this right?
-            try await process_line(&PS, &prog, [], &options)
+            try await process_line(&PS, &prog, [])
             return
           } else {
             PS.deleted = true
@@ -246,7 +252,7 @@ class SedProcess {
             try OUT(PS)
           }
           try flush_appends()
-          if let nl = try await mf_fgets(options) {
+          if let nl = try await mf_fgets() {
             PS = SPACE(nl)
             /*
               PS.space = nl
@@ -263,7 +269,7 @@ class SedProcess {
         case "N":
           try flush_appends()
           PS.space.append("\n")
-          if var nl = try await mf_fgets(options) {
+          if var nl = try await mf_fgets() {
             if nl.last == "\n" {
               nl.removeLast()
               PS.append_newline = true

@@ -38,8 +38,13 @@ import ShellTesting
   @Test("Verify -i works with a hard linked source file")
   func inplace_hardlink_src() async throws {
     let a = try tmpfile("a", "foo\n")
-    let b = FileManager.default.temporaryDirectory.appending(path: "b")
+    let d = FileManager.default.temporaryDirectory
+    let e3 = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
+    rm(e3.filter { $0.lastPathComponent.hasPrefix(".!")})
+    
+    let b = d.appending(path: "b")
     rm(b)
+    
     try FileManager.default.linkItem(at: a, to: b)
     try await run(args: "-i", "", "-e", "s,foo,bar,g", b)
     let m = try String(contentsOf: b, encoding: .utf8)
@@ -47,7 +52,6 @@ import ShellTesting
     let n = try String(contentsOf: b, encoding: .utf8)
     #expect(n == "bar\n")
 
-    let d = FileManager.default.temporaryDirectory
     let e = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
     #expect( (e.filter { $0.lastPathComponent.hasPrefix(".!") }).count == 0  )
     rm(a)
@@ -71,6 +75,10 @@ import ShellTesting
   
   @Test("Verify -i works correctly with the 'q' command")
   func inplace_command_q() async throws {
+    let d = FileManager.default.temporaryDirectory
+    let e3 = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
+    rm( e3.filter { $0.lastPathComponent.hasPrefix(".!") })
+    
     let a = try tmpfile("a", "1\n2\n3\n")
     try await run(output: "1\n2\n", args: "2q", a)
     try await run(args: "-i.bak", "2q", a)
@@ -81,7 +89,6 @@ import ShellTesting
     let j3 = try String(contentsOf: a.appendingPathExtension("bak"), encoding: .utf8)
     #expect(j3 == "1\n2\n3\n")
     
-    let d = FileManager.default.temporaryDirectory
     let e = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
     #expect( (e.filter { $0.lastPathComponent.hasPrefix(".!") }).count == 0  )
 

@@ -79,8 +79,6 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     
     setlocale(LC_ALL, "") // In Swift, you'd do something else or ignore.
     
-    options.inplace = nil
-    
     while let (k, v) = try go.getopt() {
       switch k {
         case "r", "E":
@@ -159,8 +157,8 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     do {
       cs = try await compile(&options)
       // Process
-      let p = SedProcess(cs, &options)
-      try await p.process(&cs.prog, &options)
+      let p = SedProcess(cs, options)
+      try await p.process()
       
     } catch {
       if let e = error as? CompileErr {

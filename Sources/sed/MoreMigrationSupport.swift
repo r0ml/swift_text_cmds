@@ -104,3 +104,10 @@ func regerror(_ n : Int32, _ regx : regex_t )  -> String {
   }
   return p
 }
+
+func posixRename(from oldPath: String, to newPath: String) throws {
+    if rename(oldPath, newPath) != 0 {
+        // If an error occurs, capture it using errno
+        throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: nil)
+    }
+}
