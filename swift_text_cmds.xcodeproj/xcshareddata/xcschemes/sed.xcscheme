@@ -57,31 +57,39 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-n"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-e"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "s/,*/,/g"
+            argument = "-i"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-H"
-            isEnabled = "NO">
+            argument = ""
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "s,foo,bar,g"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/bin/sh"
+            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-dtzcnzzmaalndsfuhzjfrvoittcq/Build/Products/Debug/sedTest.xctest/Contents/Resources/hanoi.sed"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/zzz"
+            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-dtzcnzzmaalndsfuhzjfrvoittcq/Build/Products/Debug/sedTest.xctest/Contents/Resources/math.sed"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/mmm"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/tmp/a"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

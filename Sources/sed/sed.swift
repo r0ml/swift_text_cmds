@@ -48,7 +48,7 @@ let PATH_MAX: Int32 = 1024
 let progname = "sed"
 
 @main final class sed : ShellCommand {
-
+  
   var usage : String = """
 usage: \(progname) script [-EHalnru] [-i extension] [file ...]
 \t\(progname) [-EHalnu] [-i extension] [-e script] ... [-f script_file]
@@ -62,7 +62,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     
     var fflag = false
     var fflagstdin = false
-
+    
     var ispan: Bool = false
     var inplace: String? = nil
     
@@ -76,7 +76,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     var options = CommandOptions()
     let supportedFlags = "EHI:ae:f:i:lnru"
     let go = BSDGetopt(supportedFlags)
-
+    
     setlocale(LC_ALL, "") // In Swift, you'd do something else or ignore.
     
     options.inplace = nil
@@ -133,11 +133,11 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     
     if !options.args.isEmpty {
       // Add each file
-    
+      
       options.files = options.args
-//      for fileArg in options.args {
-//        add_file(fileArg)
-//
+      //      for fileArg in options.args {
+      //        add_file(fileArg)
+      //
     } else if options.fflagstdin {
       // If we read script from stdin but no input files => exit
       exit(0)
@@ -145,12 +145,12 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       // add_file(NULL) => means read from stdin
       options.files = ["/dev/stdin"] // add_file(nil)
     }
-
+    
     return options
   }
   
   func runCommand(_ optionsx: CommandOptions) async throws(CmdErr) {
-
+    
     var cs : CompileState
     
     // FIXME: this is because somewhere in the bowels, nflag might be set.
@@ -159,7 +159,8 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     do {
       cs = try await compile(&options)
       // Process
-      try await process(&cs.prog, cs, &options)
+      let p = SedProcess(cs, &options)
+      try await p.process(&cs.prog, &options)
       
     } catch {
       if let e = error as? CompileErr {
@@ -174,13 +175,13 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     
     // close commands
     // FIXME: put this back -- close all the files
-   // cfclose(prog, nil)
+    // cfclose(prog, nil)
     
     // if fclose(stdout) ...
     // Swift doesn't have direct "stdout" as a FILE*, you might do:
     //  if let handle = stdoutFILE { ... }
     // We'll skip direct check for demonstration.
-
+    
   }
   
   
@@ -191,389 +192,26 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   // MARK: - Types and global variables mirroring main.c
   //
   
-  enum s_compunit {
-    case CU_FILE(String)
-    case CU_STRING(String)
-  }
-    
-  public var quit = false
-  
-  // Whether inplace editing spans across files
-  
-  public var outfname: String = ""     // Current output file name
-  private var oldfname = [CChar](repeating: 0, count: Int(PATH_MAX))
-  private var tmpfname = [CChar](repeating: 0, count: Int(PATH_MAX))
-  
   // Swift doesn't have a direct global "program name" like getprogname() in macOS/BSD.
   // We'll define a helper or store a static name, or you might retrieve from CommandLine.arguments[0].
   func getprogname() -> String {
     return "sed"   // or extract from CommandLine.arguments[0]
   }
-  
-  //
-  /*
-  enum scriptSource {
-    case ST_String(String)
-    case ST_File(String)
-  }
-  */
-  
-  struct inp_state {
-//    var f: AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator? = nil
-//    var s: String? = nil
-    var inp : inpSource = inpSource()
-    var linenum : Int = 0
-    var fname : String = "?"
-    var script: [s_compunit] = []
-    var nflag : Bool = false
-  }
-
-  class inpSource {
-    var type = inpSourceType.ST_EOF
-    var fh : FileHandle?
-    var ai  : FileHandle.AsyncBytes.AsyncLineIterator!
-    // var ai  : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
-    var string : Substring!
-  }
-
-
-//  var current_script : FileHandle = FileHandle.standardInput
-  
-  func next_file(_ st : inout inp_state, _ options : CommandOptions ) throws(CmdErr) -> Bool {
-    // script is a global list
-    if st.script.isEmpty {
-      return false
-    }
-    st.linenum = 0
-    
-    switch st.script.removeFirst() {
-      case .CU_FILE(let fnam):
-      // open file
-      if fnam == "-"  || fnam == "/dev/stdin" {
-        st.inp.type = .ST_FILE
-        st.inp.fh = FileHandle.standardInput
-        st.inp.ai = FileHandle.standardInput.bytes.linesNL.makeAsyncIterator()
-        st.fname = "stdin"
-        
-        if options.inplace != nil {
-          throw CmdErr(1, "-I or -i may not be used with stdin")
-        }
-
-        
-        
-      } else {
-        do {
-          let fh = try FileHandle(forReadingFrom: URL(filePath: fnam))
-//          st.inp =  .ST_FILE( fh.bytes.lines.makeAsyncIterator(), fh)
-          st.inp.type = .ST_FILE
-          st.inp.fh = fh
-          st.inp.ai = fh.bytes.linesNL.makeAsyncIterator( )
-        } catch {
-          throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
-        }
-        st.fname = fnam
-      }
-      return true
-      case .CU_STRING(let sref):
-      if sref.count >= 27 {
-        st.fname = "\"\(sref.prefix(24)) ...\""
-      } else {
-        st.fname = "\"\(sref)\""
-      }
-//        st.inp = .ST_STRING(Substring(sref))
-        st.inp.type = .ST_STRING
-        st.inp.string = Substring(sref)
-      // goto again
-      return true
-    }
-
-  }
-  
-  
-  
-  /**
-   * cu_fgets: like fgets, but reads from the chain of compilation units, ignoring empty strings/files.
-   * Fills `buf` with up to `n` characters. If `more` is non-nil, it’s set to 1 if more data might be available, else 0.
-   */
-  func cu_fgets(_ st : inout inp_state, _ options : inout CommandOptions) async throws(CmdErr) -> String? {
-    
-  again: while true {
-    switch st.inp.type {
-          case .ST_EOF:
-          if try next_file(&st, options) { continue again }
-            else { return nil}
-
-      case .ST_FILE:
-            do {
-              if let got = try await st.inp.ai.next() {
-                st.linenum += 1
-                if st.linenum == 1 && got.hasPrefix("#n") {
-                  st.nflag = true
-                  options.nflag = true
-                  continue
-                }
-                return got
-              }
-              
-              try st.inp.fh?.close()
-              st.inp.type = .ST_EOF
-              continue again
-            } catch {
-              throw CmdErr(1, "reading \(st.fname): \(error.localizedDescription)")
-            }
-      case .ST_STRING:
-            if st.linenum == 0,
-               st.inp.string.hasPrefix("#n") {
-              st.nflag = true
-              options.nflag = true
-              continue
-            }
-        if st.inp.string.isEmpty {
-              st.inp.type = .ST_EOF
-              continue again
-            }
-        let sPtr = st.inp.string.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
-            if sPtr.count == 2 {
-              st.inp.string = sPtr[1]
-              return String(sPtr[0])
-            } else if sPtr.count == 1 {
-              st.inp.string = ""
-              st.inp.type = .ST_EOF
-              return String(sPtr[0])
-            } else {
-              fatalError("not possible")
-            }
-        }
-      }
-    }
-    
-  
-  
-  
-  func mf_next_file(_ st : inout mf_inp_state, _ options : CommandOptions ) throws(CmdErr) -> Bool {
-    // script is a global list
-    if st.filelist.isEmpty {
-      return false
-    }
-//    st.linenum = 0
-    
-    let fnam = st.filelist.removeFirst()
-      // open file
-      if fnam == "-"  || fnam == "/dev/stdin" {
-        st.inp = PeekableAsyncIterator(FileHandle.standardInput, "stdin")
-        
-        if options.inplace != nil {
-          throw CmdErr(1, "-I or -i may not be used with stdin")
-        }
-
-      } else {
-        do {
-          st.inp = try PeekableAsyncIterator(fnam)
-        } catch {
-          throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
-        }
-      }
-      return true
-  }
-  
-  
-  /**
-   * mf_fgets: read next line from the list of files, storing in SPACE sp.
-   * If spflag == REPLACE, we replace contents; if APPEND, we append.
-   * Returns 1 if line read, 0 if no more lines.
-   */
-  /*
-   * Like fgets, but go through the list of files chaining them together.
-   * Set len to the length of the line.
-   */
-
-  // FIXME: mf_fgets is different than cu_fgets --
-  // including resetstate
-  
-
-      
-    // If we got here, we have an open inFile with data available. We'll read one line
-/*
-    var len = getline_swift(linePtr, 1024, inFile)
-    if len < 0 {
-      err(1, "\(fname)")
-    }
-    // check newline
-    if len != 0, linePtr[len-1] == CChar(UInt8(ascii: "\n")) {
-      sp.append_newline = 1
-      len -= 1
-    } else if !lastline() {
-      sp.append_newline = 1
-    } else {
-      sp.append_newline = 0
-    }
-    // cspace => store in sp
-    cspace(&sp, linePtr, spflag)
-    linenum += 1
-    return 1
-  }
-*/
-  
-  /**
-   * lastline(): check if the current file is at EOF and no next file has lines.
-   */
-/*  func lastline() -> Bool {
-    // The code in C checks feof(inFile), etc. Then it checks if next files have lines.
-    // We'll do a partial approach:
-    if feof(inFile) != 0 {
-      return !((inplace == nil || ispan != 0) && next_files_have_lines() != 0)
-    }
-    // check next char
-    if let c = fgetc(inFile) {
-      ungetc(c, inFile)
-      return false
-    }
-    // EOF
-    return !((inplace == nil || ispan != 0) && next_files_have_lines() != 0)
-  }
-  
-  // helper to check next files for lines
-  private func next_files_have_lines() -> Int32 {
-    var file = files
-    while let fnode = file?.next {
-      file = fnode
-      if let file_fd = fopen(fnode.fname ?? "", "r") {
-        if let ch = fgetc(file_fd) {
-          ungetc(ch, file_fd)
-          fclose(file_fd)
-          return 1
-        }
-        fclose(file_fd)
-      }
-    }
-    return 0
-  }
-  */
-  
 }
 
 
-enum inpSourceType {
-  case ST_EOF
-  case ST_FILE
-  case ST_STRING
-}
-
-struct mf_inp_state {
-  var inp : PeekableAsyncIterator?
-  // here rather than in PeekableAsyncIterator because it continues across files
-  var linenum : Int = 0
-  var nflag : Bool = false
-  var filelist : [String]
-  
-  mutating func mf_fgets() async throws -> String? {
-    // The code in C references static vars, handles inFile, oldfname, etc.
-    // We'll replicate in simpler Swift form. A direct translation is tricky
-    // because it uses POSIX I/O with FILE*, rename, unlink, etc. We'll do our best.
-    
-    // We skip some checks for S_ISREG, lstat, etc. for brevity. In real code, you'd
-    // call the Swift equivalents via `FileManager`.
-    // We'll replicate the logic that tries to read one line from the current inFile,
-    // or else open the next file, possibly do backups, etc.
-    
-    // 1) If inFile is nil, open the first file or handle stdin
-    // 2) If we read a character => we have data
-    // 3) Else, move on to next file, etc.
-    
-    // Because a fully literal translation requires bridging all these calls
-    // (fopen, rename, link, unlink, fchmod, fchown), below is a partial replication:
-    
-    // We'll do a partial approach: attempt to read a line from the current file handle
-    // using a Swift helper, etc.
-    
-    /*
-     var inFile = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
-     while let l = try await inFile.next() {
-     
-     }
-     */
-    
-    while true {
-      if let sti = self.inp {
-        do {
-          
-          if let got = try await sti.next() {
-            self.linenum += 1
-            if self.linenum == 1 && got.hasPrefix("#n") {
-              self.nflag = true
-              //              options.nflag = true
-            }
-            return got
-          }
-          try sti.fh?.close()
-          self.inp = nil
-          continue
-        }
-        // FIXME: handle the 'inplace' option
-      } else {
-        if self.filelist.isEmpty { return nil }
-        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
-      }
-    }
-    
-    
-  }
-  
-  mutating func peek() async throws -> String? {
-    while true {
-      if let sti = self.inp {
-        do {
-          
-          if let got = try await sti.peek() {
-            return got
-          }
-          try sti.fh?.close()
-          self.inp = nil
-          continue
-        }
-        // FIXME: handle the 'inplace' option
-      } else {
-        if self.filelist.isEmpty { return nil }
-        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
-      }
-    }
-  }
-}
-
-class PeekableAsyncIterator {
-//  var iter : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator
-    var iter : FileHandle.AsyncBytes.AsyncLineIterator
-  var peeked : String? = nil
-  var fh : FileHandle?
-  var fname : String = "?"
-  
-  init(_ f : String) throws {
-    self.fname = f
-    let fh = try FileHandle(forReadingFrom: URL(filePath: f))
-    self.fh = fh
-    self.iter = fh.bytes.linesNL.makeAsyncIterator()
-  }
-  
-  init(_ fh : FileHandle, _ f : String) {
-    self.fh = fh
-    self.iter = fh.bytes.linesNL.makeAsyncIterator()
-    self.fname = f
-  }
-  
-  func next() async throws -> String? {
-    if peeked != nil {
-      let t = peeked
-      peeked = nil
-      return t
-    }
-    
-    return try await iter.next()
-  }
-  
-  func peek() async throws -> String? {
-    if peeked == nil {
-      peeked = try await iter.next()
-    }
-    return peeked
+/**
+ * Minimal file I/O helpers for the 'w' command usage.
+ */
+func openFileForWCommand(_ path: String) throws(CompileErr) -> FileHandle {
+  // O_WRONLY|O_APPEND|O_CREAT|O_TRUNC in the original code => open for writing
+  do {
+    FileManager.default.createFile(atPath: path, contents: nil, attributes: nil)
+    let fd = try FileHandle(forWritingTo: URL(filePath: path))
+    //    let fd = open(path, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0o666)
+    //    if fd == -1 {
+  return fd
+  } catch {
+    throw CompileErr("\(path): \(error.localizedDescription)")
   }
 }

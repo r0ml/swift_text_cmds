@@ -57,11 +57,15 @@ public struct CompileErr : Error {
 
 extension sed {
   struct CompileState {
-    var st = inp_state()
+    var st : ScriptReader
     var prog : [s_command] = []
     var maxnsub : Int = 0
     // labels are represented as an array of command indices
     var labels: [String : ArraySlice<Int> ] = [:]
+    
+    init(_ script : [s_compunit]) {
+      st = ScriptReader(script)
+    }
   }
   
   // Each entry: code, naddr, args
@@ -105,8 +109,8 @@ extension sed {
   
   // 'FIXME: all of these inout CommandOptions are because deep in the bowels, the nflag could be set 
   func compile(_ options : inout CommandOptions) async throws -> CompileState {
-    var cs = CompileState()
-    cs.st.script = options.script
+    var cs = CompileState(options.script)
+//    cs.st.script = options.script
     
     var pp = Substring("")
     var needClosing = 0
@@ -135,7 +139,7 @@ extension sed {
 
     while true {
       if p.isEmpty {
-        if let pp = try await cu_fgets(&cs.st, &options) {
+        if let pp = try await cs.st.cu_fgets(&options) {
           p = Substring(pp)
         } else {
           if needClosing > 0 {
@@ -276,7 +280,7 @@ extension sed {
           if !p.isEmpty {
             throw CompileErr("extra characters after \\ at the end of \(cmd.code) command")
           }
-          cmd.t = try await compile_text(&cs.st, &options)
+          cmd.t = try await compile_text(&cs, &options)
           
         case .COMMENT:
           // '\0' or '#' => do nothing
@@ -456,7 +460,7 @@ extension sed {
         // if !is_tr => handle compile_ccl
         if !is_tr {
           if let ds = compile_ccl(&p) {
-            dst = ds
+            dst.append(ds)
             continue
           } else {
             throw CompileErr("unbalanced brackets ([])")
@@ -477,21 +481,17 @@ extension sed {
         if next == "n" {
           dst.append("\n")
           p.removeFirst(2)
-          continue
         } else if next == "r" {
           dst.append("\r")
           p.removeFirst(2)
-          continue
         } else if next == "t" {
           dst.append("\t")
           p.removeFirst(2)
-          continue
         } else if next == "x" {
           // dohex
           p.removeFirst(2)
           let outChar = dohex(&p)
           dst.append(outChar)
-          continue
         } else if next == "\\" {
           if is_tr {
             // skip
@@ -499,7 +499,12 @@ extension sed {
           } else {
             dst.append(p.removeFirst())
           }
+        } else if let next {
+          dst.append("\\")
+          dst.append(next)
+          p.removeFirst(2)
         }
+        continue
       } else if p.first == delimiter {
         return dst
       }
@@ -602,12 +607,12 @@ extension sed {
     }
     
     if eval != 0 {
-      let s = withUnsafeMutablePointer(to: &rep) { rr in
-        regerror(eval, rr, nil, 0)
-      }
-      
-      throw CompileErr("RE error: \(s))")
+      let s = regerror(eval, rep)
+      throw CompileErr("RE /\(re)/ error: \(s)")
     }
+
+//    print("RE: \(re)")
+
     
     if (st.maxnsub < rep.re_nsub) {
       st.maxnsub = rep.re_nsub
@@ -664,7 +669,7 @@ extension sed {
    * point to a saved copy of it.  Nsub is the number of parenthesized regular
    * expressions.
    */
-  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout inp_state, _ options : inout CommandOptions) async throws -> String? {
+  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout ScriptReader, _ options : inout CommandOptions) async throws -> String? {
     guard !p.isEmpty else { return nil }
 
     s.maxbref = 0
@@ -741,7 +746,7 @@ extension sed {
         }
       }
 
-      pp = try await cu_fgets(&st, &options)
+      pp = try await st.cu_fgets(&options)
       if let pp {
         p = Substring(pp)
       }
@@ -898,18 +903,24 @@ extension sed {
   /**
    * compile_text: gather lines until an unescaped newline.
    */
-  func compile_text(_ st : inout inp_state, _ options: inout CommandOptions) async throws -> String {
+  func compile_text(_ cs : inout CompileState, _ options: inout CommandOptions) async throws -> String {
     
     var text = ""
-    while let nextline = try await cu_fgets(&st, &options) {
-      if nextline.last == "\\" {
-        text.append(contentsOf: nextline.dropLast())
-        text.append("\n")
-      } else {
-        text.append(nextline)
-        text.append("\n")
-        break
-      }
+    
+    while true {
+        if let nl = try await cs.st.cu_fgets(&options) {
+          var nextline = nl.last == "\n" ? nl.dropLast() : Substring(nl) // ditch the \n
+          if nextline.last == "\\" {
+            text.append(contentsOf: nextline.dropLast())
+            text.append("\n")
+          } else {
+            text.append(contentsOf: nextline)
+            text.append("\n")
+            break
+          }
+        } else {
+          break
+        }
     }
     return text
   }
