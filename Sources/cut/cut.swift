@@ -216,7 +216,7 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.linesNL {
+      for try await linel in fh.bytes.linesNLX {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
@@ -300,7 +300,7 @@ usage: cut -b list [-n] [file ...]
     
     
     do {
-      for try await linel in fh.bytes.linesNL {
+      for try await linel in fh.bytes.linesNLX {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var linef : [Substring]
@@ -422,7 +422,7 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.linesNL {
+      for try await linel in fh.bytes.linesNLX {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }

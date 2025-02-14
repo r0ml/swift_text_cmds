@@ -83,7 +83,7 @@ import CMigration
     let TAB = 8
     
     do {
-      for try await buf in FileHandle.standardInput.bytes.linesNL {
+      for try await buf in FileHandle.standardInput.bytes.linesNLX {
         var column = 0
         let bx = buf.compactMap { ch in
           switch ch {

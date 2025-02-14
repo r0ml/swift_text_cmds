@@ -65,9 +65,8 @@ class SedProcess {
   var nflag : Bool = false
   var filelist : [String]
 
-  
-  
-  
+  var termwidth = -1
+
   // The C code references a few other global variables or functions not shown here:
   var outfile: FileHandle = FileHandle.standardOutput
   var outfname: String = "(standard output)"   // used in error messages
@@ -273,6 +272,9 @@ class SedProcess {
             if nl.last == "\n" {
               nl.removeLast()
               PS.append_newline = true
+            } else if nl.last == "\r\n" {
+              PS.append_newline = true
+              nl = nl.dropLast().appending("\r")
             } else {
               PS.append_newline = false
             }
@@ -548,8 +550,8 @@ class SedProcess {
         if !s.isEmpty {
           // advance one character
           SS.space.append(s.first!) // (&SS, ps! + sPtr, 1, .APPEND)
-          s.removeFirst()
-          le += 1
+          let k = s.removeFirst()
+          le += k.utf8.count
         }
         lastempty = true
       } else {
@@ -647,32 +649,90 @@ class SedProcess {
     // In Swift, you'd check with `outfile.streamError`, etc. If there's an error, you can fail.
   }
   
+  let escapes : [Character : String ] = ["\u{07}" : "\\a",
+                                     "\u{08}" : "\\b",
+                                     "\u{0c}" : "\\f",
+                                     "\u{0d}" : "\\r",
+                                     "\u{09}" : "\\t",
+                                     "\u{0b}" : "\\v",
+  ]
   /**
    * lputs -- implement the 'l' command output (show non-printable characters etc.).
    * In the original code, it does advanced handling, column wrapping, etc.
    * We'll replicate in simplified form.
    */
   func lputs(_ s : String) throws {
-    if s.isEmpty {
-      try writeStringToOutfile("$\n")
-      return
+    if outfile != FileHandle.standardOutput {
+      termwidth = 60
     }
-    // For brevity, we simply show each byte's ASCII or escaped form
-    var out = ""
-    for c in s {
-      if c == "\n" {         // newline
-        out.append("$\n")
-      } else if let x = c.asciiValue, x < 32 {
-        // escape
-        out.append("\\")
-        out.append(String(format: "%03o", x))
-      } else {
-        out.append(c)
+    var win = winsize()
+    
+    // Set the termwidth if it has not yet been set
+    if termwidth == -1 {
+      if let c = ProcessInfo.processInfo.environment["COLUMNS"], !c.isEmpty {
+        if let cc = Int(c) {
+          termwidth = cc
+        }
+      } else if
+        ioctl(FileHandle.standardOutput.fileDescriptor, TIOCGWINSZ, &win) != 0 && win.ws_col > 0 {
+          termwidth = Int(win.ws_col)
+        } else {
+          termwidth = 60
+        }
       }
+      if termwidth <= 0 {
+        termwidth = 1
+      }
+      
+    // Start processing the 'l' command
+      var col = 0
+      for wc in s {
+        if wc == "\n" {
+          if col + 1 >= termwidth {
+            outfile.write("\\\n")
+          }
+          outfile.write("$\n")
+          col = 0
+/*        } else if wc == "\r\n" {
+          if col + 1 >= termwidth {
+            outfile.write("\\\n")
+          }
+          outfile.write("$\n")
+          col = 0
+ */
+        } else if iswprint(wc) {
+          let width = wcwidth(wc)
+          if col + width >= termwidth {
+            outfile.write("\\\n")
+            col = 0
+          }
+          outfile.write(String(wc))
+          col += width
+        } else if let ewc = escapes[wc] {
+          if col + 2 >= termwidth {
+            outfile.write("\\\n")
+            col = 0
+          }
+          outfile.write(ewc)
+          col += ewc.count
+        } else {
+          let k = wc.utf16.map { $0.magnitude }
+          if col + 4 * k.count >= termwidth {
+            outfile.write("\\\n")
+            col = 0
+          }
+          for kk in k {
+            let z = String(format: "\\%03o", kk)
+            outfile.write(z)
+          }
+          col += 4 * k.count
+        }
+      }
+      if col + 1 >= termwidth {
+        outfile.write("\\\n")
+      }
+      outfile.write("$\n")
     }
-    out.append("$\n")
-    try writeStringToOutfile(out)
-  }
   
   
   func regexec_e(_ preg : regex_t?, _ string : String,
@@ -709,7 +769,7 @@ class SedProcess {
       return false
     default:
         let se = regerror(eval, defpreg!)
-      throw CmdErr(1, "RE /\(string)/ error: \(se)")
+      throw CmdErr(1, "RE on \(string) error: \(se)")
     }
     /* NOTREACHED */
   }

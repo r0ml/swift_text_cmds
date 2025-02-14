@@ -150,7 +150,7 @@ extension bintrans {
     let codec = encode ? encode_quoted_printable : decode_quoted_printable
     
     do {
-      for try await line in fp.bytes.linesNL {
+      for try await line in fp.bytes.linesNLX {
         // (getline(&line, &linecap, fp) > 0)
         codec(line, fpo);
       }

@@ -498,6 +498,7 @@ extension sed {
             p.removeFirst()
           } else {
             dst.append(p.removeFirst())
+            dst.append(p.removeFirst())
           }
         } else if let next {
           dst.append("\\")
@@ -739,7 +740,7 @@ extension sed {
           }
           s.new = sp
           return sp
-        } else if p.hasPrefix("\n") {
+        } else if p.hasPrefix("\n") || p.hasPrefix("\r\n") {
           throw CompileErr("unescaped newline inside substitute pattern")
         } else {
           sp.append(p.removeFirst())
@@ -813,10 +814,10 @@ extension sed {
         return
       }
       let c = p.first!
-      if !(c == "\n" || c == ";") { p.removeFirst()
+      if !(c == "\n" || c == "\r\n" || c == ";") { p.removeFirst()
       }
       switch c {
-        case "\n",";":
+        case "\n", "\r\n", ";":
           return
         case "g":
           if gn {
@@ -848,7 +849,7 @@ extension sed {
 
         case "w":
           EATSPACE(&p)
-          let wbuf = p.prefix(while: {$0 != "\n" })
+          let wbuf = p.prefix(while: {$0 != "\n" && $0 != "\r\n" })
           if wbuf.isEmpty {
             throw CompileErr("no wfile specified")
           }
@@ -909,7 +910,7 @@ extension sed {
     
     while true {
         if let nl = try await cs.st.cu_fgets(&options) {
-          var nextline = nl.last == "\n" ? nl.dropLast() : Substring(nl) // ditch the \n
+          var nextline = nl.last == "\n" || nl.last == "\r\n" ? nl.dropLast() : Substring(nl) // ditch the \n
           if nextline.last == "\\" {
             text.append(contentsOf: nextline.dropLast())
             text.append("\n")
@@ -982,7 +983,7 @@ extension sed {
    */
   func duptoeol(_ s: inout Substring, _ ctype: String) throws(CompileErr) -> String {
     // find length until \n or \0
-    let ptr = s.prefix(while: { $0 != "\n" } )
+    let ptr = s.prefix(while: { $0 != "\n" && $0 != "\r\n" } )
     if ptr.allSatisfy( { $0.isWhitespace } ) {
       throw CompileErr("whitespace after \(ctype)")
     }

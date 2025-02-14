@@ -147,6 +147,11 @@ struct SPACE {
     if space.last == "\n" {
       self.space = String(space.dropLast())
       self.append_newline = true
+    } else if space.last == "\r\n" {
+      // FIXME: "\r\n" is a single character!
+      // not clear how to consistently reproduce legacy behavior
+      self.append_newline = true
+      self.space = space.dropLast().appending("\r")
     } else {
       self.space = space
     }

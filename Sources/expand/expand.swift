@@ -161,20 +161,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
     FileHandle.standardError.write("\(message)\n".data(using: .utf8)!)
   }
   
-  /// Determines the display width of a Unicode character.
-  /// - Parameter wc: The Unicode scalar to measure.
-  /// - Returns: The width of the character in column positions.
-  func wcwidthSwift(_ wc: Unicode.Scalar) -> Int {
-    // Simplified version: Most characters occupy width 1.
-    // You can enhance this function to handle wide characters appropriately.
-    if wc.properties.isEmoji {
-      return 2
-    } else if wc.properties.generalCategory == .control {
-      return 0
-    } else {
-      return 1
-    }
-  }
+
   
   /// Processes input from a given file handle.
   /// - Parameters:
@@ -193,9 +180,8 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
       }
       
       // Iterate over each Unicode scalar in the string
-      for scalar in string.unicodeScalars {
-        let wc = scalar
-        
+      for wc in string {
+
         switch wc {
           case "\t":
             if options.nstops == 0 {
@@ -243,7 +229,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
             
           default:
             print(wc, terminator: "")
-            let width = wcwidthSwift(wc)
+            let width = wcwidth(wc)
             if width > 0 {
               column += width
             }

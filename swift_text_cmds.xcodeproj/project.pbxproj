@@ -332,7 +332,6 @@
 		E76973132CF65DB800F3903F /* wc.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = E76973122CF65DB800F3903F /* wc.xctestplan */; };
 		E76973192CF67BFF00F3903F /* jqTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E76972442CF635B200F3903F /* jqTest.swift */; };
 		E769731A2CF6E53200F3903F /* foldTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E76972172CF634F000F3903F /* foldTest.swift */; };
-		E781FA052D5923410019682B /* MoreMigrationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E781FA042D5923410019682B /* MoreMigrationSupport.swift */; };
 		E781FA072D5926560019682B /* ScriptReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E781FA062D5926560019682B /* ScriptReader.swift */; };
 		E781FA092D59A80E0019682B /* SourceReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E781FA082D59A80E0019682B /* SourceReader.swift */; };
 		E797373C2D0E947D0011846D /* g1.t in Resources */ = {isa = PBXBuildFile; fileRef = E79736D52D0E947D0011846D /* g1.t */; };
@@ -2181,7 +2180,6 @@
 		E76973102CF65DA200F3903F /* uniq.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = uniq.xctestplan; sourceTree = "<group>"; };
 		E76973122CF65DB800F3903F /* wc.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = wc.xctestplan; sourceTree = "<group>"; };
 		E76973142CF65DE900F3903F /* all.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = all.xctestplan; sourceTree = "<group>"; };
-		E781FA042D5923410019682B /* MoreMigrationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreMigrationSupport.swift; sourceTree = "<group>"; };
 		E781FA062D5926560019682B /* ScriptReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptReader.swift; sourceTree = "<group>"; };
 		E781FA082D59A80E0019682B /* SourceReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceReader.swift; sourceTree = "<group>"; };
 		E79736A52D0E947D0011846D /* =.err */ = {isa = PBXFileReference; lastKnownFileType = text; path = "=.err"; sourceTree = "<group>"; };
@@ -2337,6 +2335,7 @@
 		E79737D32D0E98C70011846D /* csplitTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = csplitTest.swift; sourceTree = "<group>"; };
 		E79737D62D0E98E80011846D /* csplit.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = csplit.xctestplan; sourceTree = "<group>"; };
 		E79737DB2D0E99010011846D /* csplitTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = csplitTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7B759E12D5E2CF4004B6D22 /* Notes.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Notes.md; sourceTree = "<group>"; };
 		E7E621392D1095DB00E26DA9 /* regress.00.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00.out; sourceTree = "<group>"; };
 		E7E6213A2D1095DB00E26DA9 /* regress.00a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00a.in; sourceTree = "<group>"; };
 		E7E6213B2D1095DB00E26DA9 /* regress.00b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00b.in; sourceTree = "<group>"; };
@@ -4197,7 +4196,6 @@
 				E71C05AB2D489B6B00B2538D /* defs.swift */,
 				E781FA062D5926560019682B /* ScriptReader.swift */,
 				E781FA082D59A80E0019682B /* SourceReader.swift */,
-				E781FA042D5923410019682B /* MoreMigrationSupport.swift */,
 			);
 			path = sed;
 			sourceTree = "<group>";
@@ -4813,6 +4811,7 @@
 			isa = PBXGroup;
 			children = (
 				E73639B12CFF931300D56A6B /* README.md */,
+				E7B759E12D5E2CF4004B6D22 /* Notes.md */,
 				E76973142CF65DE900F3903F /* all.xctestplan */,
 				E769725E2CF63A1500F3903F /* template.swift */,
 				E76970912CF5475A00F3903F /* Package.swift */,
@@ -8169,7 +8168,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E781FA052D5923410019682B /* MoreMigrationSupport.swift in Sources */,
 				E781FA072D5926560019682B /* ScriptReader.swift in Sources */,
 				E76972C72CF63F0600F3903F /* sed.swift in Sources */,
 				E781FA092D59A80E0019682B /* SourceReader.swift in Sources */,

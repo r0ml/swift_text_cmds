@@ -57,24 +57,24 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-i"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = ".bak"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-e"
+            argument = "-n"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "s,foo,bar,g"
+            argument = "l"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-E"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "s/[A-Z]*/\\`&amp;\\`/g"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2q"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-dtzcnzzmaalndsfuhzjfrvoittcq/Build/Products/Debug/sedTest.xctest/Contents/Resources/hanoi.sed"
@@ -90,17 +90,24 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/tmp/a"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/yyy"
-            isEnabled = "NO">
+            argument = "/Users/r0ml/Desktop/zzz"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/xxx"
             isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "LC_CTYPE"
+            value = "en_US.UTF-8"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

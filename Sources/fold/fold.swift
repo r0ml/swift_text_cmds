@@ -151,20 +151,13 @@ let DEFLINEWIDTH = 80
           column = (column + 8) & ~7
         default:
           // Using Unicode scalar width
-          let width = wcwidthSwift(ch: ch)
+          let width = wcwidth(ch)
           if width > 0 {
             column += width
           }
       }
     }
     return column
-  }
-  
-  // Helper function to determine character width
-  func wcwidthSwift(ch: Character) -> Int {
-    // Simplified version: Assume width 1 for most characters
-    // Implement more accurate width calculation if needed
-    return 1
   }
   
   // Fold Function

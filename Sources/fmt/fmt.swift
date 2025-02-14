@@ -397,7 +397,7 @@ import CMigration
   /// Outputs a single word or adds it to the buffer.
   func outputWord(indent0: Int, indent1: Int, word: String, spaces: Int, _ options : CommandOptions) {
     let indent = outputInParagraph ? indent1 : indent0
-    let width = word.reduce(0) { $0 + wcwidthSwift($1) }
+    let width = word.reduce(0) { $0 + wcwidth($1) }
     let newX = x + pendingSpaces + width
     
     // Determine the number of spaces to add
@@ -457,7 +457,7 @@ import CMigration
     let buffer = StreamReader(stream: stream)
     while let line = buffer.nextLine() {
       let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-      let lineWidth = trimmedLine.reduce(0) { $0 + wcwidthSwift($1) }
+      let lineWidth = trimmedLine.reduce(0) { $0 + wcwidth($1) }
       var padding = ""
       var currentWidth = 0
       while currentWidth < options.goalLength - lineWidth {
@@ -499,7 +499,7 @@ import CMigration
           line += String(repeating: " ", count: spacesPending)
           spacesPending = 0
           line.append(ch)
-          col += wcwidthSwift(ch)
+          col += wcwidth(ch)
         }
       }
       return line
@@ -514,19 +514,7 @@ import CMigration
     return nil
   }
   
-  /// Calculates the display width of a character.
-  /// Swift does not have a direct equivalent to C's `wcwidth`, so we provide a basic implementation.
-  func wcwidthSwift(_ ch: Character) -> Int {
-    // Simplified: Most characters occupy width 1. You can enhance this with more accurate width calculations if needed.
-    let scalars = String(ch).unicodeScalars
-    for scalar in scalars {
-      if scalar.properties.isEmoji {
-        return 2
-      }
-    }
-    return 1
-  }
-  
+
   // MARK: - Stream Reader
   
   /// A simple line reader for InputStream.
