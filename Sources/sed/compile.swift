@@ -339,7 +339,9 @@ extension sed {
           if os == nil {
             throw CompileErr("unterminated substitute pattern")
           }
-          
+
+          mysubst.src = os
+
           // FIXME: the original does the compile twice
 //          let re = try compile_re(os!, false, &cs, options)
 //          mysubst.re = re
@@ -361,6 +363,8 @@ extension sed {
           let ns = try await compile_subst(&p, &mysubst, &cs.st, &options )
           // compile_flags => sets s->n, s->p, s->wfile, etc.
           try compile_flags(&p, &mysubst, options.aflag)
+          
+          mysubst.tgt = ns
           
           // Now recompile if “I” was set:
 /*          if reString.isEmpty {
@@ -956,9 +960,9 @@ extension sed {
         }
 
         if reString.isEmpty {
-          return s_addr.AT_RE(nil)
+          return s_addr.AT_RE(nil, nil)
         } else {
-          return try s_addr.AT_RE( compile_re(reString, icase, &cs, options))
+          return try s_addr.AT_RE( compile_re(reString, icase, &cs, options), reString )
         }
       case "$":
         p.removeFirst()
@@ -994,11 +998,11 @@ extension sed {
   func definelabels(_ p : [s_command], _ stk : [Int], _ cs : inout CompileState) {
     for i in 0..<p.count {
       if p[i].code == ":" {
-        cs.labels[p[i].t] = [i] + stk
+        cs.labels[p[i].t] = stk + [i]
       }
       if p[i].code == "{" {
         if case let .c(cc) = p[i].u {
-          definelabels(cc, [i]+stk, &cs)
+          definelabels(cc, stk + [i], &cs)
         }
       }
     }

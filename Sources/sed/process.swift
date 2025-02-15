@@ -79,7 +79,7 @@ class SedProcess {
   
   var quit = false
       
-
+  var tracing = false
   
   /* The s_addr structure references the type of address. */
   enum at_type {
@@ -153,12 +153,27 @@ class SedProcess {
   } // while lines in input
 
   func process_line(_ PS : inout SPACE, _ prog : inout [s_command], _ branch : ArraySlice<Int>) async throws {
-    
-    for (i, cp) in prog.enumerated().dropFirst(branch.first ?? 0) {
+    var bb = branch
+    for (i, cp) in prog.enumerated().dropFirst(bb.first ?? 0) {
+      if bb.count > 1 {
+        bb.removeFirst()
+        if case .c(var cc) = cp.u {
+          try await process_line(&PS, &cc, bb)
+//          cp.u = .c(cc)
+          continue
+        }
+        fatalError("branch target error")
+      }
       
       let (sl, b) = try await applies(PS, cp)
       prog[i].startline = sl
       if (!b) { continue }
+      
+      if tracing {
+        cp.trace()
+        print("PS: \(PS.space)")
+        print("HS: \(HS.space)")
+      }
       
       switch cp.code {
         case "{":
@@ -206,8 +221,9 @@ class SedProcess {
           // goto new: basically we go to the bottom of the loop
           // That means we skip the rest and do OUT() if needed, then next line
           //            gotoNew()
-          return  // in C, it jumps; we replicate by returning from this function
+          // return  // in C, it jumps; we replicate by returning from this function
                   // or do a 'break top-level while'. Here we simplify with a function.
+          throw Branch.to([])
           
         case "D":
           if PS.deleted {
@@ -220,11 +236,10 @@ class SedProcess {
             // goto top
             // FIXME: is this right?
             try await process_line(&PS, &prog, [])
-            return
           } else {
             PS.deleted = true
-            return
           }
+          throw Branch.to([])
           
         case "g":
           PS.space = HS.space
@@ -397,6 +412,9 @@ class SedProcess {
           case .AT_RELLINE(let u_int):
             // if (linenum - cp->startline <= cp->a2->u.l)
             if linenum - cp.startline <= u_int {
+              if (tracing) {
+                print("RELLINE: \(u_int)")
+              }
               return (res, !cp.nonsel)
             } else {
               return (0, cp.nonsel)
@@ -442,10 +460,18 @@ class SedProcess {
    */
   func MATCH(_ PS : SPACE, _ a: s_addr) async throws -> Bool {
     switch a {
-      case .AT_RE(let regexp):
-        return try regexec_e(regexp, PS.space, 0, true, 0, Int64(PS.space.count))
+      case .AT_RE(let regexp, let src):
+        let k = try regexec_e(regexp, PS.space, 0, true, 0, Int64(PS.space.count))
+        if tracing {
+          print("applies (\(k)) \(src)")
+        }
+        return k
       case .AT_LINE(let u_int):
-        return linenum == u_int
+        let k = linenum == u_int
+        if tracing {
+          print("applies (\(k)) \(u_int)")
+        }
+        return k
       case .AT_RELLINE:
         // Not used in MATCH directly in the original macro,
         // but the code does check for relative line within applies().
@@ -501,8 +527,12 @@ class SedProcess {
       }
     }
 
+    if tracing {
+      print("substitute \(ssub.src!) -> \(ssub.tgt!)" )
+    }
+    
     // Try to match.
-    if try !regexec_e(re, PS.space, 0, false, 0, Int64(PS.space.count)) {
+    if try !regexec_e(re, PS.space, 0, false, 0, Int64(PS.space.utf8.count)) {
       return false
     }
     
@@ -537,7 +567,7 @@ class SedProcess {
       }
       
       // move past this match
-      s = String(PS.space.dropFirst(Int(match[0].rm_eo)))
+      s = String(PS.space.utf8.dropFirst(Int(match[0].rm_eo)))!
       le = Int(match[0].rm_eo)
       
       // After a zero-length match, advance one byte, and at the end of the line, terminate.b
@@ -559,7 +589,7 @@ class SedProcess {
       }
     } while try n >= 0 && s.count >= 0 && !done && regexec_e(re, PS.space, Int(REG_NOTBOL),
 //                                             NSRegularExpression.Options(rawValue: 0),
-                                             false, Int64(le), Int64(PS.space.count)
+                                                             false, Int64(le), Int64(PS.space.utf8.count)
     )
     
     // if n > 0 => not enough matches found
@@ -860,7 +890,7 @@ class SedProcess {
         let eo = Int(match[0].rm_eo)
         if so != -1 && eo != -1 {
           let length = eo - so
-          sp.space.append(contentsOf: stringPtr.dropFirst(so).prefix(length)) // appendToSPACE(&sp, stringPtr + so, length)
+          sp.space.append(contentsOf: String(stringPtr.utf8.dropFirst(so).prefix(length))!) // appendToSPACE(&sp, stringPtr + so, length)
         }
         i += 1
       } else if c == "\\" && (i + 1) < src.count {

@@ -719,14 +719,15 @@ p
     try await run(status: 1, args: s)
   }
   
-  @Test("Error cases", arguments: [
+  @Test("Error cases 2", arguments: [
     ["-f", "/dev/xyzzyxyzy"],
     ["p",  "/dev/xyzzyxyzy"],
     ["-f", "/bin/sh"],
     ["-e", "-5p"],
 //    ["", "/dev/null"], // this succeeds on macOS 15.1
   ]) func test_error(_ s : [String]) async throws {
-    try await run(status: 1, args: s as [Arguable])
+    try await run(status: 1, args: s as [Arguable],
+                  env: ["LC_CTYPE" : "C"] )
   }
 
 }

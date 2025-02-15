@@ -57,8 +57,8 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-n"
-            isEnabled = "NO">
+            argument = "-f"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "l"
@@ -66,11 +66,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-E"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "s/[A-Z]*/\\`&amp;\\`/g"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2q"
@@ -81,15 +81,15 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-dtzcnzzmaalndsfuhzjfrvoittcq/Build/Products/Debug/sedTest.xctest/Contents/Resources/math.sed"
-            isEnabled = "NO">
+            argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/sedTest/Resources/math.sed"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/mmm"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/tmp/a"
+            argument = ""
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

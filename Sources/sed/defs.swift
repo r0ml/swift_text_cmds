@@ -47,7 +47,7 @@ import Foundation
  * have associated data
  */
 enum s_addr {
-    case AT_RE(regex_t?)    // Line that matches RE
+    case AT_RE(regex_t?, String?)    // Line that matches RE
     case AT_LINE(UInt)     // Specific line
     case AT_RELLINE(UInt)  // Relative line
     case AT_LAST           // Last line
@@ -65,7 +65,9 @@ class s_subst {
   var wfd: FileHandle? = nil   // Cached file for output (write)
   
   var re: regex_t? = nil     // Regular expression
-                             
+  var src : String? = nil
+  var tgt : String? = nil
+  
   // TODO: an alternative implementation that uses NSRegularExpression instead of regex_t
   //  var nsre : NSRegularExpression? = nil
   var maxbref: UInt = 0      // Largest backreference
@@ -106,6 +108,10 @@ struct s_command {
   var nonsel = false            // True if '!'
   var u : command_u!
   var t: String = ""            // Text for : a c i r w
+  
+  func trace() {
+    print("cmd: \(code) \(t)")
+  }
 }
 
 /**
