@@ -1,5 +1,5 @@
 
-// Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
+// Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025 using ChatGPT
 // from a file with the following notice:
 
 /*

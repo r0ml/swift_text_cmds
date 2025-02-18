@@ -39,19 +39,21 @@ import ShellTesting
     }
   }
   
-  @Test func bytes() async throws {
+  @Test func bytes1() async throws {
     let p = ShellProcess(ex, "-b", "4", "-", "split-")
     let (r, _, _) = try await p.run("aaaabb\ncccc\n")
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-   let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
+    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
     #expect( "aaaa" == o1 )
     #expect( "bb\nc" == o2 )
     #expect( "ccc\n" == o3 )
     
     deleteTempFiles(["split-aa", "split-ab", "split-ac"])
-    
+  }
+  
+  @Test func bytes2() async throws {
     let pieces = [
       String(repeating: "a", count: MAXBSIZE+12),
       String(repeating: "b", count: MAXBSIZE+12),
@@ -95,7 +97,7 @@ import ShellTesting
   }
 
   
-  @Test func sensible_lines() async throws {
+  @Test func sensible_lines1() async throws {
     let pieces = [
       "The quick brown fox\n",
       "jumps over\n",
@@ -107,12 +109,20 @@ import ShellTesting
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-   let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
+    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
     #expect( pieces[0] == o1 )
     #expect( pieces[1] == o2 )
     #expect( pieces[2] == o3 )
     
     deleteTempFiles(["split-aa", "split-ab", "split-ac"])
+  }
+  
+  @Test func sensible_lines2() async throws {
+    let pieces = [
+      "The quick brown fox\n",
+      "jumps over\n",
+      "the lazy dog\n",
+    ]
     
     let p2 = ShellProcess(ex, "-l", "2", "-", "split-")
     let (r2, _, _) = try await p2.run( pieces.joined() )
