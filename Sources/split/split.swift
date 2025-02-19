@@ -288,7 +288,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           pmatch.rm_so = 0
           pmatch.rm_eo = regoff_t(line.count)
           
-          if (regexec(&rgx, line, 0, &pmatch, REG_STARTEND) != 0) {
+          if (regexec(&rgx, line, 0, &pmatch, REG_STARTEND) == 0) {
             try newfile(options, &state)
           }
           //        if let regex = regexPattern, regex.firstMatch(in: line, range: NSRange(location: 0, length: line.utf16.count)) != nil {

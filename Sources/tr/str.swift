@@ -61,10 +61,9 @@ class STR {
 }
 
 // Apple-Specific Collation Lookup Cache
-#if os(macOS)
+
 var collationWeightCache = [Int](repeating: -1, count: NCHARS_SB)
 var isWeightCached = false
-#endif
 
 /// Retrieves the next character from a given STR object.
 func next(_ s: STR) -> Int {

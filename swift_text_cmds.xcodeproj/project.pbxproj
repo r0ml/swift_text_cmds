@@ -495,6 +495,11 @@
 		E7B759EF2D62EC5C004B6D22 /* cset.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759ED2D62EC5C004B6D22 /* cset.swift */; };
 		E7B759F12D62EC6F004B6D22 /* str.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F02D62EC6F004B6D22 /* str.swift */; };
 		E7B759F22D62EC6F004B6D22 /* str.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F02D62EC6F004B6D22 /* str.swift */; };
+		E7B759F62D6631E6004B6D22 /* bwstring.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F52D6631E6004B6D22 /* bwstring.swift */; };
+		E7B759F82D6631FA004B6D22 /* coll.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F72D6631FA004B6D22 /* coll.swift */; };
+		E7B759FA2D663208004B6D22 /* file.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F92D663208004B6D22 /* file.swift */; };
+		E7B759FE2D663230004B6D22 /* radixsort.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759FD2D663230004B6D22 /* radixsort.swift */; };
+		E7B75A002D663234004B6D22 /* vsort.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759FF2D663234004B6D22 /* vsort.swift */; };
 		E7C2936F2D417CB2007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2936E2D417CB2007721DE /* ShellTesting */; };
 		E7C293712D417CBB007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293702D417CBB007721DE /* ShellTesting */; };
 		E7C293732D417CBF007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293722D417CBF007721DE /* ShellTesting */; };
@@ -2353,6 +2358,11 @@
 		E7B759EA2D62EC4B004B6D22 /* cmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmap.swift; sourceTree = "<group>"; };
 		E7B759ED2D62EC5C004B6D22 /* cset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cset.swift; sourceTree = "<group>"; };
 		E7B759F02D62EC6F004B6D22 /* str.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = str.swift; sourceTree = "<group>"; };
+		E7B759F52D6631E6004B6D22 /* bwstring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = bwstring.swift; sourceTree = "<group>"; };
+		E7B759F72D6631FA004B6D22 /* coll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = coll.swift; sourceTree = "<group>"; };
+		E7B759F92D663208004B6D22 /* file.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = file.swift; sourceTree = "<group>"; };
+		E7B759FD2D663230004B6D22 /* radixsort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = radixsort.swift; sourceTree = "<group>"; };
+		E7B759FF2D663234004B6D22 /* vsort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = vsort.swift; sourceTree = "<group>"; };
 		E7E621392D1095DB00E26DA9 /* regress.00.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00.out; sourceTree = "<group>"; };
 		E7E6213A2D1095DB00E26DA9 /* regress.00a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00a.in; sourceTree = "<group>"; };
 		E7E6213B2D1095DB00E26DA9 /* regress.00b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00b.in; sourceTree = "<group>"; };
@@ -4207,6 +4217,11 @@
 			isa = PBXGroup;
 			children = (
 				E76972752CF63BB100F3903F /* sort.swift */,
+				E7B759F52D6631E6004B6D22 /* bwstring.swift */,
+				E7B759F72D6631FA004B6D22 /* coll.swift */,
+				E7B759F92D663208004B6D22 /* file.swift */,
+				E7B759FD2D663230004B6D22 /* radixsort.swift */,
+				E7B759FF2D663234004B6D22 /* vsort.swift */,
 			);
 			path = sort;
 			sourceTree = "<group>";
@@ -8205,7 +8220,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E7B759F82D6631FA004B6D22 /* coll.swift in Sources */,
+				E7B759FA2D663208004B6D22 /* file.swift in Sources */,
+				E7B759FE2D663230004B6D22 /* radixsort.swift in Sources */,
 				E76972CC2CF63F2400F3903F /* sort.swift in Sources */,
+				E7B75A002D663234004B6D22 /* vsort.swift in Sources */,
+				E7B759F62D6631E6004B6D22 /* bwstring.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
