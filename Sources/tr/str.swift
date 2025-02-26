@@ -41,228 +41,235 @@ let OOBCH = -1  // Out-Of-Bounds Character Placeholder
 
 // Define Structure for Pattern Matching
 class STR {
-    enum State {
-        case eos, infinite, normal, range, sequence, cclass, cclassUpper, cclassLower, set
+  enum State {
+    case eos, infinite, normal, range, sequence, cclass, cclassUpper, cclassLower, set
+  }
+  
+  var state: State = .normal
+  var str : Substring
+  var originalStr: String
+  var lastch: UnicodeScalar = 0
+  var cnt: Int = 0
+  var cclass: CharacterSet?
+  var set: [Int] = []
+  var equiv: [Int] = []
+  var result = CharacterSet()
+  
+  init(_ str: String) {
+    self.originalStr = str
+    self.str = Substring(str)
+    while let k = next() {
+      result.union(k)
     }
-    
-    var state: State = .normal
-    var str: String.UTF8View.Index
-    var originalStr: String.UTF8View
-    var lastch: UnicodeScalar = UnicodeScalar(0)
-    var cnt: Int = 0
-    var cclass: CharacterSet?
-    var set: [Int] = []
-    var equiv: [Int] = []
-    
-    init(str: String) {
-        self.originalStr = str.utf8
-        self.str = self.originalStr.startIndex
-    }
-}
-
-// Apple-Specific Collation Lookup Cache
-
-var collationWeightCache = [Int](repeating: -1, count: NCHARS_SB)
-var isWeightCached = false
-
-/// Retrieves the next character from a given STR object.
-func next(_ s: STR) -> Int {
+  }
+  
+  
+  // Apple-Specific Collation Lookup Cache
+  
+  var collationWeightCache = [Int](repeating: -1, count: NCHARS_SB)
+  var isWeightCached = false
+  
+  /// Retrieves the next character from a given STR object.
+  func next() -> CharacterSet? {
     var isOctal = false
-    var ch: Int
+//    var ch: Int
     var wchar: UnicodeScalar?
     
-    switch s.state {
-    case .eos:
-        return 0
-    case .infinite:
-        if s.str >= s.originalStr.endIndex {
-            s.state = .normal
-            return 1
+    switch state {
+      case .eos:
+        return nil
+      case .infinite:
+        if str.isEmpty {
+          state = .normal
+          return true
         }
-        return 1
-    case .normal:
-        guard s.str < s.originalStr.endIndex else {
-            s.state = .eos
-            return 0
+        return true
+      case .normal:
+        guard !str.isEmpty else {
+          state = .eos
+          return nil
         }
         
-        let currentChar = s.originalStr[s.str]
-        s.str = s.originalStr.index(after: s.str)
-        
-        switch currentChar {
-        case UInt8(ascii: "\\"):
-            s.lastch = UnicodeScalar(backslash(s, &isOctal))!
-        case UInt8(ascii: "["):
-            if bracket(s) {
-                return next(s)
+        let ch = str.removeFirst()
+        switch ch {
+          case "\\":
+            lastch = backslash()
+          case "[":
+            if bracket() {
+              return next()
             }
-        default:
-            s.lastch = UnicodeScalar(currentChar)
+          default:
+            lastch = ch
         }
         
         // Handle Ranges
-        if s.str < s.originalStr.endIndex, s.originalStr[s.str] == UInt8(ascii: "-"),
-           genrange(s, isOctal) {
-            return next(s)
+        if str.first == "-",
+           genrange() {
+          return next()
         }
-        return 1
-    case .range:
-        if s.cnt == 0 {
-            s.state = .normal
-            return next(s)
+        return true
+      case .range:
+        if cnt == 0 {
+          state = .normal
+          return next()
         }
-        s.cnt -= 1
-        s.lastch = UnicodeScalar(s.lastch.value + 1)!
-        return 1
-    case .sequence:
-        if s.cnt == 0 {
-            s.state = .normal
-            return next(s)
+        cnt -= 1
+        lastch = UnicodeScalar(s.lastch.value + 1)!
+        return true
+      case .sequence:
+        if cnt == 0 {
+          state = .normal
+          return next()
         }
-        s.cnt -= 1
-        return 1
-    case .cclass, .cclassUpper, .cclassLower:
-        s.cnt += 1
-        ch = nextwctype(s.lastch.value, s.cclass!)
+        cnt -= 1
+        return true
+      case .cclass, .cclassUpper, .cclassLower:
+        cnt += 1
+        ch = nextwctype(lastch.value, cclass!)
         if ch == -1 {
-            s.state = .normal
-            return next(s)
+          state = .normal
+          return next()
         }
-        s.lastch = UnicodeScalar(ch)!
-        return 1
-    case .set:
-        if s.cnt >= s.set.count {
-            s.state = .normal
-            return next(s)
+        lastch = UnicodeScalar(ch)!
+        return true
+      case .set:
+        if cnt >= set.count {
+          state = .normal
+          return next()
         }
-        s.lastch = UnicodeScalar(s.set[s.cnt])!
-        s.cnt += 1
-        return 1
+        lastch = UnicodeScalar(set[cnt])!
+        cnt += 1
+        return true
     }
-}
-
-/// Parses bracketed expressions in a pattern.
-func bracket(_ s: STR) -> Bool {
-    guard s.str < s.originalStr.endIndex else { return false }
+  }
+  
+  /// Parses bracketed expressions in a pattern.
+  func bracket() -> Bool {
+    guard !str.isEmpty else { return false }
     
-    let nextChar = s.originalStr[s.str]
+    let nextChar = str.first
     
     switch nextChar {
-    case UInt8(ascii: ":"):
-        if let closingBracket = s.originalStr[s.str...].firstIndex(of: UInt8(ascii: "]")) {
-            if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: ":") {
-                s.str = s.originalStr.index(after: closingBracket)
-                genclass(s)
-                return true
-            }
+      case ":":
+        if let closingBracket = s.originalStr[s.str...].firstIndex(of:  "]") {
+          if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: ":") {
+            s.str = s.originalStr.index(after: closingBracket)
+            genclass(cn)
+            return true
+          }
         }
-    case UInt8(ascii: "="):
+      case "=":
         if let closingBracket = s.originalStr[s.str...].firstIndex(of: UInt8(ascii: "]")) {
-            if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: "=") {
-                s.str = s.originalStr.index(after: closingBracket)
-                genequiv(s)
-                return true
-            }
+          if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: "=") {
+            s.str = s.originalStr.index(after: closingBracket)
+            genequiv()
+            return true
+          }
         }
-    default:
+      default:
         break
     }
     
     return false
-}
-
-/// Generates a character class.
-func genclass(_ s: STR) {
-    let className = String(utf8String: s.originalStr[s.str...]) ?? ""
-    s.cclass = CharacterSet(charactersIn: className)
-    s.state = .cclass
-    s.cnt = 0
-}
-
-/// Generates equivalent character set.
-func genequiv(_ s: STR) {
-    let char = s.lastch
-    var equivalents: [Int] = [Int(char.value)]
-    
-    #if os(macOS)
+  }
+  
+  /// Generates a character class.
+  func genclass(_ className : String) {
+    cclass = CharacterSet(charactersIn: className)
+    state = .cclass
+    cnt = 0
+  }
+  
+  
+  /// Generates equivalent character set.
+  func genequiv() {
+    var char = lastch
+    var equivalents: [UnicodeScalar] = [lastch]
+    let LC_GLOBAL_LOCALE = locale_t(UnsafePointer(bitPattern: -1))
     // Mac-specific collation lookup
     var primaryWeight: Int = -1
-    __collate_lookup_l(&char, &primaryWeight, nil, nil, LC_GLOBAL_LOCALE)
+    var z : UnsafePointer<Int32>?
+    
+    __collate_lookup_l(&char, &primaryWeight,
+                       &z,
+                       &z, LC_GLOBAL_LOCALE)
     
     if primaryWeight != -1 {
-        for i in 1..<NCHARS_SB {
-            var candidatePrimaryWeight: Int
-            if isWeightCached {
-                candidatePrimaryWeight = collationWeightCache[i]
-            } else {
-                __collate_lookup_l(UnicodeScalar(i), &candidatePrimaryWeight, nil, nil, LC_GLOBAL_LOCALE)
-                collationWeightCache[i] = candidatePrimaryWeight
-            }
-            
-            if candidatePrimaryWeight == primaryWeight {
-                equivalents.append(i)
-            }
+      for i in 1..<NCHARS_SB {
+        var candidatePrimaryWeight: Int
+        if isWeightCached {
+          candidatePrimaryWeight = collationWeightCache[i]
+        } else {
+          __collate_lookup_l(UnicodeScalar(i), &candidatePrimaryWeight, nil, nil, LC_GLOBAL_LOCALE)
+          collationWeightCache[i] = candidatePrimaryWeight
         }
         
-        isWeightCached = true
+        if candidatePrimaryWeight == primaryWeight {
+          equivalents.append(i)
+        }
+      }
+      
+      isWeightCached = true
     }
-    #endif
     
-    s.set = equivalents
-    s.state = .set
-}
-
-/// Generates a range of characters.
-func genrange(_ s: STR, _ wasOctal: Bool) -> Bool {
-    guard s.str < s.originalStr.endIndex else { return false }
+    set = equivalents
+    state = .set
+  }
+  
+  /// Generates a range of characters.
+  func genrange(_ wasOctal: Bool) -> CharacterSet? {
+    guard !str.isEmpty else { return nil }
     
     let stopval: UnicodeScalar
-    let originalStrIndex = s.str
-    var isOctal = false
+//    let originalStrIndex = s.str
+//    var isOctal = false
     
-    if s.originalStr[s.str] == UInt8(ascii: "\\") {
-        s.str = s.originalStr.index(after: s.str)
-        stopval = UnicodeScalar(backslash(s, &isOctal))!
+    if str.first == "\\" {
+      str.removeFirst()
+      stopval = backslash()
     } else {
-        stopval = UnicodeScalar(s.originalStr[s.str])
-        s.str = s.originalStr.index(after: s.str)
+      stopval = str.removeFirst().unicodeScalars.first!
     }
     
-    if wasOctal || isOctal {
-        if stopval.value < s.lastch.value {
-            s.str = originalStrIndex
-            return false
-        }
-        s.cnt = Int(stopval.value - s.lastch.value) + 1
-        s.state = .range
-        return true
-    }
+/*    if wasOctal || isOctal {
+      if stopval.value < lastch.value {
+        return nil
+      }
+ */
+      state = .range
+      return CharacterSet(charactersIn: lastch...stopval)
+//    }
     
-    return false
-}
-
-/// Processes escape sequences in a string.
-func backslash(_ s: STR, _ isOctal: inout Bool) -> Int {
+    return nil
+  }
+  
+  /// Processes escape sequences in a string.
+  func backslash() -> UnicodeScalar {
     var val = 0
     var count = 0
-    isOctal = false
     
-    while let ch = s.originalStr[s.str...].first, ch.isNumber && ch <= UInt8(ascii: "7") {
-        val = val * 8 + Int(ch - UInt8(ascii: "0"))
-        count += 1
-        s.str = s.originalStr.index(after: s.str)
-        if count == 3 { break }
+    while let ch = str.first,
+          let n = Array("01234567").firstIndex(of: ch) {
+      val = val * 8 + n
+      count += 1
+      str.removeFirst()
+      if count == 3 { break }
     }
     
     if count > 0 {
-        isOctal = true
-        return val
+      return UnicodeScalar(val) ?? "?"
     }
     
-    switch s.originalStr[s.str] {
-    case UInt8(ascii: "n"): s.str = s.originalStr.index(after: s.str); return 10
-    case UInt8(ascii: "t"): s.str = s.originalStr.index(after: s.str); return 9
-    case UInt8(ascii: "r"): s.str = s.originalStr.index(after: s.str); return 13
-    default: return Int(s.originalStr[s.str])
+    let ch = str.first
+    switch ch  {
+      case "n": str.removeFirst()
+        return "\n"
+      case "t": str.removeFirst()
+        return "\t"
+      case "r": str.removeFirst()
+        return "\r"
+      default: str.removeFirst()
+        return (ch ?? "\0").unicodeScalars.first ?? "?"
     }
+  }
 }

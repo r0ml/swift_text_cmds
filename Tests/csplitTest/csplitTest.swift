@@ -29,13 +29,13 @@
 
 import ShellTesting
 
-class csplitTest : ShellTest {
+@Suite(.serialized) class csplitTest : ShellTest {
   let cmd = "csplit"
   let suiteBundle = "text_cmds_csplitTest"
   
-    @Test("Test an edge case where input has fewer lines than count") func lines_lt_count() async throws {
-      let xf = [
-        try tmpfile("expectfile00", """
+  @Test("Test an edge case where input has fewer lines than count") func lines_lt_count() async throws {
+    let xf = [
+      try tmpfile("expectfile00", """
 one
 two
 
@@ -46,27 +46,37 @@ three
 four
 
 """)
-        ,
+      ,
       try tmpfile("expectfile02", """
 xxx 2
 five
 six
 
 """)
-        ]
-      
-      let (r, j, e) = try await ShellProcess(cmd, "-k", "-", "/xxx/", "{10}").run("one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n")
-      
-      let cd = FileManager.default.temporaryDirectory
-      let ffx = [0,1,2].map { cd.appending(path: "xx0\($0)", directoryHint: .notDirectory) }
-
-      #expect(r == 1, Comment(rawValue: e ?? ""))
-      for i in [0,1,2] {
-        let aa = try String(contentsOf: xf[i], encoding: .utf8)
-        let bb = try String(contentsOf: ffx[i], encoding: .utf8)
-        #expect(aa == bb)
-      }
-      rm(xf + ffx)
+    ]
+    
+    let (r, j, e) = try await ShellProcess(cmd, "-k", "-", "/xxx/", "{10}").run("one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n")
+    
+    let cd = FileManager.default.temporaryDirectory
+    let ffx = [0,1,2].map { cd.appending(path: "xx0\($0)", directoryHint: .notDirectory) }
+    
+    #expect(r == 1, Comment(rawValue: e ?? ""))
+    for i in [0,1,2] {
+      let aa = try String(contentsOf: xf[i], encoding: .utf8)
+      let bb = try String(contentsOf: ffx[i], encoding: .utf8)
+      #expect(aa == bb)
     }
-
+    rm(xf + ffx)
+  }
+  
+  @Test("Basic regular expression split") func bre() async throws {
+    let a = try tmpfile("sample.txt", "apple\nbanana\ncherry\ndate\n")
+    let (r, j, e) = try await ShellProcess(cmd, a, "/cherry/").run()
+    #expect(r == 0)
+    let cd = FileManager.default.temporaryDirectory
+    let aa = try String(contentsOf: cd.appending(component: "xx00"), encoding: .utf8)
+    let bb = try String(contentsOf: cd.appending(component: "xx01"), encoding: .utf8)
+    #expect(aa == "apple\nbanana\n")
+    #expect(bb == "cherry\ndate\n")
+  }
 }

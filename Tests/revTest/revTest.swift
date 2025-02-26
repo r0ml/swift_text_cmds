@@ -9,13 +9,19 @@ import ShellTesting
   let suiteBundle = "text_cmds_revTest"
 
   @Test func basic() async throws {
-    let input = "The merit of all things\nlies\nin their difficulty\n"
+    let input = """
+    The merit of all things
+    lies
+    in their difficulty
+    
+    """
+    
     let op = """
-                     The merit of all things
-                               lies
-                       in their difficulty
+sgniht lla fo tirem ehT
+seil
+ytluciffid rieht ni
 
 """
-    try await run(withStdin: input, output: op, args: "-c")
+    try await run(withStdin: input, output: op)
   }
 }

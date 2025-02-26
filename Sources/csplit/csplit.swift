@@ -51,464 +51,586 @@
 
 import Foundation
 import CMigration
+import Synchronization
+
+let doclean = Mutex(false)
+let filesToClean = Mutex<[String]>([])
 
 @main final class csplit : ShellCommand {
-
-  var usage : String = "Not yet implemented"
+  
+  var usage : String = "usage: csplit [-ks] [-f prefix] [-n number] file args ..."
   
   struct CommandOptions {
     var kflag = false
     var sflag = false
     var prefix = "xx"
     var sufflen = 2
-    var doclean = false
+    var infn = ""
     var args : [String] = CommandLine.arguments
   }
   
+  var currfile = ""
+  var nfiles = 0
+  var maxfiles = 0
+  var lineno: Int64 = 0
+  var truncofs: UInt64 = 0
+  var ofp: FileHandle!
+  
+  // Instead of FILE* we read the entire input into an array of lines.
+  var inputLines = [String]()
+  var inputIndex = 0
+  
+  var _overfile : FileHandle? { // Overflow file for toomuch()
+    didSet {
+      if _overfile == nil {
+        isof = false
+        srcx = origsrcx
+      } else {
+        origsrcx = srcx
+        isof = true
+        srcx = _overfile!
+//        print("set _overfile")
+      }
+    }
+  }
+  
+  var origsrcx : FileHandle! //  AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator?
+  
+  var srcx : FileHandle! //  AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
+    
+  var isof : Bool = false
+  
+  // A repetition count used with patterns.
+  var reps = 0
+  
+  
   func parseOptions() throws(CmdErr) -> CommandOptions {
+    // Set locale.
+    setlocale(LC_ALL, "")
+    
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
+    let supportedFlags = "ksf:n:"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    while let (k, v) = try go.getopt() {
       switch k {
+        case "k":
+          options.kflag = true
+        case "s":
+          options.sflag = true
+        case "f":
+          options.prefix = v
+        case "n":
+          guard let num = Int(v), num > 0 else {
+            throw CmdErr(1, "\(v): bad suffix length")
+          }
+          options.sufflen = num
         default: throw CmdErr(1)
       }
     }
     options.args = go.remaining
+    
+    // Make sure there is an input file.
+    if options.args.count < 1 {
+      throw CmdErr(1)
+    }
+    
+    
+    // Check that the output file name (prefix + suffix) won’t be too long.
+    //    let PATH_MAX = 1024
+    if options.prefix.count + options.sufflen >= PATH_MAX {
+      throw CmdErr(1, "name too long")
+    }
+    
+    options.infn = options.args.removeFirst()
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
-  }
-}
-
-
-/*
- Okay, the user wants me to convert a block of C code, specifically from the csplit program, to Swift. The C code involves a lot of libraries, signals, file I/O, and regex functions. I’ll need to rewrite the code while preserving its functionality but in Swift style.
- There are several functions to convert, like usage(), handlesig(), and newfile(), plus handling things like macros and platform-specific code for macOS.
- I’ll focus on getting the behavior right, even if I can’t make it fully correct right away!
-
- This is a big task! I’ll start by converting the main function and some key pieces.
- The C code takes command-line arguments, handles file input/output, and does signal handling. In Swift, I’ll handle the arguments using CommandLine.arguments and manually parse them, instead of relying on getopt().
- I’ll also convert macOS-specific #ifdef __APPLE__ parts but keep in mind Swift is mostly for macOS. I’ll make sure to correctly implement locale setting, flags, and the file handling logic.
-
- I’ll start converting the key functions such as usage(), handlesig(), and newfile() into Swift.
- For file handling, Swift’s FileHandle seems a good alternative to C’s FILE*. I’ll handle reading lines and writing files similarly to how C did with fgets() and fopen(), using Swift’s capabilities like readLine() for line-by-line reading.
- I’ll need to manage output file creation, signal handling (using DispatchSourceSignal or signal() from Darwin), and error handling, which will be adjusted to Swift’s error handling style.
-
- Converting file handling in Swift will involve using FileHandle for reading from files, but I’ll likely load the entire file into an array and simulate line-by-line reading with an index. I’ll keep track of the current file pointer using this index, and for the overflow file (overfile), I can use a similar approach with a separate array.
- The logic for functions like get_line() and toomuch() needs to simulate file pointers, which is tricky since files may be large. I think I’ll stick to converting the structure first.
-
- In Swift, I plan to use FileHandle for reading and writing files. For reading lines, I’ll load the entire input content into an array and simulate reading line-by-line using an index. If there’s an overflow file (overfile), I can simulate it by using a separate array (overflowLines).
- For managing file creation and regular expressions, I’ll implement newfile() to create files based on a prefix and a counter. The do_rexp(expr:) function will use NSRegularExpression to apply pattern matching and output the results to files.
- I’ll also implement toomuch() to adjust the line reading appropriately. It’s not a complete simulation, but it should work for the conversion.
- */
-
-/*
- Explanation
-   •  Global State & I/O:
- We “load” the entire input file into an array (inputLines) and use an index variable to simulate reading line–by–line. An additional array (overflowLines) stands in for the temporary overflow file.
-   •  Signal Handling & Cleanup:
- The C code’s signal handler and atexit(3) registration are reproduced by installing our C–compatible handlesig function and calling atexit (available via Darwin).
-   •  Pattern Dispatch:
- The functions do_rexp(expr:) and do_lineno(expr:) re–implement the behavior of splitting the input at a regular–expression match or at a given line number. In a production Swift program you might use Swift’s NSRegularExpression and more robust file I/O.
-   •  File Creation:
- The function newfile() builds an output file name by combining the prefix with a zero–padded count and creates the file on disk.
-
- This Swift code is one approach to “porting” the C code. In practice you might refactor and simplify many parts (for example, using Swift’s streaming I/O or more structured error handling), but the code above shows one direct translation of the original C logic into Swift.
-
- */
-
-import Foundation
-import Darwin
-
-// MARK: - Global Variables
-
-
-var infn = ""
-var currfile = ""
-var nfiles = 0
-var maxfiles: Int64 = 0
-var lineno: Int64 = 0
-var truncofs: UInt64 = 0
-
-// Instead of FILE* we read the entire input into an array of lines.
-var inputLines = [String]()
-var inputIndex = 0
-
-// To simulate an "overflow file" we use an array of lines.
-var overflowLines = [String]()
-
-// A repetition count used with patterns.
-var reps = 0
-
-// MARK: - Helper Functions
-
-/// Print usage message and exit.
-func usage() -> Never {
-    fputs("usage: csplit [-ks] [-f prefix] [-n number] file args ...\n", stderr)
-    exit(1)
-}
-
-/// Print error message and exit.
-func exitError(_ msg: String) -> Never {
-    fputs(msg + "\n", stderr)
-    exit(1)
-}
-
-/// Write an error message (with file name) and exit.
-func err(_ msg: String, file: String) -> Never {
-    fputs("Error (\(file)): \(msg)\n", stderr)
-    exit(1)
-}
-
-/// Our signal handler. (In the __APPLE__ case we re–raise the signal after cleanup.)
-@_cdecl("handlesig")
-func handlesig(signal: Int32) {
-    // On non–Apple systems we could simply _exit(2), but here we do cleanup and re–raise.
-    cleanup()
-    // Reset to default handler and re–raise:
-    Darwin.signal(signal, SIG_DFL)
-    Darwin.raise(signal)
-}
-
-/// Read the next line from the “input” (or overflow) and update the global line counter.
-func get_line() -> String? {
-    // If there are overflow lines waiting, return them first.
-    if !overflowLines.isEmpty {
-        let line = overflowLines.removeFirst()
-        lineno += 1
-        return line
-    }
-    guard inputIndex < inputLines.count else { return nil }
-    let line = inputLines[inputIndex]
-    inputIndex += 1
-    lineno += 1
-    return line
-}
-
-/// “Rewind” the reading position by n lines (or perform other cleanup on overflow).
-func toomuch(file: FileHandle?, n: Int) {
-    // In the original C code this function “rewinds” the overflow file.
-    // In our simulation, if there is an overflow we simply adjust the line counter.
-    if n == 0 { return }
-    lineno -= Int64(n)
-    // (A full implementation would prepend the last n lines read back into overflowLines.)
-}
-
-/// Create a new output file based on the current nfiles count.
-/// The filename is created by concatenating the prefix with the nfiles number,
-/// zero–padded to the requested width.
-func newfile() -> FileHandle {
-    // Construct the file name.
-    let numStr = String(format: "%0\(sufflen)d", nfiles)
-    let filename = prefix + numStr
-    currfile = filename
-    // Create an empty file.
-    let fm = FileManager.default
-    if fm.createFile(atPath: filename, contents: nil, attributes: nil) == false {
-        exitError("Cannot create file \(filename)")
-    }
-    guard let fh = FileHandle(forUpdatingAtPath: filename) else {
-        exitError("Cannot open file \(filename)")
-    }
-    nfiles += 1
-    return fh
-}
-
-/// Remove any partial output files created.
-func cleanup() {
-    if !doclean { return }
-    let fm = FileManager.default
-    for i in 0..<nfiles {
-        let numStr = String(format: "%0\(sufflen)d", i)
-        let filename = prefix + numStr
-        try? fm.removeItem(atPath: filename)
-    }
-}
-
-// MARK: - Pattern Handlers
-
-/// Handle /regexp/ and %regexp% patterns.
-func do_rexp(expr: String) {
-    // The pattern must begin with '/' or '%'.
-    guard let delim = expr.first, delim == "/" || delim == "%" else {
-        exitError("\(expr): unrecognised pattern")
-    }
-    // Find the last occurrence of the delimiter.
-    guard let lastIndex = expr.lastIndex(of: delim),
-          lastIndex != expr.startIndex else {
-        exitError("\(expr): missing trailing \(delim)")
-    }
-    // The regular expression is the substring between the first and last delimiter.
-    let rePattern = String(expr[expr.index(after: expr.startIndex)..<lastIndex])
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     
-    // Any trailing characters (after the closing delimiter) represent an offset.
-    let ofsStr = String(expr[expr.index(after: lastIndex)...])
-    let ofs: Int
-    if ofsStr.isEmpty {
-        ofs = 0
-    } else if let val = Int(ofsStr) {
-        ofs = val
-    } else {
-        exitError("\(ofsStr): bad offset")
-    }
-    
-    // Compile the regex.
-    let regex: NSRegularExpression
-    do {
-        regex = try NSRegularExpression(pattern: rePattern,
-                                        options: delim == "/" ? [.anchorsMatchLines] : [])
-    } catch {
-        exitError("\(rePattern): bad regular expression")
-    }
-    
-    // For a '/' pattern we create a permanent new file.
-    // For a '%' pattern we create a temporary file.
-    let ofp: FileHandle
-    if delim == "/" {
-        ofp = newfile()
-    } else {
-        // Create a temporary file.
-        let tempName = ProcessInfo.processInfo.globallyUniqueString
-        let fm = FileManager.default
-        if fm.createFile(atPath: tempName, contents: nil, attributes: nil) == false {
-            exitError("tmpfile creation failed")
-        }
-        guard let fh = FileHandle(forUpdatingAtPath: tempName) else {
-            exitError("tmpfile open failed")
-        }
-        ofp = fh
-    }
-    
-    var first = true
-    var matched = false
-    while let line = get_line() {
-        // Write the line (with a newline) to the output file.
-        if let data = (line + "\n").data(using: .utf8) {
-            ofp.write(data)
-        }
-        // After the first line, check if the current line matches the regex.
-        if !first {
-            let nsLine = line as NSString
-            let range = NSRange(location: 0, length: nsLine.length)
-            if regex.firstMatch(in: line, options: [], range: range) != nil {
-                matched = true
-                break
-            }
-        }
-        first = false
-    }
-    
-    // If no match was found, clean up and exit.
-    if !matched {
-        toomuch(file: nil, n: 0)
-        exitError("\(rePattern): no match")
-    }
-    
-    if ofs <= 0 {
-        // For negative or zero offset: “rewind” the file by (-ofs + 1) lines.
-        toomuch(file: ofp, n: -ofs + 1)
-    } else {
-        // For positive offset: copy ofs–1 additional lines.
-        for _ in 1..<ofs {
-            if let line = get_line() {
-                if let data = (line + "\n").data(using: .utf8) {
-                    ofp.write(data)
-                }
-            }
-        }
-        toomuch(file: nil, n: 0)
-        ofp.closeFile()
-    }
-    
-    if !sflag && delim == "/" {
-        print("\(ofp.offsetInFile)")
-    }
-    
-    // Clean up the regex (NSRegularExpression releases resources automatically).
-}
-
-/// Handle splits based on line number.
-func do_lineno(expr: String) {
-    guard let tgtline = Int(expr), tgtline > 0 else {
-        exitError("\(expr): bad line number")
-    }
-    var lastline = tgtline
-    if lastline <= Int(lineno) {
-        exitError("\(expr): can't go backwards")
-    }
-    
-    while nfiles < Int(maxfiles) - 1 {
-        let ofp = newfile()
-        // Write lines until we have written (lastline - 1) lines.
-        while (lineno + 1) != lastline {
-            guard let line = get_line() else {
-                exitError("\(lastline): out of range")
-            }
-            if let data = (line + "\n").data(using: .utf8) {
-                ofp.write(data)
-            }
-        }
-        if !sflag {
-            print("\(ofp.offsetInFile)")
-        }
-        ofp.closeFile()
-        if reps <= 0 { break }
-        reps -= 1
-        lastline += tgtline
-    }
-}
-
-// MARK: - Main Function
-
-func main() {
-    // Set locale.
-    setlocale(LC_ALL, "")
-    
-    // Process command-line arguments.
-    let args = CommandLine.arguments
-    var argIndex = 1  // skip the executable name
-    
-    while argIndex < args.count, args[argIndex].hasPrefix("-") {
-        let opt = args[argIndex]
-        switch opt {
-        case "-k":
-            kflag = true
-        case "-s":
-            sflag = true
-        case "-f":
-            argIndex += 1
-            guard argIndex < args.count else { usage() }
-            prefix = args[argIndex]
-        case "-n":
-            argIndex += 1
-            guard argIndex < args.count, let num = Int(args[argIndex]), num > 0 else {
-                exitError("\(args[argIndex]): bad suffix length")
-            }
-            sufflen = num
-        default:
-            usage()
-        }
-        argIndex += 1
-    }
-    
-    // Make sure there is an input file.
-    guard argIndex < args.count else {
-        usage()
-    }
-    
-    infn = args[argIndex]
-    argIndex += 1
+    var infn = options.infn
     
     // Open the input file.
     if infn == "-" {
-        // Use standard input.
-        let stdInData = FileHandle.standardInput.readDataToEndOfFile()
-        if let content = String(data: stdInData, encoding: .utf8) {
-            inputLines = content.components(separatedBy: .newlines)
-        }
-        infn = "stdin"
+      origsrcx = FileHandle.standardInput
+      // Use standard input.
+      infn = "stdin"
     } else {
-        guard let fh = FileHandle(forReadingAtPath: infn) else {
-            exitError("Cannot open file \(infn)")
-        }
-        let data = fh.readDataToEndOfFile()
-        guard let content = String(data: data, encoding: .utf8) else {
-            exitError("Error reading \(infn)")
-        }
-        inputLines = content.components(separatedBy: .newlines)
+      
+      do {
+        origsrcx = try FileHandle(forReadingFrom: URL(filePath: infn) )
+      } catch {
+        throw CmdErr(1, "Cannot open file \(infn)")
+      }
     }
-    
-    // Check that the output file name (prefix + suffix) won’t be too long.
-    let PATH_MAX = 1024
-    if prefix.count + sufflen >= PATH_MAX {
-        exitError("name too long")
-    }
-    
-    // Install cleanup handler if not keeping files.
-    if !kflag {
-        doclean = true
-        atexit {
-            cleanup()
-        }
-        // Register our signal handler for SIGHUP, SIGINT, and SIGTERM.
-        Darwin.signal(SIGHUP, handlesig)
-        Darwin.signal(SIGINT, handlesig)
-        Darwin.signal(SIGTERM, handlesig)
+    srcx = origsrcx
+
+    if !options.kflag {
+        doclean.withLock { $0 = true }
+        atexit(cleanup)
+        
+        var sa = sigaction()
+        sa.sa_flags = 0;
+        sa.__sigaction_u.__sa_handler = handlesig //    sa_handler = handlesig
+        sigemptyset(&sa.sa_mask)
+        sigaddset(&sa.sa_mask, SIGHUP)
+        sigaddset(&sa.sa_mask, SIGINT)
+        sigaddset(&sa.sa_mask, SIGTERM)
+        sigaction(SIGHUP, &sa, nil)
+        sigaction(SIGINT, &sa, nil)
+        sigaction(SIGTERM, &sa, nil)
     }
     
     lineno = 0
     nfiles = 0
     truncofs = 0
-    overflowLines.removeAll()
     
     // Calculate maxfiles = 10^sufflen, ensuring we don’t overflow.
-    maxfiles = 1
-    for _ in 0..<sufflen {
-        if maxfiles > Int64(INT64_MAX) / 10 {
-            exitError("\(sufflen): suffix too long")
-        }
-        maxfiles *= 10
+    if options.sufflen > 16 {
+      throw CmdErr(1, "\(options.sufflen): suffix too long (limit 16)")
     }
+    maxfiles = 10^options.sufflen
     
-    // Process each pattern argument.
-    while argIndex < args.count, nfiles < maxfiles - 1 {
-        let expr = args[argIndex]
-        argIndex += 1
-        
-        // Look ahead for an optional repetition argument of the form "{number}".
-        if argIndex < args.count, args[argIndex].first == "{" {
-            let repStr = args[argIndex]
-            argIndex += 1
-            guard repStr.first == "{", repStr.last == "}" else {
-                exitError("\(repStr): bad repetition count")
-            }
-            let numPart = repStr.dropFirst().dropLast()
-            if let repCount = Int(numPart) {
-                reps = repCount
-            } else {
-                exitError("\(repStr): bad repetition count")
-            }
+    var exprs = options.args
+    
+    // Create files based on supplied patterns
+    while nfiles < maxfiles-1,
+          !exprs.isEmpty {
+      let expr = exprs.removeFirst()
+      
+      // Look ahead & see if thsi pattern has any repetitions
+      if exprs.first?.first == "{" {
+        var repss = exprs.removeFirst()
+        let rs = repss.dropFirst()
+        if rs.last == "}",
+           let r = Int(rs.dropLast()) {
+          reps = r
         } else {
-            reps = 0
+          throw CmdErr(1, "\(repss): bad repetition count")
         }
-        
-        // Dispatch the expression to the appropriate handler.
-        if expr.first == "/" || expr.first == "%" {
-            // The original C code does:
-            //    do { do_rexp(expr); } while (reps-- != 0 && nfiles < maxfiles - 1);
-            // Here we simulate that with a simple loop.
-            repeat {
-                do_rexp(expr: expr)
-                reps -= 1
-            } while reps >= 0 && nfiles < maxfiles - 1
-        } else if expr.first?.isNumber == true {
-            do_lineno(expr: expr)
-        } else {
-            exitError("\(expr): unrecognised pattern")
-        }
+      } else {
+        reps = 0
+      }
+      
+      // Dispatch the expression to the appropriate handler.
+      if expr.first == "/" || expr.first == "%" {
+        repeat {
+          try await do_rexp(expr: expr, options)
+          reps -= 1
+        } while reps >= 0 && nfiles < maxfiles - 1
+      } else if expr.first?.isNumber == true {
+        try await do_lineno(expr: expr, options)
+      } else {
+        throw CmdErr(1, "\(expr): unrecognised pattern")
+      }
     }
     
     // Copy the rest of the input into a new file.
-    if inputIndex < inputLines.count {
-        let ofp = newfile()
-        while inputIndex < inputLines.count {
-            let line = inputLines[inputIndex]
-            inputIndex += 1
-            if let data = (line + "\n").data(using: .utf8) {
-                ofp.write(data)
+    
+    // FIXME: need to check that there is more data to read
+    //    if feof(inFile) {
+    
+    ofp = try newfile(options)
+    
+    do {
+      while true {
+        guard let p = try await get_line() else { break }
+        // FIXME: handle encoding correctly
+        try ofp.write(contentsOf: p.data(using: .utf8)!)
+      }
+      
+      if !options.sflag {
+        let k = try ofp.offset()
+        print("\(k)")
+      }
+      try ofp.close()
+    } catch {
+      throw CmdErr(1, "read or write error: \(error.localizedDescription)")
+    }
+  
+  try toomuch(file: nil, 0)
+    doclean.withLock { $0 = false }
+   await Task.yield()
+}
+  
+  
+  
+  /*
+   Okay, the user wants me to convert a block of C code, specifically from the csplit program, to Swift. The C code involves a lot of libraries, signals, file I/O, and regex functions. I’ll need to rewrite the code while preserving its functionality but in Swift style.
+   There are several functions to convert, like usage(), handlesig(), and newfile(), plus handling things like macros and platform-specific code for macOS.
+   I’ll focus on getting the behavior right, even if I can’t make it fully correct right away!
+   
+   This is a big task! I’ll start by converting the main function and some key pieces.
+   The C code takes command-line arguments, handles file input/output, and does signal handling. In Swift, I’ll handle the arguments using CommandLine.arguments and manually parse them, instead of relying on getopt().
+   I’ll also convert macOS-specific #ifdef __APPLE__ parts but keep in mind Swift is mostly for macOS. I’ll make sure to correctly implement locale setting, flags, and the file handling logic.
+   
+   I’ll start converting the key functions such as usage(), handlesig(), and newfile() into Swift.
+   For file handling, Swift’s FileHandle seems a good alternative to C’s FILE*. I’ll handle reading lines and writing files similarly to how C did with fgets() and fopen(), using Swift’s capabilities like readLine() for line-by-line reading.
+   I’ll need to manage output file creation, signal handling (using DispatchSourceSignal or signal() from Darwin), and error handling, which will be adjusted to Swift’s error handling style.
+   
+   Converting file handling in Swift will involve using FileHandle for reading from files, but I’ll likely load the entire file into an array and simulate line-by-line reading with an index. I’ll keep track of the current file pointer using this index, and for the overflow file (overfile), I can use a similar approach with a separate array.
+   The logic for functions like get_line() and toomuch() needs to simulate file pointers, which is tricky since files may be large. I think I’ll stick to converting the structure first.
+   
+   In Swift, I plan to use FileHandle for reading and writing files. For reading lines, I’ll load the entire input content into an array and simulate reading line-by-line using an index. If there’s an overflow file (overfile), I can simulate it by using a separate array (overflowLines).
+   For managing file creation and regular expressions, I’ll implement newfile() to create files based on a prefix and a counter. The do_rexp(expr:) function will use NSRegularExpression to apply pattern matching and output the results to files.
+   I’ll also implement toomuch() to adjust the line reading appropriately. It’s not a complete simulation, but it should work for the conversion.
+   */
+  
+  /*
+   Explanation
+   •  Global State & I/O:
+   We “load” the entire input file into an array (inputLines) and use an index variable to simulate reading line–by–line. An additional array (overflowLines) stands in for the temporary overflow file.
+   •  Signal Handling & Cleanup:
+   The C code’s signal handler and atexit(3) registration are reproduced by installing our C–compatible handlesig function and calling atexit (available via Darwin).
+   •  Pattern Dispatch:
+   The functions do_rexp(expr:) and do_lineno(expr:) re–implement the behavior of splitting the input at a regular–expression match or at a given line number. In a production Swift program you might use Swift’s NSRegularExpression and more robust file I/O.
+   •  File Creation:
+   The function newfile() builds an output file name by combining the prefix with a zero–padded count and creates the file on disk.
+   
+   This Swift code is one approach to “porting” the C code. In practice you might refactor and simplify many parts (for example, using Swift’s streaming I/O or more structured error handling), but the code above shows one direct translation of the original C logic into Swift.
+   
+   */
+  
+ 
+  /// Create a new output file based on the current nfiles count.
+  /// The filename is created by concatenating the prefix with the nfiles number,
+  /// zero–padded to the requested width.
+  func newfile(_ options : CommandOptions) throws(CmdErr) -> FileHandle {
+    // Construct the file name.
+    let numStr = String(format: "%0\(options.sufflen)d", nfiles)
+    currfile = options.prefix + numStr
+
+    // Create an empty file.
+    let fm = FileManager.default
+    if fm.createFile(atPath: currfile, contents: nil, attributes: nil) == false {
+      throw CmdErr(1, "Cannot create file \(currfile)")
+    }
+    filesToClean.withLock { $0.append(currfile) }
+    do {
+      let fp = try FileHandle(forUpdating: URL(filePath: currfile))
+      try fp.seek(toOffset: 0)
+      nfiles += 1
+      return fp
+    } catch {
+      throw CmdErr(1, "Cannot open file \(currfile): \(error.localizedDescription)")
+    }
+  }
+  
+  
+  /// Read the next line from the “input” (or overflow) and update the global line counter.
+  func get_line() async throws(CmdErr) -> String? {
+    // If there are overflow lines waiting, return them first.
+    
+    while true {
+      do {
+        guard let lbuf = try srcx.fgets(Int(LINE_MAX))   else {
+          if isof {
+            if let _overfile {
+              // Truncate the previous file we overflowed into back to
+              // the correct length, close it.
+              //      if (fflush(overfile) != 0)
+              //        err(1, "overflow");
+              do {
+                try _overfile.synchronize()
+                try _overfile.truncate(atOffset: truncofs)
+                try _overfile.close()
+              } catch {
+                throw CmdErr(1, "overflow: \(error.localizedDescription)" )
+              }
+              self._overfile = nil
             }
+            isof = false
+            continue
+          }
+          return nil
         }
-        if !sflag {
-            print("\(ofp.offsetInFile)")
+        lineno += 1
+        return lbuf
+      } catch {
+        throw CmdErr(1, "reading: \(error.localizedDescription)")
+      }
+    }
+  }
+  
+
+
+  
+  /// Conceptually rewind the input (as obtained by get_line()) back `n' lines.
+  func toomuch(file: FileHandle?, _ nn: Int) throws(CmdErr) {
+    var n = nn
+    /*
+    if let _overfile {
+      // Truncate the previous file we overflowed into back to
+      // the correct length, close it.
+//      if (fflush(overfile) != 0)
+//        err(1, "overflow");
+      do {
+        try _overfile.synchronize()
+        try _overfile.truncate(atOffset: truncofs)
+        try _overfile.close()
+      } catch {
+        throw CmdErr(1, "overflow: \(error.localizedDescription)" )
+      }
+      self._overfile = nil
+    }
+*/
+
+
+    if n == 0 { return }
+    lineno -= Int64(n)
+
+    
+    do {
+      // Wind the overflow file backwards to `n' lines before the
+      // current one.
+
+      var x = UInt64.max
+    outer:
+      repeat {
+        let k = try ofp.offset()
+        let kk = k < BUFSIZ ? 0 : k - UInt64(BUFSIZ)
+        try ofp.seek(toOffset: kk)
+        let buf = try ofp.read(upToCount: Int(BUFSIZ))
+//f            errx(1, "can't read overflowed output");
+        try ofp.seek(toOffset: kk)
+//            err(1, "%s", currfile);
+        for (i, c) in buf!.reversed().enumerated() {
+          if c == 10 {
+            if n == 0 {
+              x = kk + UInt64(buf!.count - i)
+              break outer }
+            n -= 1
+          }
         }
-        ofp.closeFile()
+        if kk == 0 {
+          x = 0
+          break;
+        }
+      } while n > 0
+      try ofp.seek(toOffset: x)
+      
+    // get_line() will read from here. Next call will truncate to
+    // truncofs in this file.
+    _overfile = ofp
+    truncofs = x
+    } catch {
+      throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+    }
+  }
+  
+  
+  // MARK: - Pattern Handlers
+  
+  /// Handle /regexp/ and %regexp% patterns.
+  func do_rexp(expr: String, _ options : CommandOptions) async throws(CmdErr) {
+    
+    guard !expr.isEmpty else {
+      throw CmdErr(1, "empty regexp")
     }
     
-    toomuch(file: nil, n: 0)
-    doclean = false
-    exit(0)
+    let delim: Character = expr.first!
+    var re = expr.dropFirst()
+    let z = re.lastIndex(of: delim)
+    
+    var ofs = 0
+    if let z,
+       re[re.index(z, offsetBy: -1)] != "\\" {
+      let pofs = re[z...].dropFirst()
+      re = re[re.startIndex..<z]
+      if !pofs.isEmpty {
+        if let oo = Int(pofs) {
+          ofs = oo
+        } else {
+          throw CmdErr(1, "\(pofs): bad offset")
+        }
+      }
+    } else {
+      throw CmdErr(1, "\(expr): missing trailing \(delim)")
+    }
+    
+    // Compile the regex.
+    var regex : Regex<Substring>
+    do {
+      regex = try Regex(String(re))
+      //                                      options: delim == "/" ? [.anchorsMatchLines] : [])
+    } catch {
+      throw CmdErr(1, "\(re): bad regular expression")
+    }
+    
+    var cre = regex_t()
+    
+    if regcomp(&cre, String(re), REG_BASIC|REG_NOSUB|REG_NEWLINE) != 0 {
+      throw CmdErr(1, "\(re): bad regular expression")
+    }
+    
+    
+    // For a '/' pattern we create a permanent new file.
+    // For a '%' pattern we create a temporary file.
+    if delim == "/" {
+      ofp = try newfile(options)
+    } else {
+      // Create a temporary file.
+      let tempName = ProcessInfo.processInfo.globallyUniqueString
+      let fm = FileManager.default
+      if fm.createFile(atPath: tempName, contents: nil, attributes: nil) == false {
+        throw CmdErr(1, "tmpfile creation failed")
+      }
+      filesToClean.withLock { $0.append(tempName) }
+      do {
+        ofp = try FileHandle(forUpdating: URL(filePath: tempName))
+        try ofp.seek(toOffset: 0)
+      } catch {
+        throw CmdErr(1, "tmpfile open failed: \(error.localizedDescription)")
+      }
+    }
+    
+    var first = true
+    var matched = false
+    while let line = try await get_line() {
+      // Write the line (with a newline) to the output file.
+      if let data = line.data(using: .utf8) {
+        do {
+          try ofp.write(contentsOf: data)
+        } catch {
+          throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+        }
+      }
+      // After the first line, check if the current line matches the regex.
+      if !first {
+        do {
+          let k = try regex.firstMatch(in: line)
+          
+          if k != nil {
+            matched = true
+            break
+          }
+        } catch {
+          throw CmdErr(1, "regex failed: \(re)")
+        }
+      }
+      first = false
+    }
+    
+    // If no match was found, clean up and exit.
+    if !matched {
+      try toomuch(file: nil, 0)
+      throw CmdErr(1, "\(re): no match")
+    }
+    
+    if ofs <= 0 {
+      // For negative or zero offset: “rewind” the file by (-ofs + 1) lines.
+      try toomuch(file: ofp, -ofs + 1)
+    } else {
+      // For positive offset: copy requested number of lines after the match
+      for _ in 1..<ofs {
+        if let line = try await get_line() {
+          if let data = line.data(using: .utf8) {
+            do {
+              try ofp.write(contentsOf: data)
+            } catch {
+              throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+            }
+          }
+        }
+      }
+      try toomuch(file: nil, 0)
+      do {
+        try ofp.close()
+      } catch {
+        throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+      }
+    }
+    
+    if !options.sflag && delim == "/" {
+      let oo = try! ofp.offset()
+      print("\(oo)")
+    }
+    
+    // Clean up the regex (NSRegularExpression releases resources automatically).
+  }
+  
+  /// Handle splits based on line number.
+  func do_lineno(expr: String, _ options : CommandOptions) async throws(CmdErr) {
+    guard let tgtline = Int(expr), tgtline > 0 else {
+      throw CmdErr(1, "\(expr): bad line number")
+    }
+    var lastline = tgtline
+    if lastline <= Int(lineno) {
+      throw CmdErr(1, "\(expr): can't go backwards")
+    }
+    
+    while nfiles < Int(maxfiles) - 1 {
+      let ofp = try newfile(options)
+      // Write lines until we have written (lastline - 1) lines.
+      while (lineno + 1) != lastline {
+        guard let line = try await get_line() else {
+          throw CmdErr(1, "\(lastline): out of range")
+        }
+        if let data = line.data(using: .utf8) {
+          do {
+            try ofp.write(contentsOf: data)
+          } catch {
+            throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+          }
+        }
+      }
+      if !options.sflag {
+        let oo = try! ofp.offset()
+        print("\(oo)")
+      }
+      do {
+        try ofp.close()
+      } catch {
+        throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+      }
+      if reps <= 0 { break }
+      reps -= 1
+      lastline += tgtline
+    }
+  }
+  
+}
+
+/// Our signal handler. (In the __APPLE__ case we re–raise the signal after cleanup.)
+@_cdecl("handlesig")
+func handlesig(signal: Int32) {
+  // On non–Apple systems we could simply _exit(2), but here we do cleanup and re–raise.
+  // Reset to default handler and re–raise:
+  Darwin.signal(signal, SIG_DFL)
+  Darwin.raise(signal)
+}
+
+/// Remove any partial output files created.
+func cleanup() {
+  if (doclean.withLock { $0 } ) {
+    let k = filesToClean.withLock { $0 }
+    let fm = FileManager.default
+    for i in k {
+      try? fm.removeItem(atPath: i)
+    }
+  }
+}
+
+
+extension FileHandle {
+  public func fgets(_ n : Int? = nil) throws -> String? {
+    let nn = n ?? Int.max
+    let off = try self.offset()
+    guard let nc = try self.read(upToCount: nn) else { return nil }
+    let j = if let k = nc.firstIndex(of: 10) {
+      nc.prefix(through: k)
+    } else {
+      nc
+    }
+    // position after the last carriage return
+    try self.seek(toOffset: off+UInt64(j.count))
+    guard let s = String(data: j, encoding: .utf8) else {
+      throw StringEncodingError.invalid("string encoding error")
+    }
+    return s
+  }
+}
+
+enum StringEncodingError: Error {
+    case invalid(String)
 }

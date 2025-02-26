@@ -56,6 +56,7 @@ import CMigration
     var args : [String] = CommandLine.arguments
   }
   
+  
   func parseOptions() throws(CmdErr) -> CommandOptions {
     // Set the locale (as in the original C code).
     setlocale(LC_ALL, "")
@@ -111,11 +112,7 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    // Read entire input from stdin.
-    let input = readStdin()
-    
-    var output: String = ""
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     
     // The original C code distinguishes several cases:
     //   - tr -ds string1 string2 : delete characters in string1 then squeeze using string2
@@ -123,10 +120,20 @@ import CMigration
     //   - tr -s string1        : squeeze mode
     //   - tr string1 string2   : translation mode (with optional squeeze)
     
+    do {
+      for try await ch in FileHandle.standardInput.bytes.characters {
+        
+      }
+    } catch {
+      throw CmdErr(1, "read error: \(error.localizedDescription)")
+    }
     if options.dflag && options.sflag {
       // Both deletion and squeeze:
       // First, build the deletion set from string1 (possibly complemented).
-      let deleted = runDeletion(on: input, set1: config.string1, complement: config.complement)
+      
+      //      let deleted = setup(string1,
+      
+      // )(on: input, set1: config.string1, complement: config.complement)
       // Then, squeeze the result using the second argument.
       // (In our simplified version, we interpret string2 as the squeeze set.)
       output = runSqueeze(on: deleted, set1: config.string2 ?? "", complement: false)
@@ -151,42 +158,30 @@ import CMigration
   /*
    The task is to convert a long C code snippet that forms part of a ‘tr’ command implementation into Swift. The C code includes things like signal processing logic, handling multiple options (e.g., -C, -c), and string manipulations like translation, squeeze, and delete.
    I’m noticing that several functions and types like cset_alloc, cset_add, or setup are referenced but undefined in the snippet. This will need more attention when converting to Swift. The conversion should also account for these undefined functions and variables, like s1 and s2.
-
+   
    The code uses global/static variables like s1 and s2, and I can see that translating it into Swift will be pretty complex. The C code handles various options for the tr command — deleting, squeezing, translating characters, and complementing character sets with options like -C and -c. It also uses wide character functions and setlocale, which are not standard in Swift. I think I’ll have to emulate this behavior with equivalents in Swift, like creating CSet and CMap classes.
-
+   
    To convert to Swift, I’ll use Unicode string processing like Swift’s String and Unicode scalars. Instead of getwchar(), I can use readLine() to capture input. For character processing, I’ll iterate over Unicode scalars. Command-line options like -C, -c, -d, -s, and -u can be handled with CommandLine.arguments for parsing. I’ll aim for a rough translation of the C functionality, focusing on operations like deletion, squeezing, and translation mapping. Classes for CSet and CMap will likely be essential for handling character sets and mappings.
-
+   
    To implement the tr functionality in Swift, I’ll focus on handling flags like -d, -s, and -C, as well as managing translation, deletion, and squeezing of characters. The program will parse command-line input using CommandLine.arguments, then set flags. Depending on the flags, the program will handle deletion, squeezing, or character translation with appropriate logic for uppercase and lowercase conversions.
    I’ll implement supporting functions like “setup” using Set<Character> for deletion sets and add a dictionary for mapping characters in translation. For simplicity, I’ll skip some advanced behavior but will aim to replicate the core logic.
    */
   
   /*
    Explanation
-     1.  Command–Line Parsing:
+   1.  Command–Line Parsing:
    The Swift version uses a simple parser that examines CommandLine.arguments and fills a TRConfig struct with flags (‑C/‑c, ‑d, ‑s, and ‑u) plus the operand strings. If the number of operands is incorrect, the program calls usage().
-     2.  Input and Processing:
+   2.  Input and Processing:
    The entire standard input is read into a single string (using readLine()) and then processed.
-     •  In deletion mode (‑d) the program builds a set of characters to delete (or its complement) and filters them out.
-     •  In squeeze mode (‑s) it “squeezes” adjacent duplicate characters (only for those in the given set).
-     •  In translation mode the program builds a mapping (using a Swift dictionary) from characters in string1 to string2 (repeating the last character if necessary) and then applies that mapping. If both ‑s and translation are requested the output is “squeezed” as it is produced.
-     3.  Simplifications:
+   •  In deletion mode (‑d) the program builds a set of characters to delete (or its complement) and filters them out.
+   •  In squeeze mode (‑s) it “squeezes” adjacent duplicate characters (only for those in the given set).
+   •  In translation mode the program builds a mapping (using a Swift dictionary) from characters in string1 to string2 (repeating the last character if necessary) and then applies that mapping. If both ‑s and translation are requested the output is “squeezed” as it is produced.
+   3.  Simplifications:
    This Swift code is a simplified version. For example, the original C code’s wide–character handling, case–conversion (using towlower/towupper), and complex mapping and caching (via cmap/cset) have been replaced by Swift’s native Unicode support and dictionary/set types. In a production-quality port you might want to more closely mimic all the nuances of the original.
-
+   
    */
   
   // -----------------------------------------------------------------------------
-  // MARK: - TR Processing Functions
-  // -----------------------------------------------------------------------------
-  
-  /// Reads all of standard input into a single String.
-  func readStdin() -> String {
-    var input = ""
-    while let line = readLine() {
-      input.append(line)
-      input.append("\n")
-    }
-    return input
-  }
   
   /// In deletion mode, remove characters (or their complement) specified in `set1` from `input`.
   func runDeletion(on input: String, set1: String, complement: Bool) -> String {
@@ -273,25 +268,25 @@ import CMigration
   /// Processes the input text in translation mode.
   /// If squeeze is true, then after translating characters a squeeze set is used
   /// to collapse duplicate output.
-  func runTranslation(on input: String, config: TRConfig) -> String {
-    guard let string2 = config.string2 else {
-      usage()
+  func runTranslation(on input: String, options: CommandOptions) throws(CmdErr) -> String {
+    guard let string2 = options.string2 else {
+      throw CmdErr(1)
     }
     
     // Build the translation mapping.
-    let map = buildTranslationMap(from: config.string1, to: string2, complement: config.complement)
+    let map = buildTranslationMap(from: options.string1, to: string2, complement: options.cflag)
     
     // For squeeze mode in translation, we “squeeze” any output character that is a mapping target.
-    let squeezeSet: Set<Character> = config.squeeze ? Set(map.values) : []
+    let squeezeSet: Set<Character> = options.sflag ? Set(map.values) : []
     
     var output = ""
     var lastOut: Character? = nil
     for ch in input {
       // Look up a translation if available.
       let newCh: Character
-      if config.complement {
+      if options.cflag {
         // In complement mode, only characters not in string1 are translated.
-        if !config.string1.contains(ch), let mapped = map[ch] {
+        if !options.string1.contains(ch), let mapped = map[ch] {
           newCh = mapped
         } else {
           newCh = ch
@@ -300,7 +295,7 @@ import CMigration
         newCh = map[ch] ?? ch
       }
       
-      if config.squeeze, newCh == lastOut, squeezeSet.contains(newCh) {
+      if options.sflag, newCh == lastOut, squeezeSet.contains(newCh) {
         continue
       }
       
@@ -309,5 +304,24 @@ import CMigration
     }
     return output
   }
+  
+}
+
+
+extension CharacterSet {
+  init(_ arg : String, _ options : tr.CommandOptions) {
+    while let n = next(arg) {
+      self.insert(n)
+    }
+    
+    if options.Cflag {
+      // what goes here?
+    }
+    
+    if options.Cflag || options.cflag {
+      self.invert()
+    }
+  }
+  
   
 }

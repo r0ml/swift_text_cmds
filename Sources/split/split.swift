@@ -365,11 +365,6 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var flags = O_WRONLY | O_CREAT | O_TRUNC
     var patt = "0123456789"
     
-    if !options.clobber {
-      flags |= O_EXCL
-      // Ensure no overwriting if needed
-    }
-    
     if let ofd = state.ofd {
       do {
         try ofd.close()
@@ -426,6 +421,11 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       state.fnum += 1
       
       do {
+        if !options.clobber {
+          if FileManager.default.fileExists(atPath: state.fname+fpnt) {
+            continue
+          }
+        }
         if FileManager.default.createFile(atPath: state.fname+fpnt, contents: Data()) {
           state.ofd = try FileHandle(forWritingTo: URL(filePath: state.fname+fpnt))
           break
