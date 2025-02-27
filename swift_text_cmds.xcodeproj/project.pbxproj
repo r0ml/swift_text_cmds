@@ -86,6 +86,10 @@
 		E71C05A82D4899E800B2538D /* process.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71C05A72D4899E800B2538D /* process.swift */; };
 		E71C05AA2D489A7600B2538D /* compile.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71C05A92D489A7600B2538D /* compile.swift */; };
 		E71C05AD2D491B0100B2538D /* defs.swift in Sources */ = {isa = PBXBuildFile; fileRef = E71C05AB2D489B6B00B2538D /* defs.swift */; };
+		E720D8822D6FA646008A669C /* one.txt in Resources */ = {isa = PBXBuildFile; fileRef = E720D8812D6FA637008A669C /* one.txt */; };
+		E720D8842D6FA64E008A669C /* two.txt in Resources */ = {isa = PBXBuildFile; fileRef = E720D8832D6FA64B008A669C /* two.txt */; };
+		E720D8862D6FA657008A669C /* three.txt in Resources */ = {isa = PBXBuildFile; fileRef = E720D8852D6FA653008A669C /* three.txt */; };
+		E720D8882D6FA661008A669C /* four.txt in Resources */ = {isa = PBXBuildFile; fileRef = E720D8872D6FA65C008A669C /* four.txt */; };
 		E724AF452CFB5E1C009CC87C /* d_basic.out in Resources */ = {isa = PBXBuildFile; fileRef = 2A6BBFA4275EB42F00EBBEA6 /* d_basic.out */; };
 		E724AF522CFB6026009CC87C /* d_sflag.out in Resources */ = {isa = PBXBuildFile; fileRef = E724AF502CFB6026009CC87C /* d_sflag.out */; };
 		E724AF532CFB6026009CC87C /* d_cut.in in Resources */ = {isa = PBXBuildFile; fileRef = E724AF4C2CFB6026009CC87C /* d_cut.in */; };
@@ -1952,6 +1956,10 @@
 		E71C05A72D4899E800B2538D /* process.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = process.swift; sourceTree = "<group>"; };
 		E71C05A92D489A7600B2538D /* compile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = compile.swift; sourceTree = "<group>"; };
 		E71C05AB2D489B6B00B2538D /* defs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = defs.swift; sourceTree = "<group>"; };
+		E720D8812D6FA637008A669C /* one.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = one.txt; sourceTree = "<group>"; };
+		E720D8832D6FA64B008A669C /* two.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = two.txt; sourceTree = "<group>"; };
+		E720D8852D6FA653008A669C /* three.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = three.txt; sourceTree = "<group>"; };
+		E720D8872D6FA65C008A669C /* four.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = four.txt; sourceTree = "<group>"; };
 		E724AF4C2CFB6026009CC87C /* d_cut.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = d_cut.in; sourceTree = "<group>"; };
 		E724AF4D2CFB6026009CC87C /* d_dflag.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = d_dflag.out; sourceTree = "<group>"; };
 		E724AF4E2CFB6026009CC87C /* d_dsflag.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = d_dsflag.out; sourceTree = "<group>"; };
@@ -3605,6 +3613,17 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		E720D8802D6FA626008A669C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				E720D8812D6FA637008A669C /* one.txt */,
+				E720D8832D6FA64B008A669C /* two.txt */,
+				E720D8852D6FA653008A669C /* three.txt */,
+				E720D8872D6FA65C008A669C /* four.txt */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		E724AF3A2CFAC6CA009CC87C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -3691,6 +3710,7 @@
 		E73F98922D44989600E89FF3 /* lamTest */ = {
 			isa = PBXGroup;
 			children = (
+				E720D8802D6FA626008A669C /* Resources */,
 				E73F98962D4498FE00E89FF3 /* lamTest.swift */,
 				E73F98982D44992800E89FF3 /* lam.xctestplan */,
 			);
@@ -6954,6 +6974,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E720D8822D6FA646008A669C /* one.txt in Resources */,
+				E720D8842D6FA64E008A669C /* two.txt in Resources */,
+				E720D8882D6FA661008A669C /* four.txt in Resources */,
+				E720D8862D6FA657008A669C /* three.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
