@@ -58,6 +58,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
   }
 
   struct CommandOptions {
+    var lastsep : String?
     var args : [FileOptions] = []
   }
 
@@ -166,6 +167,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
           throw CmdErr(1)
       }
     }
+    options.lastsep = ip.sepstring
     if options.args.count < 1 {
       throw CmdErr(1)
     }
@@ -188,6 +190,9 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       }
 
       print(line, terminator: "")
+      if let k = options.lastsep {
+        print(k, terminator: "")
+      }
       if !nofinalnl {
         print("")
       }

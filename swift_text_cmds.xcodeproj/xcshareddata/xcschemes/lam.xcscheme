@@ -80,6 +80,10 @@
             argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/lamTest/Resources/four.txt"
             isEnabled = "NO">
          </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-Sxxx"
+            isEnabled = "YES">
+         </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
