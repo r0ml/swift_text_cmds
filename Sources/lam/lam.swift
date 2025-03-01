@@ -47,7 +47,9 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
   struct FileOptions {
     var eol : UInt8? = nil // "\n"
     var sepstring : String?
-    var format : String?
+    var minLength : Int?
+    var maxLength : Int?
+    
     var pad : Bool = false
     var name : String = "stdin"
     var fileHandle : FileHandle?
@@ -92,8 +94,12 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
         if ip.sepstring == nil {
           ip.sepstring = S ? options.args.last?.sepstring : ""
         }
-        if ip.format == nil {
-          ip.format = (P || F) ? options.args.last?.format : "%s"
+
+        if ip.minLength == nil && ip.maxLength == nil {
+          if P || F {
+            ip.minLength = options.args.last?.minLength
+            ip.maxLength = options.args.last?.maxLength
+          }
         }
         if ip.eol == nil {
           ip.eol = T ? options.args.last?.eol : 10
@@ -147,7 +153,15 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
               throw CmdErr(1, "invalid format string '\(p)'" )
             }
 
-          ip.format = "%\(p)s"
+          let j = p.split(separator: ".")
+          if j.count == 1 {
+            ip.minLength = Int(j[0])
+          } else if j.count == 2 {
+            ip.minLength = Int(j[0])
+            ip.maxLength = Int(j[1])
+          } else {
+            throw CmdErr(1, "invalid format string '\(p)'")
+          }
         default:
           throw CmdErr(1)
       }
@@ -173,7 +187,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
         return
       }
 
-      print(line, terminator: options.args.last!.sepstring ?? "")
+      print(line, terminator: "")
       if !nofinalnl {
         print("")
       }
@@ -218,7 +232,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
 
 
   func pad(_ ip: FileOptions) -> String {
-    return ip.sepstring! + String(format: ip.format!, "")
+    return ip.sepstring! + formatCString("", ip.minLength, ip.maxLength)
   }
 
   //---------------------------------------------------------------------
@@ -243,18 +257,55 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
         try? ip.fileHandle?.close()
         return pad(ip)
       } else {
-        p.append(c!)
         if c == ip.eol {
           break
         }
+        p.append(c!)
       }
     }
 
-    return ip.sepstring! + String(
-      format: ip.format!,
-      String(data: p, encoding: .utf8)!
+    return ip.sepstring! + formatCString(String(data: p, encoding: .utf8)!,
+                                         ip.minLength,
+                                         ip.maxLength
     )
+                                         
+    
 
+  }
+  
+  /// reproduce the behavior of C formatting strings of form "%n.ms"
+  func formatCString(_ input: String, _ minLength: Int?, _ maxLength: Int?) -> String {
+      
+      var result = input
+    var left = true
+    
+      // Truncate if the string exceeds maxLength
+    if let maxLength {
+      let absMax = abs(maxLength)
+      if maxLength < 0 { left = false }
+      if result.count > absMax {
+        result = String(result.prefix(absMax))
+      }
+    }
+    
+    if let minLength {
+      let absMin = abs(minLength)
+      if minLength < 0 { left = false }
+      
+      // Pad if the string is shorter than minLength
+      if result.count < absMin {
+        let paddingCount = absMin - result.count
+        let padding = String(repeating: " ", count: paddingCount)
+        
+        if left {
+          result = padding + result // Left padding
+        } else {
+          result = result + padding // Right padding
+        }
+      }
+      
+    }
+      return result
   }
 
 }
