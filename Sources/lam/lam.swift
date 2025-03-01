@@ -45,7 +45,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
 """
 
   struct FileOptions {
-    var eol : UInt8? = nil // "\n"
+    var eol : Character? = nil // "\n"
     var sepstring : String?
     var minLength : Int?
     var maxLength : Int?
@@ -53,7 +53,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
     var pad : Bool = false
     var name : String = "stdin"
     var fileHandle : FileHandle?
-    var fp : FileHandle.AsyncBytes.Iterator?
+    var fp : AsyncCharacterSequence<FileHandle.AsyncBytes>.AsyncIterator?
     var eof = false
   }
 
@@ -103,10 +103,10 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
           }
         }
         if ip.eol == nil {
-          ip.eol = T ? options.args.last?.eol : 10
+          ip.eol = T ? options.args.last?.eol : "\n"
         }
 
-        ip.fp = ip.fileHandle!.bytes.makeAsyncIterator()
+        ip.fp = ip.fileHandle!.bytes.characters.makeAsyncIterator()
         options.args.append(ip)
         ip = FileOptions()
         continue
@@ -132,7 +132,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
           } else {
             v = p
           }
-          ip.eol = UInt8(v.first?.unicodeScalars.first?.value ?? 10)
+          ip.eol = v.first
           T = c == "T"
           nofinalnl = true
         case "p", "P":
@@ -248,9 +248,9 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       return pad(ip)
     }
 
-    var p = Data()
+    var p = Substring()
     while true {
-      var c : UInt8?
+      var c : Character?
       do {
         c = try await ip.fp!.next()
       } catch {
@@ -269,7 +269,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       }
     }
 
-    return ip.sepstring! + formatCString(String(data: p, encoding: .utf8)!,
+    return ip.sepstring! + formatCString(String(p),
                                          ip.minLength,
                                          ip.maxLength
     )
