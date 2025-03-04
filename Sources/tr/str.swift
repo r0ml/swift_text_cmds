@@ -48,7 +48,7 @@ class STR {
   var state: State = .normal
   var str : Substring
   var originalStr: String
-  var lastch: UnicodeScalar = 0
+  var lastch: UnicodeScalar = UnicodeScalar(0)
   var cnt: Int = 0
   var cclass: CharacterSet?
   var set: [Int] = []
@@ -59,7 +59,7 @@ class STR {
     self.originalStr = str
     self.str = Substring(str)
     while let k = next() {
-      result.union(k)
+      result.formUnion(k)
     }
   }
   

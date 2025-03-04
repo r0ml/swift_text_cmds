@@ -82,6 +82,7 @@ import CMigration
           options.sflag = true
         case "u":
           // unbuffered is not a thing anymore
+          break
         case "?":
           fallthrough
         default: throw CmdErr(1)
@@ -137,20 +138,36 @@ import CMigration
       // Then, squeeze the result using the second argument.
       // (In our simplified version, we interpret string2 as the squeeze set.)
       output = runSqueeze(on: deleted, set1: config.string2 ?? "", complement: false)
-    } else if config.delete {
+    } else if options.dflag {
+      if options.string2 != nil {
+        throw CmdErr(1)
+      }
+      
+      do {
+        for try await ch in FileHandle.standardInput.bytes.characters {
+          if !cset_in(delete, ch) {
+            print(ch, terminator: "")
+          }
+        }
+      } catch {
+        throw CmdErr(1, "read error: \(error.localizedDescription)")
+      }
+      
       output = runDeletion(on: input, set1: config.string1, complement: config.complement)
-    } else if config.squeeze, config.string2 == nil {
+    } else if options.sflag, options.string2 == nil {
       // Squeeze-only mode.
       output = runSqueeze(on: input, set1: config.string1, complement: config.complement)
-    } else {
-      // Translation mode. (If squeeze is also specified, it will be applied.)
-      output = runTranslation(on: input, config: config)
+    } else if options.string2 == nil {
+      throw CmdErr(1)
     }
+
+
+    output = runTranslation(on: input, config: config)
     
     // Write the result to stdout.
     // (If unbuffered output is requested, flush immediately.)
-    fputs(output, stdout)
-    fflush(stdout)
+    print(output, terminator: "")
+    FileHandle.standardOutput.synchronize()
   }
   
   
@@ -323,5 +340,7 @@ extension CharacterSet {
     }
   }
   
-  
+  func cset_in(_ arg : String, _ ch : Character) -> Bool {
+    return arg.contains(ch)
+  }
 }
