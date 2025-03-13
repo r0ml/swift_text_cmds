@@ -51,6 +51,8 @@ import CMigration
     var dflag = false
     var sflag = false
     var uflag = false   // -u: unbuffered output
+    var input = FileHandle.standardInput
+    
     var string1: String = ""
     var string2: String? = nil     // Only used for translation and squeeze+delete mode.
     var args : [String] = CommandLine.arguments
@@ -64,11 +66,11 @@ import CMigration
     var options = CommandOptions()
     
     
-    let supportedFlags = "Ccdsu"
+    let supportedFlags = "Ccdsui:"
     let go = BSDGetopt(supportedFlags)
     
     
-    while let (k, _) = try go.getopt() {
+    while let (k, v) = try go.getopt() {
       switch k {
         case "C":
           options.Cflag = true
@@ -83,6 +85,13 @@ import CMigration
         case "u":
           // unbuffered is not a thing anymore
           break
+        case "i":
+          do {
+            let k = try FileHandle(forReadingFrom: URL(filePath: v))
+            options.input = k
+          } catch {
+            throw CmdErr(1, "error reading \(v): \(error.localizedDescription)")
+          }
         case "?":
           fallthrough
         default: throw CmdErr(1)
@@ -121,53 +130,56 @@ import CMigration
     //   - tr -s string1        : squeeze mode
     //   - tr string1 string2   : translation mode (with optional squeeze)
     
-    do {
-      for try await ch in FileHandle.standardInput.bytes.characters {
-        
-      }
-    } catch {
-      throw CmdErr(1, "read error: \(error.localizedDescription)")
-    }
     if options.dflag && options.sflag {
       // Both deletion and squeeze:
       // First, build the deletion set from string1 (possibly complemented).
       
-      //      let deleted = setup(string1,
+      //      let delete = setup(string1,
       
       // )(on: input, set1: config.string1, complement: config.complement)
       // Then, squeeze the result using the second argument.
-      // (In our simplified version, we interpret string2 as the squeeze set.)
-      output = runSqueeze(on: deleted, set1: config.string2 ?? "", complement: false)
+
+      fatalError("dflag+sflag not yet implemented" )
     } else if options.dflag {
-      if options.string2 != nil {
-        throw CmdErr(1)
-      }
-      
-      do {
-        for try await ch in FileHandle.standardInput.bytes.characters {
-          if !cset_in(delete, ch) {
-            print(ch, terminator: "")
-          }
+        if options.string2 != nil {
+          throw CmdErr(1)
         }
-      } catch {
-        throw CmdErr(1, "read error: \(error.localizedDescription)")
-      }
+        
+        let delete = setup(options.string1, options)
+        
+        do {
+          for try await ch in options.input.bytes.unicodeScalars {
+            if !delete.contains(ch) {
+              print(ch, terminator: "")
+            }
+          }
+        } catch {
+          throw CmdErr(1, "read error: \(error.localizedDescription)")
+        }
+        
+      } else if options.sflag, options.string2 == nil {
+        // Squeeze-only mode.
+        fatalError("squeeze-only not implemented")
+        /*
+         output = runSqueeze(on: input, set1: config.string1, complement: config.complement)
+         */
+      } else {
+        if options.string2 == nil {
+          throw CmdErr(1)
+        }
       
-      output = runDeletion(on: input, set1: config.string1, complement: config.complement)
-    } else if options.sflag, options.string2 == nil {
-      // Squeeze-only mode.
-      output = runSqueeze(on: input, set1: config.string1, complement: config.complement)
-    } else if options.string2 == nil {
-      throw CmdErr(1)
+      // translation from one string to the other
+      
+      fatalError("translation not implemented")
+      /*
+       output = runTranslation(on: input, config: config)
+       
+       // Write the result to stdout.
+       // (If unbuffered output is requested, flush immediately.)
+       print(output, terminator: "")
+       */
     }
-
-
-    output = runTranslation(on: input, config: config)
-    
-    // Write the result to stdout.
-    // (If unbuffered output is requested, flush immediately.)
-    print(output, terminator: "")
-    FileHandle.standardOutput.synchronize()
+    try? FileHandle.standardOutput.synchronize()
   }
   
   
@@ -200,6 +212,7 @@ import CMigration
   
   // -----------------------------------------------------------------------------
   
+  /*
   /// In deletion mode, remove characters (or their complement) specified in `set1` from `input`.
   func runDeletion(on input: String, set1: String, complement: Bool) -> String {
     // Build the deletion set.
@@ -223,6 +236,27 @@ import CMigration
     let result = input.filter { !deletionSet.contains($0) }
     return result
   }
+  */
+  
+  func setup(_ arg : String, _ options : CommandOptions) -> CharacterSet {
+    var cs = CharacterSet()
+    let str = STR(arg)
+    while str.next() {
+      cs.insert(str.lastch)
+    }
+    if options.Cflag {
+      fatalError("Cflag not implemented")
+     // cs.insert(charactersIn: ...type rune...)
+    }
+    if options.cflag || options.Cflag {
+      cs.invert()
+    }
+    return cs
+  }
+
+  
+  /*
+  
   
   /// In squeeze mode, collapse sequences of identical characters (from `set1`) into a single occurrence.
   func runSqueeze(on input: String, set1: String, complement: Bool) -> String {
@@ -249,7 +283,11 @@ import CMigration
     }
     return output
   }
+   
+   */
   
+  
+  /*
   /// In translation mode, build a mapping from characters in string1 to characters in string2.
   /// If string1 is longer than string2, the last character of string2 is repeated.
   func buildTranslationMap(from string1: String, to string2: String, complement: Bool) -> [Character: Character] {
@@ -282,6 +320,10 @@ import CMigration
     return map
   }
   
+   */
+  
+  
+  /*
   /// Processes the input text in translation mode.
   /// If squeeze is true, then after translating characters a squeeze set is used
   /// to collapse duplicate output.
@@ -321,10 +363,10 @@ import CMigration
     }
     return output
   }
-  
+  */
 }
 
-
+/*
 extension CharacterSet {
   init(_ arg : String, _ options : tr.CommandOptions) {
     while let n = next(arg) {
@@ -344,3 +386,4 @@ extension CharacterSet {
     return arg.contains(ch)
   }
 }
+*/

@@ -495,8 +495,6 @@
 		E7B759E92D62E7EB004B6D22 /* reverse.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759E82D62E7EB004B6D22 /* reverse.swift */; };
 		E7B759EB2D62EC4B004B6D22 /* cmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759EA2D62EC4B004B6D22 /* cmap.swift */; };
 		E7B759EC2D62EC4B004B6D22 /* cmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759EA2D62EC4B004B6D22 /* cmap.swift */; };
-		E7B759EE2D62EC5C004B6D22 /* cset.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759ED2D62EC5C004B6D22 /* cset.swift */; };
-		E7B759EF2D62EC5C004B6D22 /* cset.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759ED2D62EC5C004B6D22 /* cset.swift */; };
 		E7B759F12D62EC6F004B6D22 /* str.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F02D62EC6F004B6D22 /* str.swift */; };
 		E7B759F22D62EC6F004B6D22 /* str.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F02D62EC6F004B6D22 /* str.swift */; };
 		E7B759F62D6631E6004B6D22 /* bwstring.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B759F52D6631E6004B6D22 /* bwstring.swift */; };
@@ -530,6 +528,7 @@
 		E7C2939D2D417D1F007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939C2D417D1F007721DE /* ShellTesting */; };
 		E7C2939F2D417D23007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939E2D417D23007721DE /* ShellTesting */; };
 		E7C293A12D418BFD007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293A02D418BFD007721DE /* ShellTesting */; };
+		E7DBCA392D7F898D00A9BD9C /* lam2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DBCA382D7F898D00A9BD9C /* lam2.swift */; };
 		E7E621422D1095DB00E26DA9 /* regress.01a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213D2D1095DB00E26DA9 /* regress.01a.in */; };
 		E7E621432D1095DB00E26DA9 /* regress.02a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E621402D1095DB00E26DA9 /* regress.02a.in */; };
 		E7E621442D1095DB00E26DA9 /* regress.01.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213C2D1095DB00E26DA9 /* regress.01.out */; };
@@ -2371,6 +2370,7 @@
 		E7B759F92D663208004B6D22 /* file.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = file.swift; sourceTree = "<group>"; };
 		E7B759FD2D663230004B6D22 /* radixsort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = radixsort.swift; sourceTree = "<group>"; };
 		E7B759FF2D663234004B6D22 /* vsort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = vsort.swift; sourceTree = "<group>"; };
+		E7DBCA382D7F898D00A9BD9C /* lam2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = lam2.swift; sourceTree = "<group>"; };
 		E7E621392D1095DB00E26DA9 /* regress.00.out */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00.out; sourceTree = "<group>"; };
 		E7E6213A2D1095DB00E26DA9 /* regress.00a.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00a.in; sourceTree = "<group>"; };
 		E7E6213B2D1095DB00E26DA9 /* regress.00b.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = regress.00b.in; sourceTree = "<group>"; };
@@ -4104,6 +4104,7 @@
 			isa = PBXGroup;
 			children = (
 				E769726C2CF63B2600F3903F /* lam.swift */,
+				E7DBCA382D7F898D00A9BD9C /* lam2.swift */,
 			);
 			path = lam;
 			sourceTree = "<group>";
@@ -8167,6 +8168,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E76972AD2CF63E5100F3903F /* lam.swift in Sources */,
+				E7DBCA392D7F898D00A9BD9C /* lam2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -8266,7 +8268,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7B759EC2D62EC4B004B6D22 /* cmap.swift in Sources */,
-				E7B759EE2D62EC5C004B6D22 /* cset.swift in Sources */,
 				E7B759E92D62E7EB004B6D22 /* reverse.swift in Sources */,
 				E7B759E52D62E7CD004B6D22 /* misc.swift in Sources */,
 				E7B759E72D62E7E0004B6D22 /* read.swift in Sources */,
@@ -8282,7 +8283,6 @@
 			files = (
 				E7B759EB2D62EC4B004B6D22 /* cmap.swift in Sources */,
 				E7B759F12D62EC6F004B6D22 /* str.swift in Sources */,
-				E7B759EF2D62EC5C004B6D22 /* cset.swift in Sources */,
 				E76972DB2CF63F9200F3903F /* tr.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

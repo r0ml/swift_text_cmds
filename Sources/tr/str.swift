@@ -50,17 +50,14 @@ class STR {
   var originalStr: String
   var lastch: UnicodeScalar = UnicodeScalar(0)
   var cnt: Int = 0
-  var cclass: CharacterSet?
-  var set: [Int] = []
-  var equiv: [Int] = []
-  var result = CharacterSet()
+//  var cclass: CharacterSet?
+  var set: [UnicodeScalar] = []
+  var equiv: [UnicodeScalar] = []
+  var is_octal = false
   
   init(_ str: String) {
     self.originalStr = str
     self.str = Substring(str)
-    while let k = next() {
-      result.formUnion(k)
-    }
   }
   
   
@@ -70,14 +67,12 @@ class STR {
   var isWeightCached = false
   
   /// Retrieves the next character from a given STR object.
-  func next() -> CharacterSet? {
-    var isOctal = false
-//    var ch: Int
-    var wchar: UnicodeScalar?
+  func next() -> Bool {
+    var is_octal = false
     
     switch state {
       case .eos:
-        return nil
+        return false
       case .infinite:
         if str.isEmpty {
           state = .normal
@@ -87,7 +82,7 @@ class STR {
       case .normal:
         guard !str.isEmpty else {
           state = .eos
-          return nil
+          return false
         }
         
         let ch = str.removeFirst()
@@ -98,8 +93,10 @@ class STR {
             if bracket() {
               return next()
             }
+            fallthrough
           default:
-            lastch = ch
+            // FIXME: what if there is a second unicode scalar for this character?
+            lastch = ch.unicodeScalars.first!
         }
         
         // Handle Ranges
@@ -114,7 +111,7 @@ class STR {
           return next()
         }
         cnt -= 1
-        lastch = UnicodeScalar(s.lastch.value + 1)!
+        lastch = UnicodeScalar(lastch.value + 1)!
         return true
       case .sequence:
         if cnt == 0 {
@@ -125,19 +122,22 @@ class STR {
         return true
       case .cclass, .cclassUpper, .cclassLower:
         cnt += 1
-        ch = nextwctype(lastch.value, cclass!)
+        fatalError("next on cclass")
+/*
+ let ch = nextwctype(wint_t(lastch.value), cclass!)
         if ch == -1 {
           state = .normal
           return next()
         }
         lastch = UnicodeScalar(ch)!
         return true
+ */
       case .set:
         if cnt >= set.count {
           state = .normal
           return next()
         }
-        lastch = UnicodeScalar(set[cnt])!
+        lastch = UnicodeScalar(set[cnt])
         cnt += 1
         return true
     }
@@ -147,35 +147,57 @@ class STR {
   func bracket() -> Bool {
     guard !str.isEmpty else { return false }
     
-    let nextChar = str.first
+    let nextChar = str.dropFirst().first
     
     switch nextChar {
-      case ":":
-        if let closingBracket = s.originalStr[s.str...].firstIndex(of:  "]") {
-          if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: ":") {
-            s.str = s.originalStr.index(after: closingBracket)
-            genclass(cn)
-            return true
-          }
+      case ":": // [:class:]
+        guard let p = str.firstIndex(of: "]") else { return false }
+        guard str[str.index(before: p)] == ":" else {
+          return gotoRepeat()
         }
-      case "=":
-        if let closingBracket = s.originalStr[s.str...].firstIndex(of: UInt8(ascii: "]")) {
-          if s.originalStr[s.originalStr.index(before: closingBracket)] == UInt8(ascii: "=") {
-            s.str = s.originalStr.index(after: closingBracket)
-            genequiv()
-            return true
-          }
+        let nstr = str.suffix(from: p).dropFirst()
+        
+        let k = str.prefix(upTo: p).dropFirst(2).dropLast(2)
+        genclass( String(k) )
+        str = nstr
+        return true
+
+      case "=": // [=equiv=]
+        
+        guard let p = str.dropFirst(3).firstIndex(of: "]")  else {
+          return false
         }
+        if str[str.index(before: p)] != "=" {
+          return gotoRepeat()
+        }
+        let nstr = str[...p].dropFirst(2).dropLast(2)
+        if nstr.isEmpty {
+          return gotoRepeat()
+        }
+        str = str.dropFirst(2)
+        genequiv()
+        return true
       default:
-        break
+        return gotoRepeat()
     }
     
-    return false
+    func gotoRepeat() -> Bool {
+      guard let p = str.dropFirst(2).firstIndex(where: { "*]".contains($0) } ) else { return false }
+      if str[p] != "*" || !str[p...].contains("]") {
+        return false
+      }
+      str.removeFirst()
+      genseq()
+      return true
+    }
+    
+//    return false
   }
   
   /// Generates a character class.
   func genclass(_ className : String) {
-    cclass = CharacterSet(charactersIn: className)
+    fatalError("\(#function) not implemented yet")
+//    cclass = CharacterSet(charactersIn: className)
     state = .cclass
     cnt = 0
   }
@@ -183,66 +205,88 @@ class STR {
   
   /// Generates equivalent character set.
   func genequiv() {
-    var char = lastch
-    var equivalents: [UnicodeScalar] = [lastch]
-    let LC_GLOBAL_LOCALE = locale_t(UnsafePointer(bitPattern: -1))
-    // Mac-specific collation lookup
-    var primaryWeight: Int = -1
-    var z : UnsafePointer<Int32>?
-    
-    __collate_lookup_l(&char, &primaryWeight,
-                       &z,
-                       &z, LC_GLOBAL_LOCALE)
-    
-    if primaryWeight != -1 {
-      for i in 1..<NCHARS_SB {
-        var candidatePrimaryWeight: Int
-        if isWeightCached {
-          candidatePrimaryWeight = collationWeightCache[i]
-        } else {
-          __collate_lookup_l(UnicodeScalar(i), &candidatePrimaryWeight, nil, nil, LC_GLOBAL_LOCALE)
-          collationWeightCache[i] = candidatePrimaryWeight
-        }
-        
-        if candidatePrimaryWeight == primaryWeight {
-          equivalents.append(i)
-        }
-      }
-      
-      isWeightCached = true
-    }
-    
-    set = equivalents
+    fatalError("\(#function) not implemented yet")
     state = .set
   }
   
   /// Generates a range of characters.
-  func genrange(_ wasOctal: Bool) -> CharacterSet? {
-    guard !str.isEmpty else { return nil }
+  func genrange() -> Bool {
+    let was_octal = is_octal
+    is_octal = false
+    guard !str.isEmpty else { return false }
     
     let stopval: UnicodeScalar
-//    let originalStrIndex = s.str
-//    var isOctal = false
     
     if str.first == "\\" {
       str.removeFirst()
       stopval = backslash()
     } else {
+      // FIXME: what if multiple unicode scalars?
       stopval = str.removeFirst().unicodeScalars.first!
     }
     
-/*    if wasOctal || isOctal {
+    if is_octal || was_octal {
       if stopval.value < lastch.value {
-        return nil
+        // FIXME: what about savestart?
+        return false
       }
- */
       state = .range
-      return CharacterSet(charactersIn: lastch...stopval)
-//    }
-    
-    return nil
+      cnt = Int(stopval.value - lastch.value + 1)
+      return true
+    }
+    fatalError("genrange() without octal")
   }
   
+  func genseq() {
+      var ep: String.Index?
+
+      if str.first == "\\" {
+          lastch = backslash()
+      } else {
+          let firstIndex = str.startIndex
+          let clen = str[firstIndex].utf16.count
+
+          if let scalar = str.unicodeScalars.first {
+              lastch = scalar
+              str.removeFirst(clen)
+          } else {
+              fatalError("Invalid character sequence")
+          }
+      }
+
+      guard str.first == "*" else {
+          fatalError("misplaced sequence asterisk")
+      }
+
+      str.removeFirst()
+
+      switch str.first {
+      case "\\":
+          lastch = backslash()
+          str.removeFirst()
+      case "]":
+          cnt = 0
+          str.removeFirst()
+      default:
+          if let firstChar = str.first, firstChar.isNumber {
+              if let numEndIndex = str.firstIndex(where: { !$0.isNumber }) {
+                  let numStr = String(str[..<numEndIndex])
+                  cnt = Int(numStr) ?? 0
+                  ep = numEndIndex
+                  
+                  if ep != nil && str[ep!] == "]" {
+                      str = str[str.index(after: ep!)...]
+                  } else {
+                      fatalError("illegal sequence count")
+                  }
+              }
+          } else {
+              fatalError("illegal sequence count")
+          }
+      }
+
+      state = cnt > 0 ? .sequence : .infinite
+  }
   /// Processes escape sequences in a string.
   func backslash() -> UnicodeScalar {
     var val = 0
@@ -257,7 +301,10 @@ class STR {
     }
     
     if count > 0 {
+      is_octal = true
       return UnicodeScalar(val) ?? "?"
+    } else {
+      is_octal = false
     }
     
     let ch = str.first
