@@ -100,9 +100,11 @@ class STR {
         }
         
         // Handle Ranges
-        if str.first == "-",
-           genrange() {
-          return next()
+        if str.first == "-" {
+          str.removeFirst()
+          if genrange() {
+            return next()
+          }
         }
         return true
       case .range:
@@ -213,6 +215,7 @@ class STR {
   func genrange() -> Bool {
     let was_octal = is_octal
     is_octal = false
+    let savestart = str
     guard !str.isEmpty else { return false }
     
     let stopval: UnicodeScalar
@@ -234,7 +237,13 @@ class STR {
       cnt = Int(stopval.value - lastch.value + 1)
       return true
     }
-    fatalError("genrange() without octal")
+    if stopval < lastch {
+      str = savestart
+      return false
+    }
+    state = .set
+    set = (lastch.value...stopval.value).map { UnicodeScalar($0)! }
+    return true
   }
   
   func genseq() {
