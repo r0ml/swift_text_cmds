@@ -50,7 +50,7 @@ class STR {
   var originalStr: String
   var lastch: UnicodeScalar = UnicodeScalar(0)
   var cnt: Int = 0
-//  var cclass: CharacterSet?
+  var cclass: CharacterSet?
   var set: [UnicodeScalar] = []
   var equiv: [UnicodeScalar] = []
   var is_octal = false
@@ -68,7 +68,7 @@ class STR {
   
   /// Retrieves the next character from a given STR object.
   func next() -> Bool {
-    var is_octal = false
+    is_octal = false
     
     switch state {
       case .eos:
@@ -123,8 +123,15 @@ class STR {
         cnt -= 1
         return true
       case .cclass, .cclassUpper, .cclassLower:
-        cnt += 1
-        fatalError("next on cclass")
+        if cnt == 0 {
+          cnt += 1
+          return cclass != nil
+        } else {
+          cnt = 0
+          state = .normal
+          return next()
+        }
+//        fatalError("next on cclass")
 /*
  let ch = nextwctype(wint_t(lastch.value), cclass!)
         if ch == -1 {
@@ -149,7 +156,7 @@ class STR {
   func bracket() -> Bool {
     guard !str.isEmpty else { return false }
     
-    let nextChar = str.dropFirst().first
+    let nextChar = str.first
     
     switch nextChar {
       case ":": // [:class:]
@@ -159,7 +166,7 @@ class STR {
         }
         let nstr = str.suffix(from: p).dropFirst()
         
-        let k = str.prefix(upTo: p).dropFirst(2).dropLast(2)
+        let k = str.prefix(upTo: p).dropFirst().dropLast()
         genclass( String(k) )
         str = nstr
         return true
@@ -198,8 +205,9 @@ class STR {
   
   /// Generates a character class.
   func genclass(_ className : String) {
-    fatalError("\(#function) not implemented yet")
-//    cclass = CharacterSet(charactersIn: className)
+//    fatalError("\(#function) not implemented yet")
+    cclass = classes[className]
+        //    cclass = CharacterSet(charactersIn: className)
     state = .cclass
     cnt = 0
   }
@@ -241,6 +249,7 @@ class STR {
       str = savestart
       return false
     }
+    cnt = 0
     state = .set
     set = (lastch.value...stopval.value).map { UnicodeScalar($0)! }
     return true
@@ -329,3 +338,19 @@ class STR {
     }
   }
 }
+
+let classes = [
+  "alnum" : CharacterSet.alphanumerics,
+  "alpha" : CharacterSet.letters,
+  "blank" : CharacterSet.whitespaces,
+  "cntrl" : CharacterSet.controlCharacters,
+  "digit" : CharacterSet.decimalDigits,
+  "graph" : CharacterSet.symbols,
+  "lower" : CharacterSet.lowercaseLetters,
+  "print" : CharacterSet.symbols,
+  "punct" : CharacterSet.punctuationCharacters,
+  "space" : CharacterSet.whitespacesAndNewlines,
+  "upper" : CharacterSet.uppercaseLetters,
+  "xdigit" : CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
+  
+]

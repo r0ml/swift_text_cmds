@@ -112,13 +112,6 @@ import CMigration
         throw CmdErr(1)
     }
     
-    // In deletion mode (-d) only one string is allowed.
-    if options.dflag {
-      if options.string2 != nil {
-        throw CmdErr(1)
-      }
-      
-    }
     return options
   }
   
@@ -130,16 +123,42 @@ import CMigration
     //   - tr -s string1        : squeeze mode
     //   - tr string1 string2   : translation mode (with optional squeeze)
     
+    /*
+     * tr -ds [-Cc] string1 string2
+     * Delete all characters (or complemented characters) in string1.
+     * Squeeze all characters in string2.
+     */
+
     if options.dflag && options.sflag {
       // Both deletion and squeeze:
-      // First, build the deletion set from string1 (possibly complemented).
       
-      //      let delete = setup(string1,
+      let delete = setup(options.string1, options)
+      var opx = options
+      opx.cflag = false
+      opx.Cflag = false
+      let squeeze = setup(options.string2!, opx)
+      
+      do {
+        var lastch : UnicodeScalar? = nil
+        for try await ch in options.input.bytes.unicodeScalars {
+          if !delete.contains(ch) &&
+              (lastch != ch || !squeeze.contains(ch)) {
+            lastch = ch
+            print(ch, terminator: "")
+          }
+        }
+      } catch {
+        throw CmdErr(1, "read error: \(error.localizedDescription)")
+      }
+
       
       // )(on: input, set1: config.string1, complement: config.complement)
       // Then, squeeze the result using the second argument.
 
-      fatalError("dflag+sflag not yet implemented" )
+      /*
+       * tr -d [-Cc] string1
+       * Delete all characters (or complemented characters) in string1.
+       */
     } else if options.dflag {
         if options.string2 != nil {
           throw CmdErr(1)
@@ -157,11 +176,32 @@ import CMigration
           throw CmdErr(1, "read error: \(error.localizedDescription)")
         }
         
+      /*
+       * tr -s [-Cc] string1
+       * Squeeze all characters (or complemented characters) in string1.
+       */
+
       } else if options.sflag, options.string2 == nil {
         // Squeeze-only mode.
-        fatalError("squeeze-only not implemented")
+        let squeeze = setup(options.string1, options)
+        
+        do {
+          var lastch : UnicodeScalar? = nil
+          for try await ch in options.input.bytes.unicodeScalars {
+            if lastch != ch || !squeeze.contains(ch) {
+              lastch = ch
+              print(ch, terminator: "")
+            }
+          }
+        } catch {
+          throw CmdErr(1, "read error: \(error.localizedDescription)")
+        }
+        
         /*
-         output = runSqueeze(on: input, set1: config.string1, complement: config.complement)
+         * tr [-Ccs] string1 string2
+         * Replace all characters (or complemented characters) in string1 with
+         * the character in the same position in string2.  If the -s option is
+         * specified, squeeze all the characters in string2.
          */
       } else {
         if options.string2 == nil {
@@ -170,14 +210,180 @@ import CMigration
       
       // translation from one string to the other
       
-      fatalError("translation not implemented")
-      /*
-       output = runTranslation(on: input, config: config)
-       
-       // Write the result to stdout.
-       // (If unbuffered output is requested, flush immediately.)
-       print(output, terminator: "")
-       */
+        
+        if options.Cflag || options.cflag {
+          // ??
+        }
+        
+        var s2 = STR(options.string2!)
+        if !s2.next() {
+          throw CmdErr(1, "empty string2")
+        }
+        
+        /*
+         * For -s result will contain only those characters defined
+         * as the second characters in each of the toupper or tolower
+         * pairs.
+         */
+
+        var squeeze = CharacterSet()
+        var map : [UnicodeScalar : UnicodeScalar] = [:]
+        var defaultMap : UnicodeScalar?
+        var carray = [UnicodeScalar]()
+        
+        let s1 = STR(options.string1)
+ 
+      endloop:
+        while s1.next() {
+          
+          again: while true {
+            if (s1.state == .cclassLower &&
+                s2.state == .cclassUpper &&
+                s1.cnt == 1 && s2.cnt == 1) {
+              repeat {
+                let ch = s1.lastch.properties.uppercaseMapping.unicodeScalars.first!
+                map[s1.lastch] = ch
+                if (options.sflag && ch.properties.isUppercase) {
+                  squeeze.insert(ch)
+                }
+                
+                if !s1.next() {
+                  break endloop
+                }
+              } while (s1.state == .cclassLower && s1.cnt > 1)
+              /* skip upper set */
+              repeat {
+                if !s2.next() {
+                  break
+                }
+              } while (s2.state == .cclassUpper && s2.cnt > 1);
+              continue again
+            } else if (s1.state == .cclassUpper &&
+                       s2.state == .cclassLower &&
+                       s1.cnt == 1 && s2.cnt == 1) {
+              repeat {
+                let ch = s1.lastch.properties.lowercaseMapping.unicodeScalars.first!
+                map[s1.lastch] = ch
+                if options.sflag && ch.properties.isLowercase {
+                  squeeze.insert(ch)
+                }
+                if !s1.next() {
+                  break endloop;
+                }
+              } while (s1.state == .cclassUpper && s1.cnt > 1);
+              /* skip lower set */
+              repeat {
+                if !s2.next() {
+                  break;
+                }
+              } while (s2.state == .cclassLower && s2.cnt > 1);
+              continue again
+            } else {
+              map[s1.lastch]=s2.lastch
+              if options.sflag {
+                squeeze.insert(s2.lastch)
+              }
+            }
+            let _ = s2.next()
+            break again
+          }
+        }
+        
+        
+        if options.cflag || (options.Cflag /* && ___mb_cur_max() > 1 */ )  {
+          /*
+           * This is somewhat tricky: since the character set is
+           * potentially huge, we need to avoid allocating a map
+           * entry for every character. Our strategy is to set the
+           * default mapping to the last character of string #2
+           * (= the one that gets automatically repeated), then to
+           * add back identity mappings for characters that should
+           * remain unchanged. We don't waste space on identity mappings
+           * for non-characters with the -C option; those are simulated
+           * in the I/O loop.
+           */
+          s2 = STR(options.string2!)
+          s2.state = .normal
+          for cnt in 0 ..< WINT_MAX {
+            if options.Cflag && 0 == iswrune(cnt) {
+              continue
+            }
+            let ucnt = UnicodeScalar(UInt32(cnt))!
+            if map[ucnt] == nil {
+              if s2.next() {
+                map[ucnt] = s2.lastch
+                if options.sflag {
+                  squeeze.insert(s2.lastch)
+                }
+              }
+            } else {
+              map[ucnt] = ucnt
+            }
+            if (s2.state == .eos || s2.state == .infinite) &&
+                cnt >= map.keys.max()!.value {
+              break
+            }
+          }
+          defaultMap = s2.lastch
+        } else if options.Cflag {
+          for cnt in 0 ..< NCHARS_SB {
+//          for (p = carray, cnt = 0; cnt < NCHARS_SB; cnt++) {
+            let ucnt = UnicodeScalar(UInt32(cnt))!
+            if map[ucnt] == nil && iswrune(Int32(cnt)) != 0 {
+              carray.append(ucnt)
+            }
+            else {
+              map[ucnt] = ucnt
+            }
+          }
+          let n = carray.count
+          if (options.Cflag && n > 1) {
+            carray.sort()
+//            (void)mergesort(carray, n, sizeof(*carray), charcoll);
+          }
+
+          s2 = STR(options.string2!)
+          for cnt in 0..<n {
+            let _ = s2.next()
+            map[carray[cnt]] = s2.lastch
+            /*
+             * Chars taken from s2 can be different this time
+             * due to lack of complex upper/lower processing,
+             * so fill string2 again to not miss some.
+             */
+            if options.sflag {
+              squeeze.insert(s2.lastch)
+            }
+          }
+        }
+        
+        
+//        cset_cache(squeeze);
+//        cmap_cache(map);
+
+        do {
+          if options.sflag {
+            var lastch : UnicodeScalar? = nil
+            for try await ch in options.input.bytes.unicodeScalars {
+              let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ?
+              map[ch, default: defaultMap!] : ch
+              if lastch != ch || !squeeze.contains(ch) {
+                lastch = ch
+                print(ch, terminator: "")
+              }
+            }
+          }
+          else {
+            for try await ch in options.input.bytes.unicodeScalars {
+              let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch, default: defaultMap!] : ch
+              print(String(ch2), terminator: "")
+            }
+            
+          }
+        } catch {
+          throw CmdErr(1, "read error: \(error.localizedDescription)")
+        }
+        
     }
     try? FileHandle.standardOutput.synchronize()
   }
@@ -242,7 +448,16 @@ import CMigration
     var cs = CharacterSet()
     let str = STR(arg)
     while str.next() {
-      cs.insert(str.lastch)
+      switch str.state {
+        case .normal, .set:
+          cs.insert(str.lastch)
+        case .cclass:
+          if let c = str.cclass {
+            cs.formUnion(c)
+          }
+        default:
+          fatalError("unknown string class")
+      }
     }
     if options.Cflag {
       fatalError("Cflag not implemented")
