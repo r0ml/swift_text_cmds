@@ -168,56 +168,51 @@ import ShellTesting
     try await run(withStdin: z, output: r, args: "-s", x, y)
  }
   
-  @Test("Tests for tr substitution with -c") func csubst() async throws {
-    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ac-\\377'", "b", env: ["LC_ALL":""])
-    try await run(withStdin: "abcde\n", output: "abcde\n", args: "-c", "'\\0-ad-\\377'", "bc", env: ["LC_ALL":""])
-    try await run(withStdin: "ABCDE\n", output: "QUACK\n", args: "-c", "'\\0-@'", "QUACK" )
+  @Test("Tests for tr substitution with -c", arguments: [
+    (["'\\0-ac-\\377'", "b"], "abcde\n", "abcde\n"),
+    (["'\\0-ad-\\377'", "bc"], "abcde\n", "abcde\n"),
+    (["'\\0-@'", "QUACK"], "ABCDE\n", "QUACK\n")
+  ]) func csubst(_ args : [String], _ inp : String, _ outp : String) async throws {
+    try await run(withStdin: inp, output: outp, args: ["-c"]+args, env: ["LC_ALL":""])
   }
   
-  @Test("Legacy tests") func legacy() async throws {
+  @Test("Legacy tests", arguments: [
+    (false,"00", ["abcde", "12345"]),
+    (false,"01", ["12345", "abcde"]),
+    (false,"02", ["-d", "aceg"]),
+    (false,"03", ["[[:lower:]]", "[[:upper:]]"]),
+    (false,"04", ["[[:alpha:]]", "."]),
+
+    (true, "06", ["[[:digit:]]", "?"]),
+    (true, "07", ["[[:alnum:]]", "#"]),
+    (true, "0b", [ "-cd", "[[:xdigit:]]"]),
+    
+  ]) func legacy(_ ix : Bool, _ f : String, _ a : [String]) async throws {
     let i = try fileContents("regress.in" )
     let i2 = try fileContents("regress2.in" )
-    let expected1 = try fileContents("regress.00.out")
-    try await run(withStdin: i, output: expected1, args: "abcde", "12345")
-
-    let expected2 = try fileContents("regress.01.out")
-    try await run(withStdin: i, output: expected2, args: "12345", "abcde")
-
-    let expected3 = try fileContents("regress.02.out")
-    try await run(withStdin: i, output: expected3, args: "-d", "aceg")
-
-    let expected4 = try fileContents("regress.03.out")
-    try await run(withStdin: i, output: expected4, args: "[[:lower:]]", "[[:upper:]]" )
-
-    let expected5 = try fileContents("regress.04.out")
-    try await run(withStdin: i, output: expected5, args: "[[:alpha:]]", ".")
-
+    let expected1 = try fileContents("regress.\(f).out")
+    try await run(withStdin: ix ? i2 : i, output: expected1, args: a)
+  }
+  
+  
 //    let (_, j6, _) = try run(cl, ex, ["abcde", "12345"], i)
 //    #expect( j6 == try fileContents("trTest", "regress.05", withExtension: "out"))
 
-    let expected7 = try fileContents("regress.06.out")
-    try await run(withStdin: i2, output: expected7, args: "[[:digit:]]", "?")
-
-    let expected8 = try fileContents("regress.07.out")
-    try await run(withStdin: i2, output: expected8, args: "[[:alnum:]]", "#")
-
 //    let (_, j9, _) = try run(cl, ex, ["abcde", "12345"], i)
 //    #expect( j9 == try fileContents("trTest", "regress.08", withExtension: "out"))
-
-    let expecteda = try fileContents("regress.09.out")
-    try await run(withStdin: "\u{0c}\r\n", output: expecteda, args: "\\014\\r", "?#")
-
-    let expectedb = try fileContents("regress.0a.out")
-    try await run(withStdin: "0xdeadbeef\n", output: expectedb, args: "x[[:xdigit:]]", "?\\$" )
-
-    let expectedc = try fileContents("regress.0b.out")
-    let exc = String(expectedc.dropLast())
-    try await run(withStdin: i2, output: exc, args: "-cd", "[[:xdigit:]]")
-
-    let expectedd = try fileContents("regress.0c.out")
-    try await run(withStdin: "[[[[]]]]]\n", output: expectedd, args: "-d", "[=]=]" )
-
-    let expectede = try fileContents("regress.0d.out")
-    try await run(withStdin: "]=[\n", output: expectede, args: "-d", "[=]" )
+  
+  
+  @Test("Legacy2 tests", arguments: [
+    ("\u{0c}\r\n", "09", ["\\014\\r", "?#"]),
+    ("0xdeadbeef\n", "0a", ["x[[:xdigit:]]", "?\\$"]),
+    ("[[[[]]]]]\n", "0c", ["-d", "[=]=]"]),
+    ("]=[\n", "0d", ["-d", "[=]"]),
+  ]) func legacy2( _ si : String, _ f : String, _ a : [String] ) async throws {
+    let i = try fileContents("regress.in" )
+    let i2 = try fileContents("regress2.in" )
+    
+    let expected1 = try fileContents("regress.\(f).out")
+    try await run(withStdin: si, output: expected1, args: a)
   }
+
 }

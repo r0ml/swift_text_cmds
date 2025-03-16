@@ -241,8 +241,8 @@ import CMigration
                 s2.state == .cclassUpper &&
                 s1.cnt == 1 && s2.cnt == 1) {
               repeat {
-                let ch = s1.lastch.properties.uppercaseMapping.unicodeScalars.first!
-                map[s1.lastch] = ch
+                let ch = s1.lastch!.properties.uppercaseMapping.unicodeScalars.first!
+                map[s1.lastch!] = ch
                 if (options.sflag && ch.properties.isUppercase) {
                   squeeze.insert(ch)
                 }
@@ -262,8 +262,8 @@ import CMigration
                        s2.state == .cclassLower &&
                        s1.cnt == 1 && s2.cnt == 1) {
               repeat {
-                let ch = s1.lastch.properties.lowercaseMapping.unicodeScalars.first!
-                map[s1.lastch] = ch
+                let ch = s1.lastch!.properties.lowercaseMapping.unicodeScalars.first!
+                map[s1.lastch!] = ch
                 if options.sflag && ch.properties.isLowercase {
                   squeeze.insert(ch)
                 }
@@ -279,9 +279,9 @@ import CMigration
               } while (s2.state == .cclassLower && s2.cnt > 1);
               continue again
             } else {
-              map[s1.lastch]=s2.lastch
+              map[s1.lastch!]=s2.lastch
               if options.sflag {
-                squeeze.insert(s2.lastch)
+                squeeze.insert(s2.lastch!)
               }
             }
             let _ = s2.next()
@@ -290,7 +290,7 @@ import CMigration
         }
         
         
-        if options.cflag || (options.Cflag /* && ___mb_cur_max() > 1 */ )  {
+        if options.cflag || (options.Cflag && ___mb_cur_max() > 1 )  {
           /*
            * This is somewhat tricky: since the character set is
            * potentially huge, we need to avoid allocating a map
@@ -302,7 +302,8 @@ import CMigration
            * for non-characters with the -C option; those are simulated
            * in the I/O loop.
            */
-          s2 = STR(options.string2!)
+          s2.str = Substring(s2.originalStr)
+//          s2 = STR(options.string2!)
           s2.state = .normal
           for cnt in 0 ..< WINT_MAX {
             if options.Cflag && 0 == iswrune(cnt) {
@@ -313,7 +314,7 @@ import CMigration
               if s2.next() {
                 map[ucnt] = s2.lastch
                 if options.sflag {
-                  squeeze.insert(s2.lastch)
+                  squeeze.insert(s2.lastch!)
                 }
               }
             } else {
@@ -352,7 +353,7 @@ import CMigration
              * so fill string2 again to not miss some.
              */
             if options.sflag {
-              squeeze.insert(s2.lastch)
+              squeeze.insert(s2.lastch!)
             }
           }
         }
@@ -366,17 +367,20 @@ import CMigration
             var lastch : UnicodeScalar? = nil
             for try await ch in options.input.bytes.unicodeScalars {
               let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ?
-              map[ch, default: defaultMap!] : ch
-              if lastch != ch || !squeeze.contains(ch) {
-                lastch = ch
-                print(ch, terminator: "")
+              map[ch, default: defaultMap ?? ch] : ch
+              if lastch != ch2 || !squeeze.contains(ch) {
+                lastch = ch2
+                print(ch2, terminator: "")
               }
             }
           }
           else {
             for try await ch in options.input.bytes.unicodeScalars {
-              let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch, default: defaultMap!] : ch
-              print(String(ch2), terminator: "")
+              if let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch] : ch {
+                print(String(ch2), terminator: "")
+              } else {
+                print(String(ch), terminator: "")
+              }
             }
             
           }
@@ -450,7 +454,7 @@ import CMigration
     while str.next() {
       switch str.state {
         case .normal, .set:
-          cs.insert(str.lastch)
+          cs.insert(str.lastch!)
         case .cclass:
           if let c = str.cclass {
             cs.formUnion(c)

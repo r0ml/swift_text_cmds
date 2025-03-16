@@ -48,7 +48,7 @@ class STR {
   var state: State = .normal
   var str : Substring
   var originalStr: String
-  var lastch: UnicodeScalar = UnicodeScalar(0)
+  var lastch: UnicodeScalar? = nil // UnicodeScalar(0)
   var cnt: Int = 0
   var cclass: CharacterSet?
   var set: [UnicodeScalar] = []
@@ -113,7 +113,11 @@ class STR {
           return next()
         }
         cnt -= 1
-        lastch = UnicodeScalar(lastch.value + 1)!
+        if lastch == nil {
+          lastch = UnicodeScalar(0)
+        } else {
+          lastch = UnicodeScalar(lastch!.value + 1)!
+        }
         return true
       case .sequence:
         if cnt == 0 {
@@ -236,22 +240,25 @@ class STR {
       stopval = str.removeFirst().unicodeScalars.first!
     }
     
-    if is_octal || was_octal {
-      if stopval.value < lastch.value {
+    if is_octal || was_octal || ___mb_cur_max() > 1 {
+      if let lastch, stopval.value < lastch.value {
         // FIXME: what about savestart?
+        str = savestart
         return false
       }
       state = .range
-      cnt = Int(stopval.value - lastch.value + 1)
+      let z = lastch == nil ? 0 : lastch!.value
+      cnt = Int(stopval.value - z + 1)
+      lastch = lastch!.value == 0 ? nil : UnicodeScalar(lastch!.value - 1)
       return true
     }
-    if stopval < lastch {
+    if let lastch, stopval < lastch {
       str = savestart
       return false
     }
     cnt = 0
     state = .set
-    set = (lastch.value...stopval.value).map { UnicodeScalar($0)! }
+    set = (lastch!.value...stopval.value).map { UnicodeScalar($0)! }
     return true
   }
   

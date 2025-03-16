@@ -58,6 +58,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-ds"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-c"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -69,11 +73,11 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "x"
+            argument = "&apos;\0-@&apos;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "y"
+            argument = "QUACK"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
