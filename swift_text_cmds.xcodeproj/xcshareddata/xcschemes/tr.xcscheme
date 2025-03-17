@@ -62,22 +62,30 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-c"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/xxx"
+            argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/trTest/Resources/regress2.in"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;\0-@&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "QUACK"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "[[:digit:]]"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "?"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

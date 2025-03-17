@@ -51,6 +51,7 @@ class STR {
   var lastch: UnicodeScalar? = nil // UnicodeScalar(0)
   var cnt: Int = 0
   var cclass: CharacterSet?
+  var wctypex : wctype_t = 0
   var set: [UnicodeScalar] = []
   var equiv: [UnicodeScalar] = []
   var is_octal = false
@@ -127,14 +128,18 @@ class STR {
         cnt -= 1
         return true
       case .cclass, .cclassUpper, .cclassLower:
-        if cnt == 0 {
+          let nw = nextwctype( cnt == 0 ? -1 : Int32(lastch!.value), wctypex)
           cnt += 1
-          return cclass != nil
-        } else {
-          cnt = 0
-          state = .normal
-          return next()
-        }
+          if nw == -1 {
+            lastch = nil
+            cnt = 0
+            state = .normal
+            return next()
+          } else {
+            lastch = UnicodeScalar(UInt32(nw))!
+            return true
+          }
+
 //        fatalError("next on cclass")
 /*
  let ch = nextwctype(wint_t(lastch.value), cclass!)
@@ -211,6 +216,7 @@ class STR {
   func genclass(_ className : String) {
 //    fatalError("\(#function) not implemented yet")
     cclass = classes[className]
+    wctypex = wctype(className)
         //    cclass = CharacterSet(charactersIn: className)
     state = .cclass
     cnt = 0
