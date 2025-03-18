@@ -132,11 +132,11 @@ import CMigration
     if options.dflag && options.sflag {
       // Both deletion and squeeze:
       
-      let delete = setup(options.string1, options)
+      let delete = try setup(options.string1, options)
       var opx = options
       opx.cflag = false
       opx.Cflag = false
-      let squeeze = setup(options.string2!, opx)
+      let squeeze = try setup(options.string2!, opx)
       
       do {
         var lastch : UnicodeScalar? = nil
@@ -164,7 +164,7 @@ import CMigration
           throw CmdErr(1)
         }
         
-        let delete = setup(options.string1, options)
+        let delete = try setup(options.string1, options)
         
         do {
           for try await ch in options.input.bytes.unicodeScalars {
@@ -183,7 +183,7 @@ import CMigration
 
       } else if options.sflag, options.string2 == nil {
         // Squeeze-only mode.
-        let squeeze = setup(options.string1, options)
+        let squeeze = try setup(options.string1, options)
         
         do {
           var lastch : UnicodeScalar? = nil
@@ -216,7 +216,7 @@ import CMigration
         }
         
         var s2 = STR(options.string2!)
-        if !s2.next() {
+        if try !s2.next() {
           throw CmdErr(1, "empty string2")
         }
         
@@ -234,7 +234,7 @@ import CMigration
         let s1 = STR(options.string1)
  
       endloop:
-        while s1.next() {
+        while try s1.next() {
           
           again: while true {
             if (s1.state == .cclassLower &&
@@ -247,13 +247,13 @@ import CMigration
                   squeeze.insert(ch)
                 }
                 
-                if !s1.next() {
+                if try !s1.next() {
                   break endloop
                 }
               } while (s1.state == .cclassLower && s1.cnt > 1)
               /* skip upper set */
               repeat {
-                if !s2.next() {
+                if try !s2.next() {
                   break
                 }
               } while (s2.state == .cclassUpper && s2.cnt > 1);
@@ -267,13 +267,13 @@ import CMigration
                 if options.sflag && ch.properties.isLowercase {
                   squeeze.insert(ch)
                 }
-                if !s1.next() {
+                if try !s1.next() {
                   break endloop;
                 }
               } while (s1.state == .cclassUpper && s1.cnt > 1);
               /* skip lower set */
               repeat {
-                if !s2.next() {
+                if try !s2.next() {
                   break;
                 }
               } while (s2.state == .cclassLower && s2.cnt > 1);
@@ -284,7 +284,7 @@ import CMigration
                 squeeze.insert(s2.lastch!)
               }
             }
-            let _ = s2.next()
+            let _ = try s2.next()
             break again
           }
         }
@@ -311,7 +311,7 @@ import CMigration
             }
             let ucnt = UnicodeScalar(UInt32(cnt))!
             if map[ucnt] == nil {
-              if s2.next() {
+              if try s2.next() {
                 map[ucnt] = s2.lastch
                 if options.sflag {
                   squeeze.insert(s2.lastch!)
@@ -345,7 +345,7 @@ import CMigration
 
           s2 = STR(options.string2!)
           for cnt in 0..<n {
-            let _ = s2.next()
+            let _ = try s2.next()
             map[carray[cnt]] = s2.lastch
             /*
              * Chars taken from s2 can be different this time
@@ -448,10 +448,10 @@ import CMigration
   }
   */
   
-  func setup(_ arg : String, _ options : CommandOptions) -> CharacterSet {
+  func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> CharacterSet {
     var cs = CharacterSet()
     let str = STR(arg)
-    while str.next() {
+    while try str.next() {
       switch str.state {
         case .normal, .set:
           cs.insert(str.lastch!)

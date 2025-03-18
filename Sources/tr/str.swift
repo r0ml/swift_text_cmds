@@ -34,6 +34,7 @@
  */
 
 import Foundation
+import CMigration
 
 // Define Character Set Size
 let NCHARS_SB = 256
@@ -68,7 +69,7 @@ class STR {
   var isWeightCached = false
   
   /// Retrieves the next character from a given STR object.
-  func next() -> Bool {
+  func next() throws(CmdErr) -> Bool {
     is_octal = false
     
     switch state {
@@ -91,8 +92,8 @@ class STR {
           case "\\":
             lastch = backslash()
           case "[":
-            if bracket() {
-              return next()
+            if try bracket() {
+              return try next()
             }
             fallthrough
           default:
@@ -104,14 +105,14 @@ class STR {
         if str.first == "-" {
           str.removeFirst()
           if genrange() {
-            return next()
+            return try next()
           }
         }
         return true
       case .range:
         if cnt == 0 {
           state = .normal
-          return next()
+          return try next()
         }
         cnt -= 1
         if lastch == nil {
@@ -123,37 +124,37 @@ class STR {
       case .sequence:
         if cnt == 0 {
           state = .normal
-          return next()
+          return try next()
         }
         cnt -= 1
         return true
       case .cclass, .cclassUpper, .cclassLower:
-          let nw = nextwctype( cnt == 0 ? -1 : Int32(lastch!.value), wctypex)
-          cnt += 1
-          if nw == -1 {
-            lastch = nil
-            cnt = 0
-            state = .normal
-            return next()
-          } else {
-            lastch = UnicodeScalar(UInt32(nw))!
-            return true
-          }
-
-//        fatalError("next on cclass")
-/*
- let ch = nextwctype(wint_t(lastch.value), cclass!)
-        if ch == -1 {
+        let nw = nextwctype( cnt == 0 ? -1 : Int32(lastch!.value), wctypex)
+        cnt += 1
+        if nw == -1 {
+          lastch = nil
+          cnt = 0
           state = .normal
-          return next()
+          return try next()
+        } else {
+          lastch = UnicodeScalar(UInt32(nw))!
+          return true
         }
-        lastch = UnicodeScalar(ch)!
-        return true
- */
+        
+        //        fatalError("next on cclass")
+        /*
+         let ch = nextwctype(wint_t(lastch.value), cclass!)
+         if ch == -1 {
+         state = .normal
+         return next()
+         }
+         lastch = UnicodeScalar(ch)!
+         return true
+         */
       case .set:
         if cnt >= set.count {
           state = .normal
-          return next()
+          return try next()
         }
         lastch = UnicodeScalar(set[cnt])
         cnt += 1
@@ -162,7 +163,7 @@ class STR {
   }
   
   /// Parses bracketed expressions in a pattern.
-  func bracket() -> Bool {
+  func bracket() throws(CmdErr) -> Bool {
     guard !str.isEmpty else { return false }
     
     let nextChar = str.first
@@ -179,7 +180,7 @@ class STR {
         genclass( String(k) )
         str = nstr
         return true
-
+        
       case "=": // [=equiv=]
         
         guard let p = str.dropFirst(3).firstIndex(of: "]")  else {
@@ -193,7 +194,7 @@ class STR {
           return gotoRepeat()
         }
         str = str.dropFirst(2)
-        genequiv()
+        try genequiv()
         return true
       default:
         return gotoRepeat()
@@ -209,24 +210,102 @@ class STR {
       return true
     }
     
-//    return false
+    //    return false
   }
   
   /// Generates a character class.
   func genclass(_ className : String) {
-//    fatalError("\(#function) not implemented yet")
+    //    fatalError("\(#function) not implemented yet")
     cclass = classes[className]
     wctypex = wctype(className)
-        //    cclass = CharacterSet(charactersIn: className)
+    //    cclass = CharacterSet(charactersIn: className)
     state = .cclass
     cnt = 0
   }
   
   
   /// Generates equivalent character set.
-  func genequiv() {
-    fatalError("\(#function) not implemented yet")
+  func genequiv() throws(CmdErr) {
+    throw CmdErr(1, "equivalent classes not implemented")
+    // the original relies on __collate_lookup_l which is an internal function in libc and not available to me.
+    // does the following expression work to simulate the desired outcome:
+    // "e".compare("é", options: [.diacriticInsensitive, .widthInsensitive]).rawValue
+
+    // if so, there is no way to do this in the current flow because there is no way to find the set of characters for which the "insensitive" compare yields true.
+    // Either I have to run through all possible characters and generate such a list (which seems intensive)
+    // or the flow which does the compare (and currently relies on a CharacterSet,
+    // needs to change to use a "CharacterSetDescription" which implements different compare strategies for different members of the set.
+    
+    /*
+    
+    if str.first == "\\" {
+      equiv[0] = backslash()
+      if (str.first != "=") {
+        throw CmdErr(1, "misplaced equivalence equals sign")
+      }
+      str = str.dropFirst(2)
+    } else {
+      equiv[0] = str.first!.unicodeScalars.first!
+      if (str.dropFirst().first != "=") {
+        throw CmdErr(1, "misplaced equivalence equals sign")
+      }
+      str = str.dropFirst(2)
+    }
+    
+    /*
+     * Partially supporting multi-byte locales; only finds equivalent
+     * characters within the first NCHARS_SB entries of the
+     * collation table
+     */
+    var tprim : Int32
+    var tsec : Int32
+    var len : Int32
+    __collate_lookup_l(equiv, &len, &tprim, &tsec, LC_GLOBAL_LOCALE);
+    
+    if (tprim != -1) {
+      for (p = 1, i = 1; i < NCHARS_SB; i++) {
+        int cprim;
+        if (is_weight_cached) {
+          /*
+           * retrieve primary weight from cache
+           */
+          cprim = collation_weight_cache[i];
+        } else {
+          /*
+           * perform lookup of primary weight and fill cache
+           */
+          int csec;
+          __collate_lookup_l((__darwin_wchar_t *)&i, &len, &cprim, &csec, LC_GLOBAL_LOCALE);
+          collation_weight_cache[i] = cprim;
+        }
+        
+        /*
+         * If a character does not exist in the collation
+         * table, just skip it
+         */
+        if (cprim == -1) {
+          continue;
+        }
+        
+        /*
+         * Only compare primary weights to determine multi-byte
+         * character equivalence
+         */
+        if (cprim == tprim) {
+          s->equiv[p++] = i;
+        }
+      }
+      s->equiv[p] = OOBCH;
+      
+      if (!is_weight_cached) {
+        is_weight_cached = 1;
+      }
+    }
+    cnt = 0;
     state = .set
+    set = equiv
+     
+     */
   }
   
   /// Generates a range of characters.
