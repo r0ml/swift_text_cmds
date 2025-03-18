@@ -57,12 +57,12 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-ds"
+            argument = "-c"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-c"
-            isEnabled = "NO">
+            argument = "-d"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
@@ -70,6 +70,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/trTest/Resources/regress2.in"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/xxx"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -82,10 +86,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "[[:digit:]]"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "?"
+            argument = "[[:graph:]]"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

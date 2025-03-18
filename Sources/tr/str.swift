@@ -43,7 +43,7 @@ let OOBCH = -1  // Out-Of-Bounds Character Placeholder
 // Define Structure for Pattern Matching
 class STR {
   enum State {
-    case eos, infinite, normal, range, sequence, cclass, cclassUpper, cclassLower, set
+    case eos, infinite, normal, range, sequence, cclass, cclassUpper, cclassLower, set, equiv
   }
   
   var state: State = .normal
@@ -51,10 +51,10 @@ class STR {
   var originalStr: String
   var lastch: UnicodeScalar? = nil // UnicodeScalar(0)
   var cnt: Int = 0
-  var cclass: CharacterSet?
+  var cclass: (any Containable)?
   var wctypex : wctype_t = 0
   var set: [UnicodeScalar] = []
-  var equiv: [UnicodeScalar] = []
+  var equiv: UnicodeScalar?
   var is_octal = false
   
   init(_ str: String) {
@@ -159,6 +159,14 @@ class STR {
         lastch = UnicodeScalar(set[cnt])
         cnt += 1
         return true
+      case .equiv:
+        cnt += 1
+        if cnt == 1 {
+          return true
+        }
+        state = .normal
+        cnt = 0
+        return try next()
     }
   }
   
@@ -189,11 +197,11 @@ class STR {
         if str[str.index(before: p)] != "=" {
           return gotoRepeat()
         }
-        let nstr = str[...p].dropFirst(2).dropLast(2)
+        let nstr = str[...p].dropFirst().dropLast(2)
         if nstr.isEmpty {
           return gotoRepeat()
         }
-        str = str.dropFirst(2)
+        str = str.dropFirst()
         try genequiv()
         return true
       default:
@@ -215,7 +223,6 @@ class STR {
   
   /// Generates a character class.
   func genclass(_ className : String) {
-    //    fatalError("\(#function) not implemented yet")
     cclass = classes[className]
     wctypex = wctype(className)
     //    cclass = CharacterSet(charactersIn: className)
@@ -226,86 +233,83 @@ class STR {
   
   /// Generates equivalent character set.
   func genequiv() throws(CmdErr) {
-    throw CmdErr(1, "equivalent classes not implemented")
+//    throw CmdErr(1, "equivalence classes not implemented")
     // the original relies on __collate_lookup_l which is an internal function in libc and not available to me.
     // does the following expression work to simulate the desired outcome:
     // "e".compare("é", options: [.diacriticInsensitive, .widthInsensitive]).rawValue
-
+    
     // if so, there is no way to do this in the current flow because there is no way to find the set of characters for which the "insensitive" compare yields true.
     // Either I have to run through all possible characters and generate such a list (which seems intensive)
     // or the flow which does the compare (and currently relies on a CharacterSet,
     // needs to change to use a "CharacterSetDescription" which implements different compare strategies for different members of the set.
     
-    /*
-    
-    if str.first == "\\" {
-      equiv[0] = backslash()
-      if (str.first != "=") {
-        throw CmdErr(1, "misplaced equivalence equals sign")
-      }
-      str = str.dropFirst(2)
-    } else {
-      equiv[0] = str.first!.unicodeScalars.first!
-      if (str.dropFirst().first != "=") {
-        throw CmdErr(1, "misplaced equivalence equals sign")
-      }
-      str = str.dropFirst(2)
-    }
-    
-    /*
-     * Partially supporting multi-byte locales; only finds equivalent
-     * characters within the first NCHARS_SB entries of the
-     * collation table
-     */
-    var tprim : Int32
-    var tsec : Int32
-    var len : Int32
-    __collate_lookup_l(equiv, &len, &tprim, &tsec, LC_GLOBAL_LOCALE);
-    
-    if (tprim != -1) {
-      for (p = 1, i = 1; i < NCHARS_SB; i++) {
-        int cprim;
-        if (is_weight_cached) {
-          /*
-           * retrieve primary weight from cache
-           */
-          cprim = collation_weight_cache[i];
-        } else {
-          /*
-           * perform lookup of primary weight and fill cache
-           */
-          int csec;
-          __collate_lookup_l((__darwin_wchar_t *)&i, &len, &cprim, &csec, LC_GLOBAL_LOCALE);
-          collation_weight_cache[i] = cprim;
-        }
-        
-        /*
-         * If a character does not exist in the collation
-         * table, just skip it
-         */
-        if (cprim == -1) {
-          continue;
-        }
-        
-        /*
-         * Only compare primary weights to determine multi-byte
-         * character equivalence
-         */
-        if (cprim == tprim) {
-          s->equiv[p++] = i;
-        }
-      }
-      s->equiv[p] = OOBCH;
-      
-      if (!is_weight_cached) {
-        is_weight_cached = 1;
-      }
-    }
-    cnt = 0;
-    state = .set
-    set = equiv
+     if str.first == "\\" {
+     equiv = backslash()
+     if (str.first != "=") {
+     throw CmdErr(1, "misplaced equivalence equals sign")
+     }
+     str = str.dropFirst(2)
+     } else {
+     equiv = str.first!.unicodeScalars.first!
+     if (str.dropFirst().first != "=") {
+     throw CmdErr(1, "misplaced equivalence equals sign")
+     }
+     str = str.dropFirst(2)
+     }
      
+    /*
+     /*
+      * Partially supporting multi-byte locales; only finds equivalent
+      * characters within the first NCHARS_SB entries of the
+      * collation table
+      */
+     var tprim : Int32
+     var tsec : Int32
+     var len : Int32
+     __collate_lookup_l(equiv, &len, &tprim, &tsec, LC_GLOBAL_LOCALE);
+     
+     if (tprim != -1) {
+     for (p = 1, i = 1; i < NCHARS_SB; i++) {
+     int cprim;
+     if (is_weight_cached) {
+     /*
+      * retrieve primary weight from cache
+      */
+     cprim = collation_weight_cache[i];
+     } else {
+     /*
+      * perform lookup of primary weight and fill cache
+      */
+     int csec;
+     __collate_lookup_l((__darwin_wchar_t *)&i, &len, &cprim, &csec, LC_GLOBAL_LOCALE);
+     collation_weight_cache[i] = cprim;
+     }
+     
+     /*
+      * If a character does not exist in the collation
+      * table, just skip it
+      */
+     if (cprim == -1) {
+     continue;
+     }
+     
+     /*
+      * Only compare primary weights to determine multi-byte
+      * character equivalence
+      */
+     if (cprim == tprim) {
+     s->equiv[p++] = i;
+     }
+     }
+     s->equiv[p] = OOBCH;
+     
+     if (!is_weight_cached) {
+     is_weight_cached = 1;
+     }
+     }
      */
+     cnt = 0;
+     state = .equiv
   }
   
   /// Generates a range of characters.
@@ -348,54 +352,54 @@ class STR {
   }
   
   func genseq() {
-      var ep: String.Index?
-
-      if str.first == "\\" {
-          lastch = backslash()
+    var ep: String.Index?
+    
+    if str.first == "\\" {
+      lastch = backslash()
+    } else {
+      let firstIndex = str.startIndex
+      let clen = str[firstIndex].utf16.count
+      
+      if let scalar = str.unicodeScalars.first {
+        lastch = scalar
+        str.removeFirst(clen)
       } else {
-          let firstIndex = str.startIndex
-          let clen = str[firstIndex].utf16.count
-
-          if let scalar = str.unicodeScalars.first {
-              lastch = scalar
-              str.removeFirst(clen)
-          } else {
-              fatalError("Invalid character sequence")
-          }
+        fatalError("Invalid character sequence")
       }
-
-      guard str.first == "*" else {
-          fatalError("misplaced sequence asterisk")
-      }
-
-      str.removeFirst()
-
-      switch str.first {
+    }
+    
+    guard str.first == "*" else {
+      fatalError("misplaced sequence asterisk")
+    }
+    
+    str.removeFirst()
+    
+    switch str.first {
       case "\\":
-          lastch = backslash()
-          str.removeFirst()
+        lastch = backslash()
+        str.removeFirst()
       case "]":
-          cnt = 0
-          str.removeFirst()
+        cnt = 0
+        str.removeFirst()
       default:
-          if let firstChar = str.first, firstChar.isNumber {
-              if let numEndIndex = str.firstIndex(where: { !$0.isNumber }) {
-                  let numStr = String(str[..<numEndIndex])
-                  cnt = Int(numStr) ?? 0
-                  ep = numEndIndex
-                  
-                  if ep != nil && str[ep!] == "]" {
-                      str = str[str.index(after: ep!)...]
-                  } else {
-                      fatalError("illegal sequence count")
-                  }
-              }
-          } else {
+        if let firstChar = str.first, firstChar.isNumber {
+          if let numEndIndex = str.firstIndex(where: { !$0.isNumber }) {
+            let numStr = String(str[..<numEndIndex])
+            cnt = Int(numStr) ?? 0
+            ep = numEndIndex
+            
+            if ep != nil && str[ep!] == "]" {
+              str = str[str.index(after: ep!)...]
+            } else {
               fatalError("illegal sequence count")
+            }
           }
-      }
-
-      state = cnt > 0 ? .sequence : .infinite
+        } else {
+          fatalError("illegal sequence count")
+        }
+    }
+    
+    state = cnt > 0 ? .sequence : .infinite
   }
   /// Processes escape sequences in a string.
   func backslash() -> UnicodeScalar {
@@ -429,20 +433,20 @@ class STR {
         return (ch ?? "\0").unicodeScalars.first ?? "?"
     }
   }
-}
-
-let classes = [
-  "alnum" : CharacterSet.alphanumerics,
-  "alpha" : CharacterSet.letters,
-  "blank" : CharacterSet.whitespaces,
-  "cntrl" : CharacterSet.controlCharacters,
-  "digit" : CharacterSet.decimalDigits,
-  "graph" : CharacterSet.symbols,
-  "lower" : CharacterSet.lowercaseLetters,
-  "print" : CharacterSet.symbols,
-  "punct" : CharacterSet.punctuationCharacters,
-  "space" : CharacterSet.whitespacesAndNewlines,
-  "upper" : CharacterSet.uppercaseLetters,
-  "xdigit" : CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
   
-]
+  let classes : [String : any Containable] = [
+    "alnum" : CharacterSet.alphanumerics,
+    "alpha" : CharacterSet.letters,
+    "blank" : CharacterSet.whitespaces,
+    "cntrl" : CharacterSet.controlCharacters,
+    "digit" : CharacterSet.decimalDigits,
+    "graph" : XCharacterSet.graph,
+    "lower" : CharacterSet.lowercaseLetters,
+    "print" : XCharacterSet.print,
+    "punct" : CharacterSet.punctuationCharacters,
+    "space" : CharacterSet.whitespacesAndNewlines,
+    "upper" : CharacterSet.uppercaseLetters,
+    "xdigit" : CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
+    
+  ]
+}

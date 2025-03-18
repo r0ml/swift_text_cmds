@@ -226,7 +226,7 @@ import CMigration
          * pairs.
          */
 
-        var squeeze = CharacterSet()
+        var squeeze = XCharacterSet()
         var map : [UnicodeScalar : UnicodeScalar] = [:]
         var defaultMap : UnicodeScalar?
         var carray = [UnicodeScalar]()
@@ -422,34 +422,8 @@ import CMigration
   
   // -----------------------------------------------------------------------------
   
-  /*
-  /// In deletion mode, remove characters (or their complement) specified in `set1` from `input`.
-  func runDeletion(on input: String, set1: String, complement: Bool) -> String {
-    // Build the deletion set.
-    // (For simplicity we consider the set of characters in string1.
-    // In a more complete version you might work over the entire Unicode range.)
-    let baseSet = Set(set1)
-    let deletionSet: Set<Character>
-    if complement {
-      // Complement: remove all characters that are NOT in set1.
-      // For demonstration we limit our universe to ASCII printable characters.
-      var universe = Set<Character>()
-      for scalar in Unicode.Scalar(32)...Unicode.Scalar(126) {
-        universe.insert(Character(scalar))
-      }
-      deletionSet = universe.subtracting(baseSet)
-    } else {
-      deletionSet = baseSet
-    }
-    
-    // Build the output by skipping any character in the deletion set.
-    let result = input.filter { !deletionSet.contains($0) }
-    return result
-  }
-  */
-  
-  func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> CharacterSet {
-    var cs = CharacterSet()
+  func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> XCharacterSet {
+    var cs = XCharacterSet()
     let str = STR(arg)
     while try str.next() {
       switch str.state {
@@ -457,8 +431,18 @@ import CMigration
           cs.insert(str.lastch!)
         case .cclass:
           if let c = str.cclass {
-            cs.formUnion(c)
+            switch c {
+              case is CharacterSet:
+                cs.cs.formUnion(c as! CharacterSet)
+              case is XCharacterSet:
+                cs.formUnion(c as! XCharacterSet)
+              default:
+                fatalError("not possible")
+            }
           }
+          str.state = .normal
+        case .equiv:
+          cs.eqc.insert(str.equiv!)
         default:
           fatalError("unknown string class")
       }
@@ -472,137 +456,4 @@ import CMigration
     }
     return cs
   }
-
-  
-  /*
-  
-  
-  /// In squeeze mode, collapse sequences of identical characters (from `set1`) into a single occurrence.
-  func runSqueeze(on input: String, set1: String, complement: Bool) -> String {
-    let baseSet = Set(set1)
-    let squeezeSet: Set<Character>
-    if complement {
-      var universe = Set<Character>()
-      for scalar in Unicode.Scalar(32)...Unicode.Scalar(126) {
-        universe.insert(Character(scalar))
-      }
-      squeezeSet = universe.subtracting(baseSet)
-    } else {
-      squeezeSet = baseSet
-    }
-    
-    var output = ""
-    var last: Character? = nil
-    for ch in input {
-      if let lastCh = last, lastCh == ch, squeezeSet.contains(ch) {
-        continue // Skip duplicate.
-      }
-      output.append(ch)
-      last = ch
-    }
-    return output
-  }
-   
-   */
-  
-  
-  /*
-  /// In translation mode, build a mapping from characters in string1 to characters in string2.
-  /// If string1 is longer than string2, the last character of string2 is repeated.
-  func buildTranslationMap(from string1: String, to string2: String, complement: Bool) -> [Character: Character] {
-    var map = [Character: Character]()
-    let s1 = Array(string1)
-    let s2 = Array(string2)
-    
-    if complement {
-      // For complement mode, the translation applies to all characters NOT in s1.
-      // For demonstration we limit our universe to ASCII printable characters.
-      var universe = [Character]()
-      for scalar in Unicode.Scalar(32)...Unicode.Scalar(126) {
-        let ch = Character(scalar)
-        if !s1.contains(ch) {
-          universe.append(ch)
-        }
-      }
-      for (i, ch) in universe.enumerated() {
-        let replacement = (i < s2.count) ? s2[i] : s2.last!
-        map[ch] = replacement
-      }
-    } else {
-      // Normal translation: map characters in s1 to corresponding characters in s2.
-      for (i, ch) in s1.enumerated() {
-        let replacement = (i < s2.count) ? s2[i] : s2.last!
-        map[ch] = replacement
-      }
-    }
-    
-    return map
-  }
-  
-   */
-  
-  
-  /*
-  /// Processes the input text in translation mode.
-  /// If squeeze is true, then after translating characters a squeeze set is used
-  /// to collapse duplicate output.
-  func runTranslation(on input: String, options: CommandOptions) throws(CmdErr) -> String {
-    guard let string2 = options.string2 else {
-      throw CmdErr(1)
-    }
-    
-    // Build the translation mapping.
-    let map = buildTranslationMap(from: options.string1, to: string2, complement: options.cflag)
-    
-    // For squeeze mode in translation, we “squeeze” any output character that is a mapping target.
-    let squeezeSet: Set<Character> = options.sflag ? Set(map.values) : []
-    
-    var output = ""
-    var lastOut: Character? = nil
-    for ch in input {
-      // Look up a translation if available.
-      let newCh: Character
-      if options.cflag {
-        // In complement mode, only characters not in string1 are translated.
-        if !options.string1.contains(ch), let mapped = map[ch] {
-          newCh = mapped
-        } else {
-          newCh = ch
-        }
-      } else {
-        newCh = map[ch] ?? ch
-      }
-      
-      if options.sflag, newCh == lastOut, squeezeSet.contains(newCh) {
-        continue
-      }
-      
-      output.append(newCh)
-      lastOut = newCh
-    }
-    return output
-  }
-  */
 }
-
-/*
-extension CharacterSet {
-  init(_ arg : String, _ options : tr.CommandOptions) {
-    while let n = next(arg) {
-      self.insert(n)
-    }
-    
-    if options.Cflag {
-      // what goes here?
-    }
-    
-    if options.Cflag || options.cflag {
-      self.invert()
-    }
-  }
-  
-  func cset_in(_ arg : String, _ ch : Character) -> Bool {
-    return arg.contains(ch)
-  }
-}
-*/

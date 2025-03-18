@@ -45,10 +45,11 @@ import ShellTesting
     try await run(withStdin: "abcde\n", output: y+"\n", args: "-d", x)
   }
 
-  @Test("More tests for tr -d") func dopt2() async throws {
-    try await run(withStdin: "abcdefghi\n", output: "aei\n", args: "-d", "b-df-h")
-
-    try await run(withStdin: "abcdefghi\n", output: "bcdfgh", args: "-c", "-d", "b-df-h")
+  @Test("More tests for tr -d", arguments: [
+    ("aei\n", ["-d", "b-df-h"]),
+    ("bcdfgh", ["-c", "-d", "b-df-h"])
+  ]) func dopt2(_ outp : String, _ args: [String]) async throws {
+    try await run(withStdin: "abcdefghi\n", output: outp, args: args)
   }
 
   @Test("Even more tests for tr -d", arguments: [
@@ -68,9 +69,11 @@ import ShellTesting
     try await run(withStdin: "spl\nice", output: output, args: "-d", pattern)
   }
   
-  @Test("=x= with tr -d") func dopt5() async throws {
-    try await run(withStdin: "abcde\n", output: "abde\n", args: "-d", "[=c=]")
-    try await run(withStdin: "abcde\n", output: "bde\n", args: "-d", "'[=c=]'a")
+  @Test("=x= with tr -d", arguments: [
+    ("abde\n", "[=c=]"),
+    ("bde\n", "[=c=]a")
+  ]) func dopt5(_ outp : String, _ arg : String) async throws {
+    try await run(withStdin: "abcde\n", output: outp, args: "-d", arg)
   }
 
   @Test("make sure 0 works with tr -d") func dopt6() async throws {
