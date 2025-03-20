@@ -1,25 +1,421 @@
 
-// Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
+// Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 // from a file with the following notice:
+
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
+ * Copyright (C) 2009 Gabor Kovesdan <gabor@FreeBSD.org>
+ * Copyright (C) 2012 Oleg Moskalenko <mom040267@gmail.com>
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
 
 import Foundation
 import CMigration
+import CryptoKit
 
 @main final class sort : ShellCommand {
+  
+  var VERSION = "2.3-Apple ( modernized by r0ml )"
+  
+  var usage : String = """
+Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
+  [+POS1 [-POS2]] [-S memsize] [-T tmpdir] [-t separator]
+  [-o outfile] [--batch-size size] [--files0-from file]
+  [--heapsort] [--mergesort] [--radixsort] [--qsort]
+  [--mmap]
+  [--human-numeric-sort]
+  [--version-sort] [--random-sort [--random-source file]]
+  [--compress-program program] [file ...]
+"""
+  
+  enum SortMethod {
+    case SORT_DEFAULT
+    case SORT_QSORT
+    case SORT_MERGESORT
+    case SORT_HEAPSORT
+    case SORT_RADIXSORT
+  }
+  
+  
+  /*
+   * Sort hint data for -n
+   */
+  struct n_hint {
+    var n1 : UInt
+    var s1 : UInt8
+    var empty = false
+    var neg = false
+  }
+  
+  /*
+   * Sort hint data for -g
+   */
+  struct g_hint {
+    var d : Double
+    var nan = false
+    var notnum = false
+  }
+  
+  /*
+   * Sort hint data for -M
+   */
+  struct M_hint {
+    var m : Int
+  }
+  
+  /*
+   * Sort hint data for -R
+   *
+   * This stores the first 12 bytes of the digest rather than the full output to
+   * avoid increasing the size of the 'key_hint' object via the 'v' union.
+   */
+  struct R_hint {
+    var cached = Array(repeating: UInt8(0), count: 12);
+  }
+  
+  struct key_value {
+    var k : String
+    var hint : [key_hint]
+  }
+  
+  /*
+   * Parsed -k option data
+   */
+  struct key_specs {
+    var sm : SortModifiers
+    var c1 : size_t
+    var c2 : size_t
+    var f1 : size_t
+    var f2 : size_t
+    var pos1b = false
+    var pos2b = false
+  }
 
-  var usage : String = "Not yet implemented"
+
+  
+  enum KHU {
+    case nh(n_hint)
+    case gh(g_hint)
+    case Mh(M_hint)
+    case Rh(R_hint)
+  }
+  
+  
+  /*
+   * Status of a sort hint object
+   */
+  enum hint_status : Int {
+    case HS_ERROR = -1
+    case HS_UNINITIALIZED = 0
+    case HS_INITIALIZED = 1
+  }
+  
+  
+  /*
+   * Sort hint object
+   */
+  struct key_hint {
+    var status : hint_status
+    var v : KHU
+  };
+  
+  /*
+   * Cmp function
+   */
+  typealias cmpcoll_t = (_ kv1 : key_value, _ kv2 : key_value, _ offset : size_t) -> Int32
+  
+  
+  struct SortModifiers {
+    var `func` : cmpcoll_t?
+    var bflag = false
+    var dflag = false
+    var fflag = false
+    var gflag = false
+    var iflag = false
+    var Mflag = false
+    var nflag = false
+    var rflag = false
+    var Rflag = false
+    var Vflag = false
+    var hflag = false
+  };
   
   struct CommandOptions {
+    var field_sep : Character = ","
+    var sort_method : SortMethod = .SORT_DEFAULT
+    var cflag = false
+    var csilentflag = false
+    var kflag = false
+    var mflag = false
+    var sflag = false
+    var uflag = false
+    var zflag = false
+    var tflag = false
+    var complex_sort = false
+    var need_hint = false
+    
+    var debug_sort = false
+    var use_mmap = false
+    
+    var random_source : String?
+    var compress_program : String?
+    var need_random = false
+    
+    var outfile : String = "-"
+    var tmpdir : String = "/var/tmp"
+
+    var gnusort_numeric_compatibility = false
+    var symbol_decimal_point : Character? = "."
+    var symbol_thousands_sep : Character?
+    var symbol_negative_sign : Character? = "-"
+    var symbol_positive_sign : Character? = "+"
+    
+    var max_open_files : Int = 16
+    
+    var sm : SortModifiers = SortModifiers()
+    
     var args : [String] = CommandLine.arguments
   }
   
+  let longOptions : [CMigration.option] = [
+    .init("batch-size", .required_argument),
+    .init("buffer-size", .required_argument),
+    .init("check", .optional_argument),
+    .init("check=silent|quiet", .optional_argument),
+    .init("compress-program", .required_argument),
+    .init("debug", .no_argument),
+    .init("dictionary-order", .no_argument),
+    .init("field-separator", .required_argument),
+    .init("files0-from", .required_argument),
+    .init("general-numeric-sort", .no_argument),
+    .init("heapsort", .no_argument),
+    .init("help",.no_argument),
+    .init("human-numeric-sort", .no_argument),
+    .init("ignore-leading-blanks", .no_argument),
+    .init("ignore-case", .no_argument),
+    .init("ignore-nonprinting", .no_argument),
+    .init("key", .required_argument),
+    .init("merge", .no_argument),
+    .init("mergesort", .no_argument),
+    .init("mmap", .no_argument),
+    .init("month-sort", .no_argument),
+    .init("numeric-sort", .no_argument),
+    .init("output", .required_argument),
+    .init("qsort", .no_argument),
+    .init("radixsort", .no_argument),
+    .init("random-sort", .no_argument),
+    .init("random-source", .required_argument),
+    .init("reverse", .no_argument),
+    .init("sort", .required_argument),
+    .init("stable", .no_argument),
+    .init("temporary-directory",.required_argument),
+    .init("unique", .no_argument),
+    .init("version", .no_argument),
+    .init("version-sort", .no_argument),
+    .init("zero-terminated", .no_argument),
+  ]
+  
+  var available_free_memory : UInt = 65536
+  
+  func preparse(_ options : inout CommandOptions) {
+    bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
+        { false, false, false, false, false, false };
+
+    result = 0;
+    real_outfile = NULL;
+
+    if(getenv("GNUSORT_COMPATIBLE_BLANKS")) {
+      isblank_f = isspace;
+      iswblank_f = iswspace;
+    }
+
+    struct sort_mods *sm = &default_sort_mods_object;
+
+    init_tmp_files();
+
+    set_signal_handler();
+    set_hw_params();
+    set_locale(&options);
+    set_tmpdir(&options);
+    set_sort_opts();
+
+    fix_obsolete_keys(&argc, argv);
+  }
+  
   func parseOptions() throws(CmdErr) -> CommandOptions {
-    var options = CommandOptions()
-    let supportedFlags = "belnstuv"
-    let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    var options = CommandOptions()
+    preparse(&options)
+    
+    let supportedFlags = "bcCdfghik:Mmno:RrsS:t:T:uVz"
+    let go = BSDGetopt_long(supportedFlags, longOptions)
+    
+    while let (k, v) = try go.getopt_long() {
       switch k {
+        case "c":
+          options.cflag = true
+          if !v.isEmpty {
+            if v == "diagnose-first" {
+            }
+            else if v != "silent" ||
+                      v != "quiet" {
+              options.csilentflag = true
+            }
+            else if !v.isEmpty {
+              unknown(v)
+            }
+          }
+        case "C":
+          options.cflag = true
+          options.csilentflag = true
+        case "k":
+          options.complex_sort = true
+          options.kflag = true
+          
+          keys_num++;
+          keys = sort_realloc(keys, keys_num *
+                              sizeof(struct key_specs));
+          memset(&(keys[keys_num - 1]), 0,
+                 sizeof(struct key_specs));
+          
+          if (parse_k(v, &(keys[keys_num - 1]))
+              < 0) {
+            errc(2, EINVAL, "-k %s", optarg);
+          }
+          
+        case "m":
+          options.mflag = true
+        case "o":
+          options.outfile = v
+        case "s":
+          options.sflag = true
+          break;
+        case "S":
+          available_free_memory =
+          UInt(parse_memory_buffer_value(v))
+          
+        case "T":
+          options.tmpdir = v
+        case "t":
+          var vv = v
+          while vv.count > 1 {
+            if (vv.first != "\\") {
+              errc(2, EINVAL, "%s", optarg);
+            }
+            vv.removeFirst()
+            if vv.first == "0" {
+              vv = "\0"
+              break;
+            }
+          }
+          options.tflag = true;
+          options.field_sep = vv.first ?? "\0"
+          if (options.field_sep == Character(UnicodeScalar(UInt32(WEOF) )!) ) {
+            errno = EINVAL;
+            err(Int(2), nil);
+          }
+          if (!options.gnusort_numeric_compatibility) {
+            if (options.symbol_decimal_point == options.field_sep) {
+              options.symbol_decimal_point = nil
+            }
+            if (options.symbol_thousands_sep == options.field_sep) {
+              options.symbol_thousands_sep = nil
+            }
+            if (options.symbol_negative_sign == options.field_sep) {
+              options.symbol_negative_sign = nil
+            }
+            if (options.symbol_positive_sign == options.field_sep) {
+              options.symbol_positive_sign = nil
+            }
+          }
+          break;
+        case "u":
+          options.uflag = true
+          /* stable sort for the correct unique val */
+          options.sflag = true;
+        case "z":
+          options.zflag = true
+        case "sort":
+          if v.isEmpty {
+          } else if v == "general-numeric" {
+            set_sort_modifier(&options, "g")
+          } else if v == "human-numeric" {
+            set_sort_modifier(&options, "h")
+          } else if v == "numeric" {
+            set_sort_modifier(&options, "n")
+          } else if v == "month" {
+            set_sort_modifier(&options, "M")
+          } else if v == "random" {
+            set_sort_modifier(&options, "R")
+          } else {
+            unknown(v)
+          }
+          
+          /*#if defined(SORT_THREADS)
+           case PARALLEL_OPT:
+           nthreads = (size_t)(atoi(optarg));
+           if (nthreads < 1)
+           nthreads = 1;
+           if (nthreads > 1024)
+           nthreads = 1024;
+           break;
+           #endif
+           */
+        case "qsort":
+          options.sort_method = .SORT_QSORT
+        case "mergesort":
+          options.sort_method = .SORT_MERGESORT
+          break;
+        case "mmap":
+          options.use_mmap = true
+        case "heapsort":
+          options.sort_method = .SORT_HEAPSORT
+        case "radixsort":
+          options.sort_method = .SORT_RADIXSORT
+        case "random-source":
+          options.random_source = v
+        case "compress-program":
+          options.compress_program = v
+        case "files0-from":
+          read_fns_from_file0(v)
+        case "batch-size":
+          errno = 0
+          let mof = strtol(v, nil, 10);
+          if (errno != 0) {
+            err(2, "--batch-size");
+          }
+          if (mof >= 2) {
+            options.max_open_files = mof + 1;
+          }
+        case "version":
+          print(VERSION);
+          exit(EXIT_SUCCESS);
+        case "debug":
+          options.debug_sort = true
+        case "help":
+          throw CmdErr(1)
         default: throw CmdErr(1)
       }
     }
@@ -28,6 +424,922 @@ import CMigration
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+    if (argv_from_file0) {
+      argc = argc_from_file0;
+      argv = argv_from_file0;
+    }
+    
+    //  #ifndef WITHOUT_NLS
+    catalog = catopen("sort", NL_CAT_LOCALE);
+    //  #endif
+    
+    if (sort_opts_vals.cflag && sort_opts_vals.mflag) {
+      errx(1, "%c:%c: %s", "m", "c", getstr(1));
+    }
+    
+    //  #ifndef WITHOUT_NLS
+    catclose(catalog);
+    //  #endif
+    
+    if (keys_num == 0) {
+      keys_num = 1;
+      keys = sort_realloc(keys, sizeof(struct key_specs));
+      memset(&(keys[0]), 0, sizeof(struct key_specs));
+      keys[0].c1 = 1;
+      keys[0].pos1b = default_sort_mods.bflag;
+      keys[0].pos2b = default_sort_mods.bflag;
+      memcpy(&(keys[0].sm), default_sort_mods,
+             sizeof(struct sort_mods));
+    }
+    
+    for (size_t i = 0; i < keys_num; i++) {
+      struct key_specs *ks;
+      
+      ks = &(keys[i]);
+      
+      if (sort_modifier_empty(&(ks.sm)) && !(ks.pos1b) &&
+          !(ks.pos2b)) {
+        ks.pos1b = sm.bflag;
+        ks.pos2b = sm.bflag;
+        memcpy(&(ks.sm), sm, sizeof(struct sort_mods));
+      }
+      
+      ks.sm.func = get_sort_func(&(ks.sm));
+    }
+    
+    if (options.debug_sort) {
+      printf("Memory to be used for sorting: %llu\n",available_free_memory);
+      
+      printf("Using collate rules of %s locale\n",
+             setlocale(LC_COLLATE, NULL));
+      if (byte_sort) {
+        printf("Byte sort is used\n");
+      }
+      if (print_symbols_on_debug) {
+        printf("Decimal Point: <%lc>\n", symbol_decimal_point);
+        if (symbol_thousands_sep) {
+          printf("Thousands separator: <%lc>\n",
+                 symbol_thousands_sep);
+        }
+        printf("Positive sign: <%lc>\n", symbol_positive_sign);
+        printf("Negative sign: <%lc>\n", symbol_negative_sign);
+      }
+    }
+    
+    if options.need_random {
+      get_random_seed(options.random_source);
+    }
+    
+    /* Case when the outfile equals one of the input files: */
+    if options.outfile != "-" {
+      
+      for(int i = 0; i < argc; ++i) {
+        if (strcmp(argv[i], outfile) == 0) {
+          real_outfile = sort_strdup(outfile);
+          for(;;) {
+            char* tmp = sort_malloc(strlen(outfile) +
+                                    strlen(".tmp") + 1);
+            
+            strcpy(tmp, outfile);
+            strcpy(tmp + strlen(tmp), ".tmp");
+            sort_free(outfile);
+            outfile = tmp;
+            if (access(outfile, F_OK) < 0) {
+              break;
+            }
+          }
+          tmp_file_atexit(outfile);
+        }
+      }
+    }
+    
+    if (!options.cflag && !options.mflag) {
+      var fl : file_list
+      var list : sort_list
+      
+      sort_list_init(&list);
+      file_list_init(&fl, true);
+      
+      if (argc < 1) {
+        procfile("-", &list, &fl);
+      }
+      else {
+        while (argc > 0) {
+          procfile(*argv, &list, &fl);
+          --argc;
+          ++argv;
+        }
+      }
+      
+      if (fl.count < 1) {
+        sort_list_to_file(&list, options.outfile);
+      }
+      else {
+        if (list.count > 0) {
+          char *flast = new_tmp_file_name();
+          
+          sort_list_to_file(&list, flast);
+          file_list_add(&fl, flast, false);
+        }
+        merge_files(&fl, options.outfile);
+      }
+      
+      file_list_clean(&fl);
+      
+      /*
+       * We are about to exit the program, so we can ignore
+       * the clean-up for speed
+       *
+       * sort_list_clean(&list);
+       */
+      
+    } else if (options.cflag) {
+      result = (argc == 0) ? (check("-")) : (check(*argv));
+    } else if (options.mflag) {
+      struct file_list fl;
+      
+      file_list_init(&fl, false);
+      /* No file arguments remaining means "read from stdin." */
+      if (argc == 0) {
+        file_list_add(&fl, "-", true);
+      }
+      else {
+        file_list_populate(&fl, argc, argv, true);
+      }
+      merge_files(&fl, options.outfile);
+      file_list_clean(&fl);
+    }
+    
+    if (real_outfile) {
+      unlink(real_outfile);
+      if (rename(options.outfile, real_outfile) < 0) {
+        err(2, NULL);
+      }
+    }
+
+    return (result);
   }
+  
+  
+  
+  
+  /*
+   * Check where sort modifier is present
+   */
+  func sort_modifier_empty(_ sm : SortModifiers?) -> Bool {
+    
+    guard let sm else { return true }
+    return (!(sm.Mflag || sm.Vflag || sm.nflag || sm.gflag ||
+              sm.rflag || sm.Rflag || sm.hflag || sm.dflag || sm.fflag || sm.iflag))
+  }
+  
+  /*
+   * Print out usage text.
+   */
+  func usage(bool opt_err) {
+    FILE *out;
+    
+    out = opt_err ? stderr : stdout;
+    
+    fprintf(out, fmtcheck(getstr(12), "%s"), getprogname());
+    if (opt_err) {
+      exit(2);
+    }
+    exit(0);
+  }
+  
+  /*
+   * Read input file names from a file (file0-from option).
+   */
+  func read_fns_from_file0(_ fn : String) {
+    FILE *f;
+    char *line = NULL;
+    size_t linesize = 0;
+    ssize_t linelen;
+    
+    if (fn == NULL) {
+      return;
+    }
+    
+    f = fopen(fn, "r");
+    if (f == NULL) {
+      err(2, "%s", fn);
+    }
+    
+    while ((linelen = getdelim(&line, &linesize, "\0", f)) != -1) {
+      if (*line != "\0") {
+        if (argc_from_file0 == (size_t) - 1) {
+          argc_from_file0 = 0;
+        }
+        ++argc_from_file0;
+        argv_from_file0 = sort_realloc(argv_from_file0,
+                                       argc_from_file0 * sizeof(char *));
+        if (argv_from_file0 == NULL) {
+          err(2, NULL);
+        }
+        argv_from_file0[argc_from_file0 - 1] = line;
+      } else {
+        free(line);
+      }
+      line = NULL;
+      linesize = 0;
+    }
+    if (ferror(f)) {
+      err(2, "%s: getdelim", fn);
+    }
+    
+    closefile(f, fn);
+  }
+  
+  /*
+   * Check how much RAM is available for the sort.
+   */
+  func set_hw_params() -> UInt {
+
+    var pages = sysconf(_SC_PHYS_PAGES);
+    if (pages < 1) {
+      perror("sysconf pages");
+      pages = 1;
+    }
+    var psize = sysconf(_SC_PAGESIZE);
+    if (psize < 1) {
+      perror("sysconf psize");
+      psize = 4096;
+    }
+    
+    let free_memory = pages * psize
+    available_free_memory = free_memory / 2
+    
+    if (available_free_memory < 65536) {
+      available_free_memory = 65536
+    }
+  }
+  
+  /*
+   * Convert "plain" symbol to wide symbol, with default value.
+   */
+  // FIXME: do I need this ?  or does Swift string handling take care of it
+  /*
+  func conv_mbtowc(wchar_t *wc, const char *c, const wchar_t def) {
+    
+    if (wc && c) {
+      int res;
+      
+      res = mbtowc(wc, c, MB_CUR_MAX);
+      if (res < 1) {
+        *wc = def;
+      }
+    }
+  }
+  */
+  
+  /*
+   * Set current locale symbols.
+   */
+  func set_locale(_ options : inout CommandOptions) {
+    
+    setlocale(LC_ALL, "")
+    
+    if let lc = localeconv() {
+      /* obtain LC_NUMERIC info */
+      /* Convert to wide char form */
+      conv_mbtowc(&symbol_decimal_point, lc.decimal_point,
+                  symbol_decimal_point);
+      conv_mbtowc(&symbol_thousands_sep, lc.thousands_sep,
+                  symbol_thousands_sep);
+      conv_mbtowc(&symbol_positive_sign, lc.positive_sign,
+                  symbol_positive_sign);
+      conv_mbtowc(&symbol_negative_sign, lc.negative_sign,
+                  symbol_negative_sign);
+    }
+    
+    if (getenv("GNUSORT_NUMERIC_COMPATIBILITY")) {
+      options.gnusort_numeric_compatibility = true;
+    }
+    
+    if let locale = setlocale(LC_COLLATE, NULL) {
+      char *tmpl;
+      const char *cclocale;
+      
+      tmpl = sort_strdup(locale);
+      cclocale = setlocale(LC_COLLATE, "C");
+      if (cclocale && !strcmp(cclocale, tmpl)) {
+        byte_sort = true;
+      }
+      else {
+        const char *pclocale;
+        
+        pclocale = setlocale(LC_COLLATE, "POSIX");
+        if (pclocale && !strcmp(pclocale, tmpl)) {
+          byte_sort = true;
+        }
+      }
+      setlocale(LC_COLLATE, tmpl);
+      sort_free(tmpl);
+    }
+  }
+  
+  /*
+   * Set directory temporary files.
+   */
+  func set_tmpdir(_ options : inout CommandOptions) {
+    if let td = getenv("TMPDIR") {
+      options.tmpdir = td
+    }
+  }
+  
+  /*
+   * Parse -S option.
+   */
+  func parse_memory_buffer_value(_ value : String?) -> Int {
+    
+    guard let value else {
+      return available_free_memory
+    }
+
+      char *endptr;
+
+    var membuf : UInt64
+      
+      endptr = NULL;
+      errno = 0;
+      membuf = strtoll(value, &endptr, 10);
+      
+      if (errno != 0) {
+        warn("%s",getstr(4));
+        membuf = available_free_memory;
+      } else {
+        switch (*endptr){
+          case "Y":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "Z":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "E":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "P":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "T":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "G":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "M":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "\0":
+          case "K":
+            membuf *= 1024;
+            /* FALLTHROUGH */
+          case "b":
+            break;
+          case "%":
+            membuf = (available_free_memory * membuf) /
+            100;
+            break;
+          default:
+            warnc(EINVAL, "%s", optarg);
+            membuf = available_free_memory;
+        }
+      }
+      return (membuf);
+  }
+  
+  /*
+   * Signal handler that clears the temporary files.
+   */
+  func sig_handler(_ sig : Int32, _ siginfo : siginfo_t,
+                   _ context : UnsafeRawPointer) {
+    
+    clear_tmp_files();
+    
+    /*
+     * For conformance purposes, we can't just exit with a single static
+     * exit code -- we must actually re-raise the error once we've finished
+     * our cleanup to get the signal-exit bits correct.
+     */
+    signal(sig, SIG_DFL);
+    raise(sig);
+  }
+  
+  /*
+   * Install the requested action, but *only* if the signal's not currently being
+   * ignored.  sort(1) won't ignore anything itself, so this would indicate that
+   * the caller is ignoring it for one reason or another and we shouldn't override
+   * that just for cleanup purposes.
+   */
+  func sigaction_notign(_ sig : Int32, _ act : UnsafePointer<sigaction>!, _ poact : UnsafeMutablePointer<sigaction>!) -> Int32 {
+    var oact = _signal.sigaction()
+    var error : Int32
+    
+    error = sigaction(sig, nil, &oact)
+    if error < 0 {
+      return (error);
+    }
+    
+    /* Silently succeed. */
+    if (oact.__sigaction_u.__sa_handler == SIG_IGN ) {
+      if poact != nil { poact.pointee = oact }
+      return 0
+    }
+    return sigaction(sig, act, poact)
+  }
+  
+  func sigactionx(_ s : Int32, _ a : UnsafePointer<sigaction>!, _ o : UnsafeMutablePointer<sigaction>!) -> Int32 {
+    return sigaction_notign(s, a, o)
+  }
+  
+  /*
+   * Set signal handler on panic signals.
+   */
+  func set_signal_handler() {
+    var sa = sigaction()
+    sa.__sigaction_u.__sa_sigaction = sig_handler
+    sa.sa_flags = SA_SIGINFO
+    
+    if (sigactionx(SIGTERM, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGHUP, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGINT, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGQUIT, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGBUS, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGSEGV, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGUSR1, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+    if (sigaction(SIGUSR2, &sa, nil) < 0) {
+      perror("sigaction");
+      return;
+    }
+  }
+  
+  /*
+   * Print "unknown" message and exit with status 2.
+   */
+  func unknown(const char *what) {
+    errx(2, "%s: %s", getstr(3), what);
+  }
+  
+  /*
+   * Check whether contradictory input options are used.
+   */
+  func check_mutually_exclusive_flags(_ c : UInt8, _ mef_flags : inout Bool )  {
+    int fo_index, mec;
+    bool found_others, found_this;
+    
+    found_others = found_this = false;
+    fo_index = 0;
+    
+    for (int i = 0; i < NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS; i++) {
+      mec = mutually_exclusive_flags[i];
+      
+      if (mec != c) {
+        if (mef_flags[i]) {
+          if (found_this) {
+            errx(1, "%c:%c: %s", c, mec, getstr(1));
+          }
+          found_others = true;
+          fo_index = i;
+        }
+      } else {
+        if (found_others) {
+          errx(1, "%c:%c: %s", c, mutually_exclusive_flags[fo_index], getstr(1));
+        }
+        mef_flags[i] = true;
+        found_this = true;
+      }
+    }
+  }
+  
+  /*
+   * Initialise sort opts data.
+   */
+  func set_sort_opts() {
+    
+    memset(&default_sort_mods_object, 0,
+           sizeof(default_sort_mods_object));
+    memset(&sort_opts_vals, 0, sizeof(sort_opts_vals));
+    default_sort_mods_object.func =
+    get_sort_func(&default_sort_mods_object);
+  }
+  
+  /*
+   * Set a sort modifier on a sort modifiers object.
+   */
+  func set_sort_modifier(_ options : inout CommandOptions, _ c : Character) -> Bool
+  {
+    switch (c) {
+      case "b":
+        options.sm.bflag = true
+      case "d":
+        options.sm.dflag = true
+      case "f":
+        options.sm.fflag = true
+      case "g":
+        options.sm.gflag = true
+        options.need_hint = true
+      case "i":
+        options.sm.iflag = true
+      case "R":
+        options.sm.Rflag = true
+        options.need_hint = true
+        options.need_random = true
+      case "M":
+        initialise_months()
+        options.sm.Mflag = true
+        options.need_hint = true
+      case "n":
+        options.sm.nflag = true
+        options.need_hint = true
+        print_symbols_on_debug = true
+      case "r":
+        options.sm.rflag = true
+      case "V":
+        options.sm.Vflag = true
+      case "h":
+        options.sm.hflag = true
+        options.need_hint = true
+        print_symbols_on_debug = true
+      default:
+        return false
+    }
+    
+    options.complex_sort = true
+    options.sm.func = get_sort_func(options.sm)
+    return true
+  }
+  
+  /*
+   * Parse POS in -k option.
+   */
+  func parse_pos(_ s : String, _ ks : inout key_specs, _ mef_flags : inout Bool, _ second : Bool) -> Int
+  {
+    
+    var pmatch = (0..<3).map { _ in regmatch_t() }
+    var re = regex_t()
+    let sregexp = "^([0-9]+)(\\.[0-9]+)?([bdfirMngRhV]+)?$"
+
+    let ret = -1
+    var nmatch : size_t = 4;
+    
+    if (regcomp(&re, sregexp, REG_EXTENDED) != 0) {
+      return (-1);
+    }
+    
+    if (regexec(&re, s, nmatch, &pmatch, 0) == 0)
+        && (pmatch[0].rm_eo > pmatch[0].rm_so)
+        && (pmatch[1].rm_eo > pmatch[1].rm_so) {
+      
+      
+      // This is a way of doing a jump.
+      // the construct is repeat { } while false
+      // which executes once, but a break within the
+      // repeat block jumps to the end.
+      
+      repeat {
+        let len = pmatch[1].rm_eo - pmatch[1].rm_so;
+        let f = s.dropFirst(Int(pmatch[1].rm_so)).prefix(Int(len))
+        
+        if (second) {
+          errno = 0;
+          ks.f2 = size_t(strtoul(f, NULL, 10))
+          if (errno != 0) {
+            err(2, "-k");
+          }
+          if (ks.f2 == 0) {
+            warn("%s",getstr(5));
+            goto end;
+          }
+        } else {
+          errno = 0;
+          ks.f1 = size_t(strtoul(f, NULL, 10))
+          if (errno != 0) {
+            err(2, "-k");
+          }
+          if (ks.f1 == 0) {
+            warn("%s",getstr(5));
+            goto end;
+          }
+        }
+        
+        if (pmatch[2].rm_eo > pmatch[2].rm_so) {
+          let len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
+          let c = s.dropFirst(Int(pmatch[2].rm_so) + 1).prefix(Int(len))
+          
+          if (second) {
+            errno = 0;
+            ks.c2 = size_t(strtoul(c, NULL, 10))
+            if (errno != 0) {
+              err(2, "-k");
+            }
+          } else {
+            errno = 0;
+            ks.c1 = size_t(strtoul(c, NULL, 10))
+            if (errno != 0) {
+              err(2, "-k");
+            }
+            if (ks.c1 == 0) {
+              warn("%s",getstr(6));
+              break // was goto end;
+            }
+          }
+        } else {
+          if (second) {
+            ks.c2 = 0
+          }
+          else {
+            ks.c1 = 1
+          }
+        }
+        
+        if (pmatch[3].rm_eo > pmatch[3].rm_so) {
+          for i in pmatch[3].rm_so ..< pmatch[3].rm_eo {
+            check_mutually_exclusive_flags(s[i], mef_flags);
+            if (s[i] == "b") {
+              if (second) {
+                ks.pos2b = true;
+              }
+              else {
+                ks.pos1b = true;
+              }
+            } else if (!set_sort_modifier(&(ks.sm), s[i])) {
+              break // was goto end;
+            }
+          }
+        }
+        
+        ret = 0;
+      } while false
+    }
+              
+  end:
+    return (ret);
+  }
+  
+  /*
+   * Parse -k option value.
+   */
+  func parse_k(_ s : String, _ ks : key_specs) {
+    int ret = -1;
+    bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
+    { false, false, false, false, false, false };
+    
+    if (s && *s) {
+      char *sptr;
+      
+      sptr = strchr(s, ",");
+      if (sptr) {
+        size_t size1;
+        char *pos1, *pos2;
+        
+        size1 = sptr - s;
+        
+        if (size1 < 1) {
+          return (-1);
+        }
+        pos1 = sort_malloc((size1 + 1) * sizeof(char));
+        
+        strncpy(pos1, s, size1);
+        pos1[size1] = "\0";
+        
+        ret = parse_pos(pos1, ks, mef_flags, false);
+        
+        sort_free(pos1);
+        if (ret < 0) {
+          return (ret);
+        }
+        
+        pos2 = sort_strdup(sptr + 1);
+        ret = parse_pos(pos2, ks, mef_flags, true);
+        sort_free(pos2);
+      } else {
+        ret = parse_pos(s, ks, mef_flags, false);
+      }
+    }
+    
+    return (ret);
+  }
+  
+  /*
+   * Parse POS in +POS -POS option.
+   */
+  func parse_pos_obs(_ s : String, _ nf : inout Int, _ nc : inout Int, _ sopts : inout String) -> Int
+  {
+    var re = regex_t()
+    var pmatch = (0..<3).map { _ in regmatch_t() }
+
+    let sregexp = "^([0-9]+)(\\.[0-9]+)?([A-Za-z]+)?$"
+
+    var ret = -1;
+    var nmatch = 4;
+    
+    nc = 0
+    nf = 0
+    
+    if (regcomp(&re, sregexp, REG_EXTENDED) != 0) {
+      return (-1);
+    }
+    
+    if (regexec(&re, s, nmatch, &pmatch, 0) == 0)
+        && pmatch[0].rm_eo > pmatch[0].rm_so
+        && pmatch[1].rm_eo > pmatch[1].rm_so {
+      
+      let len = pmatch[1].rm_eo - pmatch[1].rm_so;
+      let f = s.dropFirst(Int(pmatch[1].rm_so)).prefix(Int(len))
+      
+      errno = 0;
+      *nf = (size_t) strtoul(f, NULL, 10);
+      if (errno != 0) {
+        errx(2, "%s", getstr(11));
+      }
+      
+      if (pmatch[2].rm_eo > pmatch[2].rm_so) {
+        let len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
+        let c = s.dropFirst(Int(pmatch[2].rm_so) + 1).prefix(Int(len))
+
+        errno = 0;
+        *nc = (size_t) strtoul(c, NULL, 10);
+        if (errno != 0) {
+          errx(2, "%s", getstr(11));
+        }
+      }
+      
+      if (pmatch[3].rm_eo > pmatch[3].rm_so) {
+        
+        let len = pmatch[3].rm_eo - pmatch[3].rm_so;
+        sopts = String( s.dropFirst(Int(pmatch[3].rm_so)).prefix(Int(len)))
+      }
+      
+      ret = 0;
+    }
+//  end:
+    return (ret);
+  }
+  
+  
+  /*
+   * "Translate" obsolete +POS1 -POS2 syntax into new -kPOS1,POS2 syntax
+   */
+  func fix_obsolete_keys(int *argc, char **argv)
+  {
+    char sopt[129];
+    
+    for (int i = 1; i < *argc; i++) {
+      char *arg1;
+      
+      arg1 = argv[i];
+      
+      if (strcmp(arg1, "--") == 0) {
+        /* Following arguments are treated as filenames. */
+        break;
+      }
+      
+      if (strlen(arg1) > 1 && arg1[0] == "+") {
+        char sopts1[128];
+        
+        sopts1[0] = 0;
+        var c1 = 0
+        var f1 = 0
+        
+        if (parse_pos_obs(arg1 + 1, &f1, &c1, sopts1) < 0) {
+          continue;
+        }
+        else {
+          f1 += 1;
+          c1 += 1;
+          if (i + 1 < *argc) {
+            char *arg2 = argv[i + 1];
+            
+            if (strlen(arg2) > 1 &&
+                arg2[0] == "-") {
+              char sopts2[128];
+              
+              sopts2[0] = 0;
+              var c2 = 0
+              var f2 = 0
+              
+              if (parse_pos_obs(arg2 + 1,
+                                &f2, &c2, sopts2) >= 0) {
+                if (c2 > 0) {
+                  f2 += 1;
+                }
+                sprintf(sopt, "-k%d.%d%s,%d.%d%s",
+                        f1, c1, sopts1, f2, c2, sopts2);
+                argv[i] = sort_strdup(sopt);
+                for (int j = i + 1; j + 1 < *argc; j++)
+                      argv[j] = argv[j + 1];
+                *argc -= 1;
+                continue;
+              }
+            }
+          }
+          sprintf(sopt, "-k%d.%d%s", f1, c1, sopts1);
+          argv[i] = sort_strdup(sopt);
+        }
+      }
+    }
+  }
+  
+  
+  
+  
+  /*
+   * Seed random sort
+   */
+  func get_random_seed(_ random_source : String?) {
+
+    let randseed = Array(repeating: UInt8(0), count: 32)
+    let rsfd : Int32 = -1
+    let rd = randseed.count
+    
+    if (random_source == nil) {
+      if (getentropy(&randseed, sizeof(randseed)) < 0) {
+        err(Int(EX_SOFTWARE), "getentropy");
+      }
+    } else {
+      
+      rsfd = open(random_source, O_RDONLY | O_CLOEXEC);
+      if (rsfd < 0) {
+        err(Int(EX_NOINPUT), "open: %s", random_source);
+      }
+      
+      if (fstat(rsfd, &fsb) != 0) {
+        err(Int(EX_SOFTWARE), "fstat");
+      }
+      
+      if (!S_ISREG(fsb.st_mode) && !S_ISCHR(fsb.st_mode)) {
+        err(EX_USAGE,
+            "random seed isn't a regular file or /dev/random");
+      }
+      
+      /*
+       * Regular files: read up to maximum seed size and explicitly
+       * reject longer files.
+       */
+      if (S_ISREG(fsb.st_mode)) {
+        if (fsb.st_size > (off_t)sizeof(randseed)) {
+          errx(EX_USAGE, "random seed is too large (%jd >"
+               " %zu)!", (intmax_t)fsb.st_size,
+               sizeof(randseed));
+        }
+        else if (fsb.st_size < 1) {
+          errx(Int(EX_USAGE), "random seed is too small ("
+               "0 bytes)");
+        }
+        memset(randseed, 0, sizeof(randseed));
+        
+        rd = read(rsfd, randseed, fsb.st_size);
+        if (rd < 0) {
+          err(EX_SOFTWARE, "reading random seed file %s",
+              random_source);
+        }
+        if (rd < (ssize_t)fsb.st_size) {
+          errx(Int(EX_SOFTWARE), "short read from \(random_source)");
+        }
+      } else if (S_ISCHR(fsb.st_mode)) {
+        if (stat("/dev/random", &rsb) < 0) {
+          err(Int(EX_SOFTWARE), "stat");
+        }
+        
+        if (fsb.st_dev != rsb.st_dev ||
+            fsb.st_ino != rsb.st_ino) {
+          errx(Int(EX_USAGE), "random seed is a character "
+               "device other than /dev/random");
+        }
+        
+        if (getentropy(randseed, sizeof(randseed)) < 0) {
+          err(Int(EX_SOFTWARE), "getentropy");
+        }
+      }
+    }
+    if (rsfd >= 0) {
+      close(rsfd)
+    }
+    
+    SHA256_Init(&sha256_ctx);
+    SHA256_Update(&sha256_ctx, randseed, rd);
+  }
+  
 }

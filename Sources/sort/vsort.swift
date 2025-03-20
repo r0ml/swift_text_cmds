@@ -99,10 +99,10 @@ func isalnum_clocale(_ c: Character) -> Bool {
    - end: The ending index.
    - len: On return, the count of characters preceding the suffix.
  */
-func findSuffix(in str: String, start: String.Index, end: String.Index, len: inout Int) {
+func findSuffix(in str: String, start: String.Index, end: String.Index) -> Int {
     var sfx = false
     var expectAlpha = false
-    len = 0
+    var len = 0
     var clen = 0
     var i = start
 
@@ -128,6 +128,7 @@ func findSuffix(in str: String, start: String.Index, end: String.Index, len: ino
     if !sfx {
         len = clen
     }
+  return len
 }
 
 // MARK: - Character Comparison
@@ -296,8 +297,8 @@ func vcmp(_ s1: String, _ s2: String) -> Int {
     }
 
     // Determine the boundary between the main part and the suffix.
-    var len1 = findSuffix(in: s1, start: si1, end: s1.endIndex, len: &len1)
-    var len2 = findSuffix(in: s2, start: si2, end: s2.endIndex, len: &len2)
+   var len1 = findSuffix(in: s1, start: si1, end: s1.endIndex)
+   var len2 = findSuffix(in: s2, start: si2, end: s2.endIndex)
     
     // Obtain the ranges corresponding to the “non–suffix” parts.
     let endIndex1 = s1.index(si1, offsetBy: len1, limitedBy: s1.endIndex) ?? s1.endIndex
