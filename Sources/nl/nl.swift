@@ -240,7 +240,6 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
     var adjblank: UInt = 0  // adjacent blank lines
     
     var donumber = false
-    var idx: Int32 = 0
     
     var line = options.startnum
     var section = Section.BODY
@@ -319,7 +318,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
           }
           
           var expr = regex_t()
-          var astr = String(argstr.dropFirst())
+          let astr = String(argstr.dropFirst())
           let error = astr.withCString {
             regcomp(&expr, $0, REG_NEWLINE|REG_NOSUB)
           }

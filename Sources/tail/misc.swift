@@ -37,18 +37,19 @@ SUCH DAMAGE.
 import Foundation
 
 extension tail {
-  var rval: Int = 0  // Global error return value
-  
+
   /// Logs an error with a file name.
   func ierr(_ filename: String) {
     print("Error: \(filename)")
     rval = 1
   }
-  
+
+  /*
   /// Logs an output error and exits.
   func oerr() {
     fatalError("Error: stdout")
   }
+  */
   
   /// Structure representing memory-mapped file info
   struct MapInfo {
@@ -59,19 +60,8 @@ extension tail {
     var maxOffset: off_t
   }
   
-  /// Writes the provided data to standard output.
-  func WR(_ data: UnsafeRawPointer, _ len: Int) {
-    let bytes = data.bindMemory(to: UInt8.self, capacity: len)
-    let buffer = UnsafeBufferPointer(start: bytes, count: len)
-    let dataToWrite = Data(buffer)
-    
-    if let outputString = String(data: dataToWrite, encoding: .utf8) {
-      print(outputString, terminator: "")
-    }
-  }
-  
   /// Prints `len` bytes from a file starting at `startOffset`, possibly adjusting the memory map.
-  func mapprint(mip: inout MapInfo, startOffset: off_t, length: off_t) -> Int {
+/*  func mapprint(mip: inout MapInfo, startOffset: off_t, length: off_t) -> Int {
     var remainingLength = length
     var currentOffset = startOffset
     
@@ -97,9 +87,10 @@ extension tail {
     
     return 0
   }
+*/
   
   /// Moves the memory map window to contain the byte at `offset`.
-  func maparound(mip: inout MapInfo, offset: off_t) -> Int {
+/*  func maparound(mip: inout MapInfo, offset: off_t) -> Int {
     let TAILMAPLEN: off_t = 4096  // Example size for memory mapping
     
     if let start = mip.start {
@@ -126,9 +117,10 @@ extension tail {
     mip.start = mappedMemory
     return 0
   }
+*/
   
   /// Prints a file name without stdio buffering.
-  func printfn(_ filename: String, printNewline: Bool) {
+/*  func printfn(_ filename: String, printNewline: Bool) {
     if printNewline {
       WR("\n", 1)
     }
@@ -138,36 +130,6 @@ extension tail {
   }
   
   
-  
-  
-  #define  WR(p, size) do { \
-    ssize_t res; \
-    res = write(STDOUT_FILENO, p, size); \
-    if (res != (ssize_t)size) { \
-      if (res == -1) \
-          oerr(); \
-      else \
-        errx(1, "stdout"); \
-    } \
-  } while (0)
-    
     #define TAILMAPLEN (4<<20)
-    
-    struct mapinfo {
-      off_t  mapoff;
-      off_t  maxoff;
-      size_t  maplen;
-      char  *start;
-      int  fd;
-    };
-  
-  struct file_info {
-    FILE *fp;
-    const char *file_name;
-    struct stat st;
-  };
-  
-  typedef struct file_info file_info_t;
-  
-  enum STYLE { NOTSET = 0, FBYTES, FLINES, RBYTES, RLINES, REVERSE };
+  */
 }

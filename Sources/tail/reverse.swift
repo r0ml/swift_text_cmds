@@ -35,117 +35,218 @@ SUCH DAMAGE.
 */
 
 import Foundation
+import CMigration
 
 extension tail {
-  // Buffer size constant (adjust based on system needs)
-  let BSZ = 8192
   
-  // Struct representing an element in the buffer list
-  class BufferElement {
-    var data: [UInt8]
-    var length: Int
-    var next: BufferElement?
-    var prev: BufferElement?
-    
-    init(size: Int) {
-      self.data = [UInt8](repeating: 0, count: size)
-      self.length = 0
+  /*
+   * reverse -- display input in reverse order by line.
+   *
+   * There are six separate cases for this -- regular and non-regular
+   * files by bytes, lines or the whole file.
+   *
+   * BYTES  display N bytes
+   *  REG  mmap the file and display the lines
+   *  NOREG  cyclically read characters into a wrap-around buffer
+   *
+   * LINES  display N lines
+   *  REG  mmap the file and display the lines
+   *  NOREG  cyclically read lines into a wrap-around array of buffers
+   *
+   * FILE    display the entire file
+   *  REG  mmap the file and display the lines
+   *  NOREG  cyclically read input into a linked list of buffers
+   */
+  func reverse(_ fp : FileHandle, _ fn : String, _ options : CommandOptions) async throws {
+    if (options.style != .REVERSE && options.off == 0) {
+      return;
+    }
+
+    if fp.isRegularFile {
+      try r_reg(fp, fn, options)
+    }  else {
+      let off = options.off
+      switch options.style {
+        case .FBYTES, .RBYTES:
+          try bytes(fp, fn, off);
+        case .FLINES, .RLINES:
+          try await lines(fp, fn, options)
+        case .REVERSE:
+          try await r_buf(fp, fn);
+        default:
+          break
+      }
     }
   }
   
-  // Function to read a file into memory and print it in reverse order
-  func r_buf(fp: UnsafeMutablePointer<FILE>, filename: String) {
-    var head: BufferElement? = nil
-    var tail: BufferElement? = nil
-    var enomem: Int64 = 0
+  struct mapinfo {
+    var mapoff: off_t
+    var maxoff : off_t
+    var maplen : size_t
+    var start : UnsafePointer<UInt8>?
+    var fd : Int32
+  };
+
+  /*
+   * r_reg -- display a regular file in reverse order by line.
+   */
+  func r_reg(_ fp : FileHandle, _ fn : String, _ options : CommandOptions) throws {
+
+    let k = try Data(contentsOf: URL(filePath: fn), options: .mappedIfSafe)
     
-    // Read data into linked list buffers
-    while !feof(fp) {
-      // Try to allocate a new buffer block
-      var newElement: BufferElement? = BufferElement(size: BSZ)
-      
-      // If out of memory, remove the oldest (least recently used) block
-      if newElement == nil {
-        if let first = head {
-          enomem += Int64(first.length)
-          head = first.next
-          head?.prev = nil
+    var curoff = k.endIndex-1
+    var off = options.off
+    
+    while curoff >= k.startIndex {
+      if let t = k.lastIndex(of: 10, before: curoff) {
+        let l = k.subdata(in: t.advanced(by: 1)..<curoff)
+        // try FileHandle.standardOutput.write(contentsOf: l)
+        print( String(data: Data(l), encoding: .utf8)! )
+        curoff = t
+        
+        if (options.style == .RLINES) {
+          off-=1
         }
-      }
-      
-      guard let buffer = newElement else {
-        fatalError("Failed to allocate memory")
-      }
-      
-      // Insert the new element at the end of the linked list
-      if tail == nil {
-        head = buffer
+        
+        if (off == 0 && options.style != .REVERSE) {
+          /* Avoid printing anything below. */
+          curoff = 0;
+          break;
+        }
+
+        
+        
       } else {
-        tail?.next = buffer
-        buffer.prev = tail
+        let l = k.subdata(in: k.startIndex..<curoff)
+        print( String(data: Data(l), encoding: .utf8)! )
+        break
       }
-      tail = buffer
-      
-      // Read data into the buffer
-      var bytesRead: Int = 0
-      while (feof(fp) == 0) && bytesRead < BSZ {
-        let count = fread(&buffer.data + bytesRead, 1, BSZ - bytesRead, fp)
-        bytesRead += count
-        
-        if ferror(fp) != 0 {
-          perror("Error reading file: \(filename)")
-          return
+    }
+    
+    let size = try fp.seekToEnd()
+    if 0 == size {
+      return
+    }
+
+    /*
+    
+    let map = mapinfo(mapoff: off_t(size), maxoff: off_t(size), maplen: 0, start : nil, fd : fp.fileDescriptor)
+
+    /*
+     * Last char is special, ignore whether newline or not. Note that
+     * size == 0 is dealt with above, and size == 1 sets curoff to -1.
+     */
+    var curoff = size - 2
+    var lineend = size
+    var off = options.off
+    
+    while (curoff >= 0) {
+      if (curoff < map.mapoff ||
+          curoff >= (map.mapoff + Int64(map.maplen))) {
+        if (maparound(&map, curoff) != 0) {
+          ierr(fn);
+          return;
         }
       }
-      
-      buffer.length = bytesRead
-    }
-    
-    // If memory was discarded, show a warning
-    if enomem > 0 {
-      print("Warning: \(enomem) bytes discarded")
-    }
-    
-    // Print the buffers in reverse order
-    var current = tail
-    
-    while let element = current {
-      var lineLength = 0
-      var dataPointer = element.data[0..<element.length]
-      
-      for index in stride(from: element.length - 1, through: 0, by: -1) {
-        let isStart = (element === head && index == 0)
-        
-        if dataPointer[index] == UInt8(ascii: "\n") || isStart {
-          let startIdx = isStart ? index : index + 1
-          let chunk = dataPointer[startIdx..<(startIdx + lineLength)]
-          
-          if lineLength > 0 {
-            if let line = String(bytes: chunk, encoding: .utf8) {
-              print(line, terminator: "")
-            }
-            if isStart && dataPointer[index] == UInt8(ascii: "\n") {
-              print("\n", terminator: "")
-            }
-          }
-          
-          var temp = element.next
-          while let nextElement = temp {
-            if nextElement.length > 0 {
-              let chunk = nextElement.data[0..<nextElement.length]
-              if let line = String(bytes: chunk, encoding: .utf8) {
-                print(line, terminator: "")
-              }
-            }
-            temp = nextElement.next
-          }
-          lineLength = 0
-        } else {
-          lineLength += 1
+      var i = Int64(curoff) - map.mapoff
+      while i >= 0 {
+        if (options.style == .RBYTES && off == 0) {
+          break;
         }
+        off -= 1
+        if (map.start![Int(i)] == "\n".first!.asciiValue!) {
+          break;
+        }
+        i -= 1
       }
-      element.length = lineLength
-      current = element.prev
+      /* `i' is either the map offset of a '\n', or -1. */
+      curoff = UInt64(map.mapoff + i);
+      if (i < 0) {
+        continue;
+      }
+
+      /* Print the line and update offsets. */
+      if (mapprint(&map, curoff + 1, lineend - curoff - 1) != 0) {
+        ierr(fn);
+        return;
+      }
+      lineend = curoff + 1;
+      curoff -= 1
+
+      if (options.style == .RLINES) {
+        off-=1
+      }
+
+      if (off == 0 && options.style != .REVERSE) {
+        /* Avoid printing anything below. */
+        curoff = 0
+        break
+      }
     }
+    if (curoff < 0 && mapprint(&map, 0, lineend) != 0) {
+      ierr(fn);
+      return;
+    }
+    if (map.start != nil && (munmap(UnsafeMutableRawPointer(mutating: map.start)!, map.maplen) != 0)) {
+      ierr(fn);
+    }
+     */
+  }
+  
+  
+  
+  
+  
+  
+  
+  /*
+   * r_buf -- display a non-regular file in reverse order by line.
+   *
+   * This is the function that saves the entire input, storing the data in a
+   * doubly linked list of buffers and then displays them in reverse order.
+   * It has the usual nastiness of trying to find the newlines, as there's no
+   * guarantee that a newline occurs anywhere in the file, let alone in any
+   * particular buffer.  If we run out of memory, input is discarded (and the
+   * user warned).
+   */
+  
+  func r_buf(_ fp: FileHandle, _ filename: String) async throws {
+
+    var lns : [String] = []
+    for try await line in fp.bytes.lines {
+      lns.append(line)
+    }
+    
+     // Print the buffers in reverse order
+    for line in lns.reversed() {
+      print(line)
+    }
+  }
+}
+
+extension Data {
+  func lastIndex(of byte: UInt8, before index: Data.Index? = nil) -> Int? {
+      let si = (index ?? self.endIndex)
+      
+    guard si > self.startIndex, si <= self.endIndex else {
+          return nil
+      }
+      
+      for i in stride(from: si-1, through: 0, by: -1) {
+          if self[i] == byte {
+              return i
+          }
+      }      
+      return nil
+  }
+}
+
+extension FileHandle {
+  public var isRegularFile : Bool {
+    var sbp = stat()
+    if fstat(self.fileDescriptor, &sbp) != 0 {
+      return false
+    }
+    return (sbp.st_mode & S_IFMT) == S_IFREG
   }
 }

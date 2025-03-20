@@ -58,7 +58,7 @@ struct FragmentReader {
                     return nil
                 }
             }
-            if let data = try? fileHandle.read(upToCount: chunkSize), let data = data, !data.isEmpty {
+            if let data = try? fileHandle.read(upToCount: chunkSize), !data.isEmpty {
                 buffer.append(data)
             } else {
                 atEOF = true
@@ -275,7 +275,9 @@ func laminateStream(columns: [Column], trailingSeparator: String?) {
 
 // MARK: - Main Entry Point
 
-@main
+
+// FIXME: see if this version works better than the other one.
+// @main
 struct Lam {
     static func main() {
         let (columns, trailingSeparator) = parseArguments()

@@ -38,33 +38,39 @@ SUCH DAMAGE.
 import Foundation
 
 extension tail {
-  var rflag = false // Reverse flag, to be set based on user input
   
-  /// Reads `off` bytes from the end of the file and displays them.
-  func bytes(fp: UnsafeMutablePointer<FILE>, filename: String, offset: Int) -> Int {
-    var buffer = [UInt8](repeating: 0, count: offset)
+  /*
+   * bytes -- read bytes to an offset from the end and display.
+   *
+   * This is the function that reads to a byte offset from the end of the input,
+   * storing the data in a wrap-around buffer which is then displayed.  If the
+   * rflag is set, the data is displayed in lines in reverse order, and this
+   * routine has the usual nastiness of trying to find the newlines.  Otherwise,
+   * it is displayed from the character closest to the beginning of the input to
+   * the end.
+   */
+  func bytes(_ fp: FileHandle, _ filename: String, _ off : off_t) throws -> Int {
+
+    fatalError("not yet implemented")
+    /*
     var wrap = false
     var index = 0
     
+    var buffer = Data()
+  
     while true {
-      let ch = fgetc(fp)
-      if ch == EOF { break }
+      guard let ch = try fp.read(upToCount: 1) else { break }
       
-      buffer[index] = UInt8(ch)
+      buffer.append(ch)
       index += 1
       
-      if index == offset {
+      if index == options.off {
         wrap = true
         index = 0
       }
     }
     
-    if ferror(fp) != 0 {
-      perror("Error reading file: \(filename)")
-      return 1
-    }
-    
-    if rflag {
+    if options.rflag {
       var length = 0
       var tlen = 0
       
@@ -110,80 +116,39 @@ extension tail {
     }
     
     return 0
+     */
   }
   
-  /// Reads `off` lines from the end of the file and displays them.
-  func lines(fp: UnsafeMutablePointer<FILE>, filename: String, offset: Int) -> Int {
-    var lines = [(data: [UInt8], length: Int)](repeating: ([], 0), count: offset)
-    var buffer = [UInt8]()
-    var wrap = false
-    var recno = 0
-    var charCount = 0
+  /*
+   * lines -- read lines to an offset from the end and display.
+   *
+   * This is the function that reads to a line offset from the end of the input,
+   * storing the data in an array of buffers which is then displayed.  If the
+   * rflag is set, the data is displayed in lines in reverse order, and this
+   * routine has the usual nastiness of trying to find the newlines.  Otherwise,
+   * it is displayed from the line closest to the beginning of the input to
+   * the end.
+   */
+  func lines(_ fp : FileHandle, _ filename: String, _ options : CommandOptions) async throws {
     
-    while true {
-      let ch = fgetc(fp)
-      if ch == EOF { break }
-      
-      buffer.append(UInt8(ch))
-      charCount += 1
-      
-      if ch == Int32(UnicodeScalar("\n").value) {
-        if lines[recno].length < charCount {
-          lines[recno] = (buffer, charCount)
-        }
-        buffer.removeAll()
-        charCount = 0
-        
-        recno += 1
-        if recno == offset {
-          wrap = true
-          recno = 0
-        }
+//    fatalError("not yet implemented")
+    
+    var llines = [String]()
+    for try await line in fp.bytes.lines {
+      llines.append(line)
+      if llines.count > Int(options.off) {
+        llines.remove(at: 0)
       }
     }
     
-    if ferror(fp) != 0 {
-      perror("Error reading file: \(filename)")
-      return 1
-    }
-    
-    if charCount > 0 {
-      lines[recno] = (buffer, charCount)
-      recno += 1
-      if recno == offset {
-        wrap = true
-        recno = 0
-      }
-    }
-    
-    if rflag {
-      for i in stride(from: recno - 1, through: 0, by: -1) {
-        if lines[i].length > 0 {
-          print(String(bytes: lines[i].data, encoding: .utf8) ?? "", terminator: "")
-        }
-      }
-      if wrap {
-        for i in stride(from: offset - 1, through: recno, by: -1) {
-          if lines[i].length > 0 {
-            print(String(bytes: lines[i].data, encoding: .utf8) ?? "", terminator: "")
-          }
-        }
+    if options.rflag {
+      for line in llines.reversed() {
+         print(line)
       }
     } else {
-      if wrap {
-        for i in recno..<offset {
-          if lines[i].length > 0 {
-            print(String(bytes: lines[i].data, encoding: .utf8) ?? "", terminator: "")
-          }
-        }
-      }
-      for i in 0..<recno {
-        if lines[i].length > 0 {
-          print(String(bytes: lines[i].data, encoding: .utf8) ?? "", terminator: "")
-        }
+      for line in llines {
+        print(line)
       }
     }
-    
-    return 0
   }
 }

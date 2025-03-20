@@ -46,187 +46,256 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
 """
   
   struct CommandOptions {
+//    var byteOffset: Int64 = 0
+    var off : Int64 = 0
+//    var numLines: Int64 = 0
+    var fflag: Bool = false
+    var Fflag: Bool = false
+    var qflag: Bool = false
+    var vflag: Bool = false
+    var rflag: Bool = false
+    var style: STYLE = .NOTSET
+    var filePaths: [String] = []
     var args : [String] = CommandLine.arguments
   }
   
+  // Enum to define different tail styles
+  enum STYLE {
+    case NOTSET
+    case FBYTES
+    case FLINES
+    case RBYTES
+    case RLINES
+    case REVERSE
+  }
+  
+  var rval : Int32 = 0
+  var action : Action = .USE_SLEEP
+  
   func parseOptions() throws(CmdErr) -> CommandOptions {
+    //    var args = CommandLine.arguments.dropFirst() // Ignore the first argument (executable name)
     var options = CommandOptions()
-    let supportedFlags = "belnstuv"
-    let go = BSDGetopt(supportedFlags)
+    let supportedFlags = "+Fb:c:fn:qrv"
+    let longOptions : [CMigration.option] = [
+      .init("blocks", .required_argument),
+      .init("bytes", .required_argument),
+      .init("lines", .required_argument),
+      .init("quiet", .no_argument),
+      .init("silent", .no_argument),
+      .init("verbose", .no_argument),
+    ]
     
-    while let (k, _) = try go.getopt() {
+    let go = BSDGetopt_long(supportedFlags, longOptions)
+    
+    while var (k, v) = try go.getopt_long() {
       switch k {
-        default: throw CmdErr(1)
+        case "F":
+          options.Fflag = true
+          options.fflag = true
+        case "f":
+          options.fflag = true
+        case "q", "silent", "quiet":
+          options.qflag = true
+          options.vflag = false
+        case "v", "verbose":
+          options.vflag = true
+          options.qflag = false
+        case "r":
+          options.rflag = true
+        case "b", "blocks":
+          try ARG(&options, v, 512, .FBYTES, .RBYTES)
+        case "c", "bytes":
+          try ARG(&options, v, 1, .FBYTES, .RBYTES)
+        case "n", "lines":
+          try ARG(&options, v, 1, .FLINES, .RLINES)
+        default:
+          throw CmdErr(1)
       }
     }
-    options.args = go.remaining
+    
+    options.filePaths = go.remaining
+    
+    if options.rflag {
+      if options.fflag {
+        throw CmdErr(1)
+      }
+      if options.style == .FBYTES {
+        options.style = .RBYTES
+      } else if options.style == .FLINES {
+        options.style = .RLINES
+      }
+    }
+    
+    if options.style == .NOTSET {
+      if options.rflag {
+        options.off = 0
+        options.style = .REVERSE
+      } else {
+        options.off = 10
+        options.style = .RLINES
+      }
+    }
+    
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
-  }
-  
-  // Enum to define different tail styles
-  enum TailStyle {
-    case notSet
-    case fBytes
-    case rBytes
-    case fLines
-    case rLines
-    case reverse
-  }
-  
-  // Global variables for command-line options
-  var byteOffset: Int64 = 0
-  var chunkOffset: Int64 = 0
-  var numLines: Int64 = 0
-  var followFlag: Bool = false
-  var followWithRetry: Bool = false
-  var quietFlag: Bool = false
-  var verboseFlag: Bool = false
-  var reverseFlag: Bool = false
-  var style: TailStyle = .notSet
-  
-  // MARK: - Command-line Argument Parsing
-  
-  func parseArguments() {
-    var args = CommandLine.arguments.dropFirst() // Ignore the first argument (executable name)
-    
-    while !args.isEmpty {
-      let arg = args.removeFirst()
-      
-      switch arg {
-        case "-F":
-          followWithRetry = true
-          followFlag = true
-        case "-f":
-          followFlag = true
-        case "-q":
-          quietFlag = true
-          verboseFlag = false
-        case "-v":
-          verboseFlag = true
-          quietFlag = false
-        case "-r":
-          reverseFlag = true
-        case "-b":
-          if let value = args.first, let num = Int64(value) {
-            args.removeFirst()
-            setTailStyle(units: 512, offset: num, forward: .fBytes, backward: .rBytes)
-          } else {
-            usage()
-          }
-        case "-c":
-          if let value = args.first, let num = Int64(value) {
-            args.removeFirst()
-            setTailStyle(units: 1, offset: num, forward: .fBytes, backward: .rBytes)
-          } else {
-            usage()
-          }
-        case "-n":
-          if let value = args.first, let num = Int64(value) {
-            args.removeFirst()
-            setTailStyle(units: 1, offset: num, forward: .fLines, backward: .rLines)
-          } else {
-            usage()
-          }
-        default:
-          // Treat argument as a filename
-          filePaths.append(arg)
-      }
-    }
-    
-    if style == .notSet {
-      if reverseFlag {
-        byteOffset = 0
-        style = .reverse
-      } else {
-        byteOffset = 10
-        style = .rLines
-      }
-    }
-    
-    if reverseFlag, followFlag {
-      usage() // Reverse and follow flags are incompatible
-    }
-  }
-  
-  // Helper function to determine forward/backward tail styles
-  func setTailStyle(units: Int64, offset: Int64, forward: TailStyle, backward: TailStyle) {
-    guard style == .notSet else { usage() }
-    
-    if offset > Int64.max / units || offset < Int64.min / units {
-      print("Illegal offset: \(offset)")
-      exit(1)
-    }
-    
-    let offsetValue = offset * units
-    switch String(offset).prefix(1) {
-      case "+":
-        byteOffset = offsetValue - units
-        style = forward
-      case "-":
-        byteOffset = -offsetValue
-        style = backward
-      default:
-        style = backward
-    }
-  }
-  
-  // MARK: - Tail Implementation
-  
-  var filePaths: [String] = []
-  
-  func tailFiles() {
-    if filePaths.isEmpty {
-      tailFile(stdin, fileName: "stdin")
-    } else {
-      for (index, filePath) in filePaths.enumerated() {
-        if let file = fopen(filePath, "r") {
-          if verboseFlag || (!quietFlag && filePaths.count > 1) {
-            print("\(index > 0 ? "\n" : "")==> \(filePath) <==")
-          }
-          tailFile(file, fileName: filePath)
-          fclose(file)
-        } else {
-          print("Cannot open file: \(filePath)")
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+    if options.filePaths.count > 0 && options.fflag {
+      let files = try options.filePaths.map { (x : String) throws(CmdErr) in
+        do {
+          return try (FileHandle(forReadingFrom: URL(filePath: x)), x)
+        } catch {
+          // FIXME: in the original, it doesn't throw, it warns and continues
+          throw CmdErr(1, "\(x): \(error.localizedDescription)")
         }
       }
-    }
-  }
-  
-  // Tail implementation for a single file
-  func tailFile(_ file: UnsafeMutablePointer<FILE>, fileName: String) {
-    var statBuffer = stat()
-    
-    if fstat(fileno(file), &statBuffer) == -1 {
-      print("Error accessing file: \(fileName)")
-      return
-    }
-    
-    if S_ISDIR(statBuffer.st_mode) {
-      return // Ignore directories
-    }
-    
-    if reverseFlag {
-      tailReverse(file, fileName: fileName, style: style, offset: byteOffset, statBuffer: statBuffer)
+      do {
+        try await follow(files, options)
+      } catch {
+        throw CmdErr(1, error.localizedDescription)
+      }
+    } else if options.filePaths.count > 0 {
+      var first = true
+      for fn in options.filePaths {
+        for x in options.filePaths {
+          do {
+            let fp = try FileHandle(forReadingFrom: URL(filePath: x))
+            if options.vflag || (!options.qflag && options.filePaths.count > 1) {
+              if (!first) { print("") }
+              print("==> \(fn) <==")
+              first = false
+            }
+            // FIXME: what about the directory?
+            if options.rflag {
+              try await reverse(fp, fn, options)
+            } else {
+              try await forward(fp, fn, options)
+            }
+            
+          } catch {
+            // FIXME: in the original, it doesn't throw, it warns and continues
+            throw CmdErr(1, "\(x): \(error.localizedDescription)")
+          }
+          
+        }
+      }
     } else {
-      tailForward(file, fileName: fileName, style: style, offset: byteOffset, statBuffer: statBuffer)
+      let fn = "stdin";
+      var fflag = options.fflag
+      /*
+       * Determine if input is a pipe.  4.4BSD will set the SOCKET
+       * bit in the st_mode field for pipes.  Fix this then.
+       */
+      if (lseek(FileHandle.standardInput.fileDescriptor, 0, SEEK_CUR) == -1 &&
+          errno == ESPIPE) {
+        errno = 0;
+        fflag = false    /* POSIX.2 requires this. */
+      }
+      
+      do {
+        if (options.rflag) {
+          try await reverse(FileHandle.standardInput, fn, options)
+        } else if fflag {
+          try await follow([(FileHandle.standardInput, fn)], options)
+        } else {
+          try await forward(FileHandle.standardInput, fn, options)
+        }
+      } catch {
+        throw CmdErr(1, error.localizedDescription)
+      }
     }
+    // exit(Int32(rval))
   }
   
-  // Placeholder function for forward tail
-  func tailForward(_ file: UnsafeMutablePointer<FILE>, fileName: String, style: TailStyle, offset: Int64, statBuffer: stat) {
-    var buffer = [CChar](repeating: 0, count: 8192)
-    while fgets(&buffer, Int32(buffer.count), file) != nil {
-      print(String(cString: buffer), terminator: "")
-    }
-  }
   
-  // Placeholder function for reverse tail
-  func tailReverse(_ file: UnsafeMutablePointer<FILE>, fileName: String, style: TailStyle, offset: Int64, statBuffer: stat) {
-    print("Reverse tail for \(fileName) is not implemented yet")
+  func ARG(_ options : inout CommandOptions, _ optarg : String, _ units : Int, _ forward : STYLE, _ backward : STYLE) throws(CmdErr) {
+    if (options.style != .NOTSET) {
+      throw CmdErr(1)
+    }
+    
+    do {
+      options.off = try Int64(expand_number(optarg))
+    } catch {
+      throw CmdErr(1, "illegal offset -- \(optarg)")
+    }
+    if (options.off > Int.max / units || options.off < Int.min / units ) {
+      throw CmdErr(1, "illegal offset -- \(optarg)")
+    }
+    switch optarg.first {
+      case "+":
+        if (options.off != 0) {
+          options.off -= Int64(units)
+        }
+        options.style = forward
+      case "-":
+        options.off = -options.off;
+        fallthrough
+      default:
+        options.style = backward
+    }
+    
   }
-
 }
+
+// ==================================================
+
+enum ExpandNumberError: Error {
+    case invalidFormat
+    case overflow
+}
+
+func expand_number(_ input: String) throws -> UInt64 {
+    let suffixMultipliers: [Character: UInt64] = [
+        "B": 1,         // Bytes
+        "K": 1024,      // Kilobytes
+        "M": 1024 * 1024, // Megabytes
+        "G": 1024 * 1024 * 1024, // Gigabytes
+        "T": 1024 * 1024 * 1024 * 1024, // Terabytes
+        "P": 1024 * 1024 * 1024 * 1024 * 1024, // Petabytes
+        "E": 1024 * 1024 * 1024 * 1024 * 1024 * 1024 // Exabytes
+    ]
+    
+    let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    let regex = try NSRegularExpression(pattern: "^([0-9]+)([BKMGTPE]?)$")
+    
+    guard let match = regex.firstMatch(in: trimmed, range: NSRange(location: 0, length: trimmed.utf16.count)) else {
+        throw ExpandNumberError.invalidFormat
+    }
+    
+    let numberRange = Range(match.range(at: 1), in: trimmed)!
+    let numberString = String(trimmed[numberRange])
+    
+    guard let number = UInt64(numberString) else {
+        throw ExpandNumberError.invalidFormat
+    }
+    
+    var multiplier: UInt64 = 1
+    if match.range(at: 2).location != NSNotFound {
+        let suffixRange = Range(match.range(at: 2), in: trimmed)!
+      if let suffix = trimmed[suffixRange].first {
+        multiplier = suffixMultipliers[suffix] ?? 1
+      } else {
+          multiplier = 1
+      }
+    }
+    
+    let result = number.multipliedReportingOverflow(by: multiplier)
+    if result.overflow {
+        throw ExpandNumberError.overflow
+    }
+    
+    return result.partialValue
+}
+
+// **Example Usage**
+/* do {
+    print(try expandNumber("10K"))  // 10240
+    print(try expandNumber("5M"))   // 5242880
+    print(try expandNumber("2G"))   // 2147483648
+    print(try expandNumber("1T"))   // 1099511627776
+    print(try expandNumber("100"))  // 100 (default is bytes)
+    print(try expandNumber("10P"))  // 11258999068426240
+} catch {
+    print("Error: \(error)")
+}
+*/

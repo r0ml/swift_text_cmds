@@ -35,66 +35,53 @@ SUCH DAMAGE.
 */
 
 import Foundation
+import CMigration
 
 extension tail {
-  enum Style {
-    case fBytes, fLines, rBytes, rLines
-  }
-  
-  // Global variables for event handling
-  var useKqueue: Bool = false
-  var lastFile: FileInfo?
-  
+
   // Structure to hold file information
   struct FileInfo {
     let fileName: String
     var filePointer: UnsafeMutablePointer<FILE>?
     var fileStats: stat
   }
-  
-  // Function to handle errors when reading a file
-  func ierr(_ filename: String) {
-    print("Error: \(filename)", to: &stderr)
-  }
-  
-  // Function to handle stdout errors
-  func oerr() {
-    fatalError("Error writing to stdout")
-  }
-  
-  // Reads and prints file content based on the given style and offset
-  func forward(fp: UnsafeMutablePointer<FILE>, filename: String, style: Style, offset: off_t, fileStats: inout stat) {
-    var ch: Int32
     
-    switch style {
-      case .fBytes:
-        if offset == 0 { break }
-        if S_ISREG(fileStats.st_mode) {
-          if fileStats.st_size < offset {
-            fseeko(fp, fileStats.st_size, SEEK_SET)
-          } else if fseeko(fp, offset, SEEK_SET) == -1 {
-            ierr(filename)
-            return
-          }
+  // Reads and prints file content based on the given style and offset
+  func forward(_ fp : FileHandle, _ filename: String, _ options : CommandOptions) async throws {
+    
+    
+    var offset = options.off
+    
+    switch options.style {
+      case .FBYTES:
+        fatalError("not yet implemented")
+/*        if offset == 0 { break }
+        if try FileWrapper.init(url: URL(filePath: filename)).isRegularFile {
+          try fp.seek(toOffset: UInt64(offset))
         } else {
-          var remaining = offset
-          while remaining > 0, (ch = getc(fp)) != EOF {
-            remaining -= 1
+          while offset > 0 {
+            let k = try fp.read(upToCount: Int(min(offset,Int64(65536))))
+            if k == nil { break }
+            offset -= Int64(k!.count)
           }
         }
+  */
+      case .FLINES:
         
-      case .fLines:
         if offset == 0 { break }
-        var remaining = offset
-        while (ch = getc(fp)) != EOF {
-          if ch == Int32(UnicodeScalar("\n").value) {
-            remaining -= 1
-            if remaining == 0 { break }
+        while offset > 0 {
+          let ch = try fp.read(upToCount: 1)
+          guard let ch else { break }
+          if ch[0] == UnicodeScalar("\n").value {
+            offset -= 1
           }
         }
         
-      case .rBytes:
-        if S_ISREG(fileStats.st_mode) {
+      case .RBYTES:
+        fatalError("not yet implemented")
+/*        if try FileWrapper.init(url: URL(filePath: filename)).isRegularFile {
+          try fp.seekToEnd()
+          
           if fileStats.st_size >= offset, fseeko(fp, -offset, SEEK_END) == -1 {
             ierr(filename)
             return
@@ -103,133 +90,242 @@ extension tail {
           // Read the last `offset` bytes using a wrap-around buffer
           _ = bytes(fp: fp, filename: filename, offset: offset)
         }
-        
-      case .rLines:
-        if S_ISREG(fileStats.st_mode) {
-          if offset == 0 {
-            if fseeko(fp, 0, SEEK_END) == -1 {
-              ierr(filename)
-              return
-            }
+        */
+      case .RLINES:
+
+        if fp.isRegularFile {
+          if options.off == 0 {
+            try fp.seekToEnd()
           } else {
-            rlines(fp: fp, filename: filename, offset: offset, fileStats: &fileStats)
+            try await rlines(fp, filename, options)
           }
         } else {
-          _ = lines(fp: fp, filename: filename, offset: offset)
+          try await lines(fp, filename, options)
         }
+      default:
+        break
     }
     
     // Print file contents from current position
-    while (ch = getc(fp)) != EOF {
+/*    while (ch = getc(fp)) != EOF {
       if putchar(ch) == EOF {
         oerr()
       }
     }
-    
-    fflush(stdout)
+  */
+    try FileHandle.standardOutput.synchronize()
   }
   
   // Reads and prints the last `offset` lines of the file
-  func rlines(fp: UnsafeMutablePointer<FILE>, filename: String, offset: off_t, fileStats: inout stat) {
-    guard fileStats.st_size > 0 else { return }
+  func rlines(_ fp: FileHandle, _ filename: String, _ options : CommandOptions) async throws {
+    /*
+     * Using mmap on network filesystems can frequently lead
+     * to distress, and even on local file systems other processes
+     * truncating the file can also lead to upset.
+     *
+     * We scan the file from back to front, counting newlines until we
+     * reach the desired number.  For our purposes, a newline marks
+     * the beginning of the line it precedes, not the end of the line
+     * it follows; we don't check the last character of the file.  If
+     * we don't find the number of newline characters that we want, we
+     * just print the whole file.
+     */
+
+    let size = try fp.seekToEnd()
+    guard size > 0 else { return }
     
-    let bufferSize = Int(fileStats.st_blksize)
-    guard let buffer = malloc(bufferSize)?.assumingMemoryBound(to: UInt8.self) else {
-      ierr(filename)
-      return
+    // FIXME: should it be LOCK_EX ?
+    if 0 != flock(fp.fileDescriptor, LOCK_SH) {
+      throw CmdErr(1, "failed to lock file \(filename)")
     }
     
-    defer { free(buffer) }
-    
-    flockfile(fp)
-    
-    var wanted = offset
+    let blksize = 8192
+    let wanted = options.off
     var found: off_t = 0
-    var currentOffset: off_t = roundup(fileStats.st_size - 1, bufferSize)
+    var offset : off_t = roundup(Int64(size) - 1, blksize)
     
-    while currentOffset > 0 {
-      currentOffset -= off_t(bufferSize)
-      fseeko(fp, currentOffset, SEEK_SET)
+    while offset > 0 {
+      offset -= off_t(blksize)
+      try fp.seek(toOffset: UInt64(offset))
       
-      let bytesRead = fread(buffer, 1, bufferSize, fp)
-      if bytesRead == 0 {
+      let length = min(blksize, Int(size) - 1 - Int(offset))
+      guard let buf = try fp.read(upToCount: length) else {
         ierr(filename)
         return
       }
       
-      for i in stride(from: bytesRead - 1, through: 0, by: -1) {
-        if buffer[i] == UInt8(ascii: "\n") {
+      var n : Int?
+      for i in stride(from: buf.count - 1, through: 0, by: -1) {
+        if buf[i] == UInt8(ascii: "\n") {
           found += 1
-          if found == wanted { break }
+          if found == wanted { n = i; break }
         }
       }
       
-      if found == wanted {
-        fseeko(fp, currentOffset + off_t(bytesRead), SEEK_SET)
+      if let n, found == wanted {
+        offset += Int64(n + 1)
         break
       }
     }
-    
-    while let line = fgets(buffer, Int(fileStats.st_blksize), fp) {
+
+    try fp.seek(toOffset: UInt64(offset))
+
+    for try await line in fp.bytes.lines /* dropFirst(Int(offset)). */ {
+      print(line)
+    }
+/*
+    while let line =  fgets(buffer, Int(fileStats.st_blksize), fp) {
       print(String(cString: line), terminator: "")
     }
+  */
     
-    funlockfile(fp)
+    flock(fp.fileDescriptor, LOCK_UN)
   }
   
+  
+  func show(_ fp : FileHandle) async throws -> Bool {
+
+    while let dd = try fp.read(upToCount: 8192) {
+      // FIXME: put me back -- the filename changed
+      /*      if (last != file) {
+       if (vflag || (qflag == 0 && no_files > 1))
+       printfn(file->file_name, 1);
+       last = file;
+       }
+       */
+      try FileHandle.standardOutput.write(contentsOf: dd)
+    }
+    // FIXME: if there is a file error, remove it from the list -- but keep the place in case it starts working again
+    try FileHandle.standardOutput.synchronize()
+    return true
+  }
+
+  
+  
+  
+  
+  enum Action {
+    case USE_SLEEP
+    case USE_KQUEUE
+    case ADD_EVENTS
+  }
+  
+  func set_events(_ files : [(FileHandle, String)], _ options : CommandOptions) throws(CmdErr) -> (Int32, [kevent]) {
+    var ts = timespec(tv_sec: 0, tv_nsec: 0)
+
+    var evs : [kevent] = []
+    
+    action = Action.USE_KQUEUE
+    for (n, (fp, fn)) in files.enumerated() {
+      var sf = statfs()
+      if fstatfs(fp.fileDescriptor, &sf) == 0 &&
+          (sf.f_flags & UInt32(MNT_LOCAL)) == 0 {
+        action = .USE_SLEEP;
+        return (-1, [])
+      }
+
+      if (options.Fflag && fp != FileHandle.standardInput) {
+        var ev = kevent(ident: UInt(fp.fileDescriptor), filter: Int16(EVFILT_VNODE),
+                        flags: UInt16(EV_ADD | EV_ENABLE | EV_CLEAR),
+                        fflags: UInt32(NOTE_DELETE | NOTE_RENAME),
+                        data: 0,
+                        udata: nil)
+        evs.append(ev)
+      }
+      var ev = kevent(ident: UInt(fp.fileDescriptor),
+                      filter: Int16(EVFILT_READ),
+                      flags: UInt16(EV_ADD | EV_ENABLE | EV_CLEAR),
+                      fflags: 0,
+                      data: 0,
+                      udata: nil)
+      evs.append(ev)
+    }
+
+    let kq = kqueue()
+    guard kq >= 0 else { throw CmdErr(1, "kqueue error")  }
+
+    if (kevent(kq, evs, Int32(evs.count), nil, 0, &ts) < 0) {
+      action = .USE_SLEEP;
+    }
+    return (kq, evs)
+  }
+  
+  
   // Displays the file content and handles event-driven following (`-f` flag)
-  func follow(files: inout [FileInfo], style: Style, offset: off_t) {
+  func follow(_ files: [(FileHandle, String)], _ options : CommandOptions) async throws {
+    
     var active = false
     
-    for i in 0..<files.count {
-      guard let fp = files[i].filePointer else { continue }
+    for (fp, fn) in files {
       active = true
-      print("==> \(files[i].fileName) <==", terminator: "\n")
-      forward(fp: fp, filename: files[i].fileName, style: style, offset: offset, fileStats: &files[i].fileStats)
+      
+      if options.vflag || (!options.qflag && files.count > 1) {
+        print("==> \(fn) <==")
+      }
+      
+      try await forward(fp, fn, options)
     }
     
-    if !active { return }
+    if (!options.Fflag && !active) { return }
     
-    lastFile = files.last
+    // Now we implement the "follow" event
+    // This could be modernized in Swift by using DispatchSource
+    // for now, will simply port the existing kqueue
+    // implementation
     
-    let kq = kqueue()
-    guard kq >= 0 else { fatalError("kqueue error") }
+    var lastFile = files.last
     
-    var keventList = [kevent](repeating: kevent(), count: files.count * 2)
-    
-    for i in 0..<files.count {
-      guard let fp = files[i].filePointer else { continue }
-      
-      let fd = fileno(fp)
-      
-      EV_SET(&keventList[i], UInt(fd), EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, nil)
-    }
+    var (kq, keventList) = try set_events(files, options)
     
     var ts = timespec(tv_sec: 1, tv_nsec: 0)
     
+    var ev_change = false
     while true {
-      let n = kevent(kq, &keventList, keventList.count, &keventList, 1, &ts)
-      
-      if n < 0, errno != EINTR {
-        fatalError("kevent error")
+      ev_change = false
+      if options.Fflag {
       }
       
-      for i in 0..<files.count {
-        guard let fp = files[i].filePointer else { continue }
+      for (fp, fn) in files {
+        // here there is code which will detect when a file
+        // gets created when it wasn't there at the beginning
         
-        if let lastFile = lastFile, lastFile.fileName != files[i].fileName {
-          print("==> \(files[i].fileName) <==", terminator: "\n")
+        
+        if try await !show(fp) {
+          ev_change = true
         }
-        
-        forward(fp: fp, filename: files[i].fileName, style: style, offset: offset, fileStats: &files[i].fileStats)
+      }
+      
+      if (ev_change) {
+        (kq, keventList) = try set_events(files, options)
+      }
+      
+      switch action {
+        case .USE_KQUEUE:
+          ts.tv_sec = 1
+          ts.tv_nsec = 0
+          var n : Int32 = 0
+          repeat {
+            withUnsafeMutablePointer(to: &ts) {
+              n = kevent(Int32(kq), nil, Int32(0), &keventList, 1, options.Fflag ? $0 : nil)
+            }
+          } while n < 0
+          if n == 0 {
+            break // timeout
+          } else if keventList[0].filter == EVFILT_READ && keventList[0].data < 0 {
+            // file shrank, reposition to end
+            if lseek(Int32(keventList[0].ident), 0, SEEK_END) == -1 {
+//              ierr(fn)
+              // what file name to use here?
+              print("what file name to use here?")
+            }
+          }
+          
+        case .USE_SLEEP:
+          try await Task.sleep(for: .milliseconds(250))
+        case .ADD_EVENTS:
+          fatalError("action ADD_EVENTS not implemented")
       }
     }
-  }
-  
-  // Helper function to print a file's name
-  func printFilename(_ filename: String, newline: Bool = true) {
-    if newline { print("\n", terminator: "") }
-    print("==> \(filename) <==")
   }
   
   // Helper function to round up to block size

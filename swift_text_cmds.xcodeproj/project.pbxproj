@@ -528,7 +528,6 @@
 		E7C2939D2D417D1F007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939C2D417D1F007721DE /* ShellTesting */; };
 		E7C2939F2D417D23007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939E2D417D23007721DE /* ShellTesting */; };
 		E7C293A12D418BFD007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293A02D418BFD007721DE /* ShellTesting */; };
-		E7DBCA392D7F898D00A9BD9C /* lam2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7DBCA382D7F898D00A9BD9C /* lam2.swift */; };
 		E7E621422D1095DB00E26DA9 /* regress.01a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213D2D1095DB00E26DA9 /* regress.01a.in */; };
 		E7E621432D1095DB00E26DA9 /* regress.02a.in in Resources */ = {isa = PBXBuildFile; fileRef = E7E621402D1095DB00E26DA9 /* regress.02a.in */; };
 		E7E621442D1095DB00E26DA9 /* regress.01.out in Resources */ = {isa = PBXBuildFile; fileRef = E7E6213C2D1095DB00E26DA9 /* regress.01.out */; };
@@ -8166,7 +8165,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				E76972AD2CF63E5100F3903F /* lam.swift in Sources */,
-				E7DBCA392D7F898D00A9BD9C /* lam2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
