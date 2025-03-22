@@ -33,11 +33,18 @@
 
 import Foundation
 import CMigration
-import CryptoKit
+import CommonCrypto
 
 @main final class sort : ShellCommand {
   
   var VERSION = "2.3-Apple ( modernized by r0ml )"
+  
+  
+  let MT_SORT_THRESHOLD = 10000
+  var ncpu = 1
+  var nthreads = 1
+
+  
   
   var usage : String = """
 Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
@@ -45,11 +52,14 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   [-o outfile] [--batch-size size] [--files0-from file]
   [--heapsort] [--mergesort] [--radixsort] [--qsort]
   [--mmap]
+  [--parallel thread_no]
   [--human-numeric-sort]
   [--version-sort] [--random-sort [--random-source file]]
   [--compress-program program] [file ...]
 """
   
+  var mutually_exclusive_flags : [Character] = [ "M", "n", "g", "R", "h", "V"]
+
   enum SortMethod {
     case SORT_DEFAULT
     case SORT_QSORT
@@ -103,12 +113,12 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   /*
    * Parsed -k option data
    */
-  struct key_specs {
-    var sm : SortModifiers
-    var c1 : size_t
-    var c2 : size_t
-    var f1 : size_t
-    var f2 : size_t
+  struct key_spec {
+    var sm = SortModifiers()
+    var c1 = size_t(0)
+    var c2 = size_t(0)
+    var f1 = size_t(0)
+    var f2 = size_t(0)
     var pos1b = false
     var pos2b = false
   }
@@ -144,7 +154,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   /*
    * Cmp function
    */
-  typealias cmpcoll_t = (_ kv1 : key_value, _ kv2 : key_value, _ offset : size_t) -> Int32
+  typealias cmpcoll_t = (_ kv1 : key_value, _ kv2 : key_value, _ offset : size_t) -> Int
   
   
   struct SortModifiers {
@@ -162,6 +172,9 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     var hflag = false
   };
   
+  // FIXME: can this go back into CommandOptions?
+  var debug_sort = false
+  
   struct CommandOptions {
     var field_sep : Character = ","
     var sort_method : SortMethod = .SORT_DEFAULT
@@ -176,7 +189,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     var complex_sort = false
     var need_hint = false
     
-    var debug_sort = false
+//    var debug_sort = false
     var use_mmap = false
     
     var random_source : String?
@@ -184,6 +197,8 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     var need_random = false
     
     var outfile : String = "-"
+    var real_outfile : String = "-"
+    
     var tmpdir : String = "/var/tmp"
 
     var gnusort_numeric_compatibility = false
@@ -193,10 +208,16 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     var symbol_positive_sign : Character? = "+"
     
     var max_open_files : Int = 16
+    var keys : [key_spec] = []
+    var defaultSortMods = SortModifiers()
     
-    var sm : SortModifiers = SortModifiers()
+//    var sm : SortModifiers = SortModifiers()
+    var gnusort_compatible_blanks = false
+    var print_symbols_on_debug = false
     
-    var args : [String] = CommandLine.arguments
+    var inputFiles = [String]()
+    
+    var byte_sort = false
   }
   
   let longOptions : [CMigration.option] = [
@@ -223,6 +244,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     .init("month-sort", .no_argument),
     .init("numeric-sort", .no_argument),
     .init("output", .required_argument),
+    .init("parallel", .required_argument),
     .init("qsort", .no_argument),
     .init("radixsort", .no_argument),
     .init("random-sort", .no_argument),
@@ -238,39 +260,34 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   ]
   
   var available_free_memory : UInt = 65536
+  var tmp_files = [String]()
   
   func preparse(_ options : inout CommandOptions) {
-    bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
-        { false, false, false, false, false, false };
 
-    result = 0;
-    real_outfile = NULL;
+//    result = 0;
+//    real_outfile = NULL;
 
-    if(getenv("GNUSORT_COMPATIBLE_BLANKS")) {
-      isblank_f = isspace;
-      iswblank_f = iswspace;
+    if let _ = ProcessInfo.processInfo.environment["GNUSORT_COMPATIBLE_BLANKS"] {
+      options.gnusort_compatible_blanks = true
     }
 
-    struct sort_mods *sm = &default_sort_mods_object;
+    set_signal_handler()
+    set_hw_params()
+    set_locale(&options)
+    set_tmpdir(&options)
+    // FIXME: do I need this?
+//    set_sort_opts();
 
-    init_tmp_files();
-
-    set_signal_handler();
-    set_hw_params();
-    set_locale(&options);
-    set_tmpdir(&options);
-    set_sort_opts();
-
-    fix_obsolete_keys(&argc, argv);
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     
     var options = CommandOptions()
     preparse(&options)
-    
+
+    let argv = fix_obsolete_keys(CommandLine.arguments)
     let supportedFlags = "bcCdfghik:Mmno:RrsS:t:T:uVz"
-    let go = BSDGetopt_long(supportedFlags, longOptions)
+    let go = BSDGetopt_long(supportedFlags, longOptions, Array(argv.dropFirst()) )
     
     while let (k, v) = try go.getopt_long() {
       switch k {
@@ -284,7 +301,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
               options.csilentflag = true
             }
             else if !v.isEmpty {
-              unknown(v)
+              try unknown(v)
             }
           }
         case "C":
@@ -294,15 +311,9 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
           options.complex_sort = true
           options.kflag = true
           
-          keys_num++;
-          keys = sort_realloc(keys, keys_num *
-                              sizeof(struct key_specs));
-          memset(&(keys[keys_num - 1]), 0,
-                 sizeof(struct key_specs));
-          
-          if (parse_k(v, &(keys[keys_num - 1]))
-              < 0) {
-            errc(2, EINVAL, "-k %s", optarg);
+          var ks = key_spec()
+          if try !parse_k(v, &ks, &options) {
+            throw CmdErr(2, "invalid value: -k \(v)")
           }
           
         case "m":
@@ -322,7 +333,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
           var vv = v
           while vv.count > 1 {
             if (vv.first != "\\") {
-              errc(2, EINVAL, "%s", optarg);
+              throw CmdErr(2, "invalid value: -t \(v)")
             }
             vv.removeFirst()
             if vv.first == "0" {
@@ -332,10 +343,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
           }
           options.tflag = true;
           options.field_sep = vv.first ?? "\0"
-          if (options.field_sep == Character(UnicodeScalar(UInt32(WEOF) )!) ) {
-            errno = EINVAL;
-            err(Int(2), nil);
-          }
+ 
           if (!options.gnusort_numeric_compatibility) {
             if (options.symbol_decimal_point == options.field_sep) {
               options.symbol_decimal_point = nil
@@ -358,31 +366,33 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
         case "z":
           options.zflag = true
         case "sort":
+          var dsm = options.defaultSortMods
           if v.isEmpty {
           } else if v == "general-numeric" {
-            set_sort_modifier(&options, "g")
+            set_sort_modifier(&dsm, "g", &options)
           } else if v == "human-numeric" {
-            set_sort_modifier(&options, "h")
+            set_sort_modifier(&dsm, "h", &options)
           } else if v == "numeric" {
-            set_sort_modifier(&options, "n")
+            set_sort_modifier(&dsm, "n", &options)
           } else if v == "month" {
-            set_sort_modifier(&options, "M")
+            set_sort_modifier(&dsm, "M", &options)
           } else if v == "random" {
-            set_sort_modifier(&options, "R")
+            set_sort_modifier(&dsm, "R", &options)
           } else {
-            unknown(v)
+            try unknown(v)
           }
+          options.defaultSortMods = dsm
           
-          /*#if defined(SORT_THREADS)
-           case PARALLEL_OPT:
-           nthreads = (size_t)(atoi(optarg));
-           if (nthreads < 1)
-           nthreads = 1;
-           if (nthreads > 1024)
-           nthreads = 1024;
-           break;
-           #endif
-           */
+        case "parallel":
+          if let nt = Int(v) {
+            nthreads = nt
+          }
+          if nthreads < 1 {
+            nthreads = 1
+          }
+          if nthreads > 1024 {
+            nthreads = 1024
+          }
         case "qsort":
           options.sort_method = .SORT_QSORT
         case "mergesort":
@@ -413,76 +423,99 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
           print(VERSION);
           exit(EXIT_SUCCESS);
         case "debug":
-          options.debug_sort = true
+          debug_sort = true
         case "help":
-          throw CmdErr(1)
-        default: throw CmdErr(1)
+          // FIXME: will this work?
+          print(usage)
+          throw CmdErr(0)
+        default: throw CmdErr(2)
       }
     }
-    options.args = go.remaining
-    return options
-  }
-  
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    if (argv_from_file0) {
-      argc = argc_from_file0;
-      argv = argv_from_file0;
-    }
+    
+    options.inputFiles = go.remaining
     
     //  #ifndef WITHOUT_NLS
-    catalog = catopen("sort", NL_CAT_LOCALE);
+    let catalog = catopen("sort", NL_CAT_LOCALE);
     //  #endif
     
-    if (sort_opts_vals.cflag && sort_opts_vals.mflag) {
-      errx(1, "%c:%c: %s", "m", "c", getstr(1));
+    if (options.cflag && options.mflag) {
+      throw CmdErr(1, "m:c: mutually exclusive flags")
     }
     
     //  #ifndef WITHOUT_NLS
     catclose(catalog);
     //  #endif
     
-    if (keys_num == 0) {
-      keys_num = 1;
-      keys = sort_realloc(keys, sizeof(struct key_specs));
-      memset(&(keys[0]), 0, sizeof(struct key_specs));
-      keys[0].c1 = 1;
-      keys[0].pos1b = default_sort_mods.bflag;
-      keys[0].pos2b = default_sort_mods.bflag;
-      memcpy(&(keys[0].sm), default_sort_mods,
-             sizeof(struct sort_mods));
+    if options.keys.count == 0 {
+      var k = key_spec()
+      k.c1 = 1
+      k.pos1b = options.defaultSortMods.bflag
+      k.pos2b = options.defaultSortMods.bflag
+      k.sm = options.defaultSortMods
+      options.keys.append(k)
+    }
+
+    for var (i,ks) in options.keys.enumerated() {
+      if sort_modifier_empty(ks.sm) && !ks.pos1b &&
+          !ks.pos2b {
+        ks.pos1b = options.defaultSortMods.bflag;
+        ks.pos2b = options.defaultSortMods.bflag;
+      }
+      ks.sm.func = get_sort_func(ks.sm)
+      options.keys[i] = ks
     }
     
-    for (size_t i = 0; i < keys_num; i++) {
-      struct key_specs *ks;
-      
-      ks = &(keys[i]);
-      
-      if (sort_modifier_empty(&(ks.sm)) && !(ks.pos1b) &&
-          !(ks.pos2b)) {
-        ks.pos1b = sm.bflag;
-        ks.pos2b = sm.bflag;
-        memcpy(&(ks.sm), sm, sizeof(struct sort_mods));
-      }
-      
-      ks.sm.func = get_sort_func(&(ks.sm));
-    }
+    options.real_outfile = options.outfile
     
-    if (options.debug_sort) {
-      printf("Memory to be used for sorting: %llu\n",available_free_memory);
+    /* Case when the outfile equals one of the input files: */
+    if options.outfile != "-" {
       
-      printf("Using collate rules of %s locale\n",
-             setlocale(LC_COLLATE, NULL));
-      if (byte_sort) {
-        printf("Byte sort is used\n");
-      }
-      if (print_symbols_on_debug) {
-        printf("Decimal Point: <%lc>\n", symbol_decimal_point);
-        if (symbol_thousands_sep) {
-          printf("Thousands separator: <%lc>\n",
-                 symbol_thousands_sep);
+      for infile in options.inputFiles {
+        if infile == options.outfile {
+          while true {
+            options.outfile = "\(options.outfile).tmp"
+            if (access(options.outfile, F_OK) < 0) {
+              break;
+            }
+          }
+          // FIXME: at this back in from cleanup at signal
+//          tmp_file_atexit(options.outfile);
         }
-        printf("Positive sign: <%lc>\n", symbol_positive_sign);
-        printf("Negative sign: <%lc>\n", symbol_negative_sign);
+      }
+    }
+    
+    
+    return options
+  }
+  
+  
+  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+    
+    if (debug_sort) {
+      print("Memory to be used for sorting: \(available_free_memory)")
+      
+      print("number opf CPUs \(ncpu)")
+      
+      let ll = Locale.current.collatorIdentifier ?? "??"
+//      let ll = String(cString: setlocale(LC_COLLATE, nil))
+      print("Using collate rules of \(ll) locale")
+
+      if options.byte_sort {
+        print("Byte sort is used")
+      }
+      if (options.print_symbols_on_debug) {
+        if let sdp = options.symbol_decimal_point {
+          print("Decimal Point: <\(sdp)>")
+        }
+        if let sts = options.symbol_thousands_sep {
+          print("Thousands separator: <\(sts)>")
+        }
+        if let sps = options.symbol_positive_sign {
+          print("Positive sign: <\(sps)>")
+        }
+        if let sns = options.symbol_negative_sign {
+            print("Negative sign: <\(sns)>")
+        }
       }
     }
     
@@ -490,44 +523,22 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
       get_random_seed(options.random_source);
     }
     
-    /* Case when the outfile equals one of the input files: */
-    if options.outfile != "-" {
-      
-      for(int i = 0; i < argc; ++i) {
-        if (strcmp(argv[i], outfile) == 0) {
-          real_outfile = sort_strdup(outfile);
-          for(;;) {
-            char* tmp = sort_malloc(strlen(outfile) +
-                                    strlen(".tmp") + 1);
-            
-            strcpy(tmp, outfile);
-            strcpy(tmp + strlen(tmp), ".tmp");
-            sort_free(outfile);
-            outfile = tmp;
-            if (access(outfile, F_OK) < 0) {
-              break;
-            }
-          }
-          tmp_file_atexit(outfile);
-        }
-      }
+    // FIXME: if i'm using a tmpfile for outfile, what happens?
+    if options.inputFiles.count < 1 || options.outfile == "-" {
+      nthreads = 1
     }
-    
+
     if (!options.cflag && !options.mflag) {
-      var fl : file_list
-      var list : sort_list
+      var fl = file_list()
+      var list = sort_list()
       
-      sort_list_init(&list);
-      file_list_init(&fl, true);
       
-      if (argc < 1) {
+      if (options.inputFiles.count < 1) {
         procfile("-", &list, &fl);
       }
       else {
-        while (argc > 0) {
-          procfile(*argv, &list, &fl);
-          --argc;
-          ++argv;
+        for fn in options.inputFiles {
+          procfile(fn, &list, &fl);
         }
       }
       
@@ -554,8 +565,13 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
        */
       
     } else if (options.cflag) {
+      fatalError("options.cflag not yet implemented")
+      /*
       result = (argc == 0) ? (check("-")) : (check(*argv));
+       */
     } else if (options.mflag) {
+      fatalError("options.mflag not yet implemented")
+      /*
       struct file_list fl;
       
       file_list_init(&fl, false);
@@ -575,9 +591,10 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
       if (rename(options.outfile, real_outfile) < 0) {
         err(2, NULL);
       }
+       */
     }
 
-    return (result);
+    //   return (result);
   }
   
   
@@ -594,24 +611,11 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   }
   
   /*
-   * Print out usage text.
-   */
-  func usage(bool opt_err) {
-    FILE *out;
-    
-    out = opt_err ? stderr : stdout;
-    
-    fprintf(out, fmtcheck(getstr(12), "%s"), getprogname());
-    if (opt_err) {
-      exit(2);
-    }
-    exit(0);
-  }
-  
-  /*
    * Read input file names from a file (file0-from option).
    */
   func read_fns_from_file0(_ fn : String) {
+    fatalError("\(#function) not yet implemented")
+    /*
     FILE *f;
     char *line = NULL;
     size_t linesize = 0;
@@ -649,13 +653,15 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     }
     
     closefile(f, fn);
+     */
   }
   
   /*
    * Check how much RAM is available for the sort.
    */
-  func set_hw_params() -> UInt {
+  func set_hw_params() {
 
+    ncpu = 1
     var pages = sysconf(_SC_PHYS_PAGES);
     if (pages < 1) {
       perror("sysconf pages");
@@ -667,8 +673,19 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
       psize = 4096;
     }
     
+    ncpu = sysconf(_SC_NPROCESSORS_ONLN)
+    if (ncpu < 1) {
+      ncpu = 1
+    }
+    else if(ncpu > 32) {
+      ncpu = 32
+    }
+
+    nthreads = ncpu
+
+    
     let free_memory = pages * psize
-    available_free_memory = free_memory / 2
+    available_free_memory = UInt(free_memory / 2)
     
     if (available_free_memory < 65536) {
       available_free_memory = 65536
@@ -700,7 +717,10 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     
     setlocale(LC_ALL, "")
     
-    if let lc = localeconv() {
+    // FIXME: what is all this?
+    
+    /*
+    if var lc = localeconv() {
       /* obtain LC_NUMERIC info */
       /* Convert to wide char form */
       conv_mbtowc(&symbol_decimal_point, lc.decimal_point,
@@ -712,30 +732,26 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
       conv_mbtowc(&symbol_negative_sign, lc.negative_sign,
                   symbol_negative_sign);
     }
+    */
     
-    if (getenv("GNUSORT_NUMERIC_COMPATIBILITY")) {
-      options.gnusort_numeric_compatibility = true;
+    if let _ = ProcessInfo.processInfo.environment["GNUSORT_NUMERIC_COMPATIBILITY"] {
+      options.gnusort_numeric_compatibility = true
     }
     
-    if let locale = setlocale(LC_COLLATE, NULL) {
-      char *tmpl;
-      const char *cclocale;
-      
-      tmpl = sort_strdup(locale);
-      cclocale = setlocale(LC_COLLATE, "C");
-      if (cclocale && !strcmp(cclocale, tmpl)) {
-        byte_sort = true;
+    if let locale = setlocale(LC_COLLATE, nil) {
+       
+      let tmpl = locale
+      if let cclocale = setlocale(LC_COLLATE, "C"),
+         cclocale == tmpl {
+        options.byte_sort = true;
       }
       else {
-        const char *pclocale;
-        
-        pclocale = setlocale(LC_COLLATE, "POSIX");
-        if (pclocale && !strcmp(pclocale, tmpl)) {
-          byte_sort = true;
+        if let pclocale = setlocale(LC_COLLATE, "POSIX"),
+           pclocale == tmpl {
+          options.byte_sort = true;
         }
       }
-      setlocale(LC_COLLATE, tmpl);
-      sort_free(tmpl);
+      setlocale(LC_COLLATE, tmpl)
     }
   }
   
@@ -743,7 +759,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
    * Set directory temporary files.
    */
   func set_tmpdir(_ options : inout CommandOptions) {
-    if let td = getenv("TMPDIR") {
+    if let td = ProcessInfo.processInfo.environment["TMPDIR"] {
       options.tmpdir = td
     }
   }
@@ -754,9 +770,11 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   func parse_memory_buffer_value(_ value : String?) -> Int {
     
     guard let value else {
-      return available_free_memory
+      return Int(available_free_memory)
     }
-
+    
+    fatalError("\(#function) not implemented yet")
+/*
       char *endptr;
 
     var membuf : UInt64
@@ -807,6 +825,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
         }
       }
       return (membuf);
+ */
   }
   
   /*
@@ -842,10 +861,13 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     }
     
     /* Silently succeed. */
+    // FIXME: put this back
+    /*
     if (oact.__sigaction_u.__sa_handler == SIG_IGN ) {
       if poact != nil { poact.pointee = oact }
       return 0
     }
+     */
     return sigaction(sig, act, poact)
   }
   
@@ -858,7 +880,8 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
    */
   func set_signal_handler() {
     var sa = sigaction()
-    sa.__sigaction_u.__sa_sigaction = sig_handler
+    // FIXME: put this back
+//    sa.__sigaction_u.__sa_sigaction = sig_handler
     sa.sa_flags = SA_SIGINFO
     
     if (sigactionx(SIGTERM, &sa, nil) < 0) {
@@ -898,37 +921,35 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   /*
    * Print "unknown" message and exit with status 2.
    */
-  func unknown(const char *what) {
-    errx(2, "%s: %s", getstr(3), what);
+  func unknown(_ what : String) throws(CmdErr) {
+    throw CmdErr(2, "Unknown feature: \(what)")
   }
   
   /*
    * Check whether contradictory input options are used.
    */
-  func check_mutually_exclusive_flags(_ c : UInt8, _ mef_flags : inout Bool )  {
-    int fo_index, mec;
-    bool found_others, found_this;
+  func check_mutually_exclusive_flags(_ c : Character, _ mef_flags : inout [Bool] ) throws(CmdErr)  {
+
+    var found_others = false
+    var found_this = false;
+    var fo_index = 0
     
-    found_others = found_this = false;
-    fo_index = 0;
-    
-    for (int i = 0; i < NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS; i++) {
-      mec = mutually_exclusive_flags[i];
-      
+    for (i, _) in mef_flags.enumerated() {
+      let mec = mutually_exclusive_flags[i]
       if (mec != c) {
-        if (mef_flags[i]) {
+        if mef_flags[i] {
           if (found_this) {
-            errx(1, "%c:%c: %s", c, mec, getstr(1));
+            throw CmdErr(1, "\(c):\(mec): mutually exclusive flags")
           }
           found_others = true;
           fo_index = i;
         }
       } else {
         if (found_others) {
-          errx(1, "%c:%c: %s", c, mutually_exclusive_flags[fo_index], getstr(1));
+          throw CmdErr(1, "\(c):\(mutually_exclusive_flags[fo_index]): mutually exclusive flags")
         }
-        mef_flags[i] = true;
-        found_this = true;
+        mef_flags[i] = true
+        found_this = true
       }
     }
   }
@@ -936,6 +957,7 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   /*
    * Initialise sort opts data.
    */
+  /*
   func set_sort_opts() {
     
     memset(&default_sort_mods_object, 0,
@@ -944,124 +966,101 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
     default_sort_mods_object.func =
     get_sort_func(&default_sort_mods_object);
   }
+  */
   
   /*
    * Set a sort modifier on a sort modifiers object.
    */
-  func set_sort_modifier(_ options : inout CommandOptions, _ c : Character) -> Bool
+  func set_sort_modifier(_ sm : inout SortModifiers, _ c : Character, _ options : inout CommandOptions) -> Bool
   {
     switch (c) {
       case "b":
-        options.sm.bflag = true
+        sm.bflag = true
       case "d":
-        options.sm.dflag = true
+        sm.dflag = true
       case "f":
-        options.sm.fflag = true
+        sm.fflag = true
       case "g":
-        options.sm.gflag = true
+        sm.gflag = true
         options.need_hint = true
       case "i":
-        options.sm.iflag = true
+        sm.iflag = true
       case "R":
-        options.sm.Rflag = true
+        sm.Rflag = true
         options.need_hint = true
         options.need_random = true
       case "M":
-        initialise_months()
-        options.sm.Mflag = true
+        fatalError("-M not yet implemented")
+//        initialise_months()
+        sm.Mflag = true
         options.need_hint = true
       case "n":
-        options.sm.nflag = true
+        sm.nflag = true
         options.need_hint = true
-        print_symbols_on_debug = true
+        options.print_symbols_on_debug = true
       case "r":
-        options.sm.rflag = true
+        sm.rflag = true
       case "V":
-        options.sm.Vflag = true
+        sm.Vflag = true
       case "h":
-        options.sm.hflag = true
+        sm.hflag = true
         options.need_hint = true
-        print_symbols_on_debug = true
+        options.print_symbols_on_debug = true
       default:
         return false
     }
     
     options.complex_sort = true
-    options.sm.func = get_sort_func(options.sm)
+    
+    // FIXME: implement get_sort_func
+//    sm.func = get_sort_func(sm)
     return true
   }
   
   /*
    * Parse POS in -k option.
    */
-  func parse_pos(_ s : String, _ ks : inout key_specs, _ mef_flags : inout Bool, _ second : Bool) -> Int
+  func parse_pos(_ s : String, _ ks : inout key_spec, _ mef_flags : inout [Bool], _ second : Bool, _ options : inout CommandOptions) throws(CmdErr) -> Bool
   {
     
-    var pmatch = (0..<3).map { _ in regmatch_t() }
-    var re = regex_t()
-    let sregexp = "^([0-9]+)(\\.[0-9]+)?([bdfirMngRhV]+)?$"
-
-    let ret = -1
-    var nmatch : size_t = 4;
+    let rege = /^([0-9]+)(\.[0-9]+)?([bdfirMngRhV]+)?$/
+ 
+    let pmatch = s.matches(of: rege)
+    guard pmatch.count > 0 else { return false }
+    let k = pmatch[0]
     
-    if (regcomp(&re, sregexp, REG_EXTENDED) != 0) {
-      return (-1);
-    }
-    
-    if (regexec(&re, s, nmatch, &pmatch, 0) == 0)
-        && (pmatch[0].rm_eo > pmatch[0].rm_so)
-        && (pmatch[1].rm_eo > pmatch[1].rm_so) {
-      
-      
       // This is a way of doing a jump.
       // the construct is repeat { } while false
       // which executes once, but a break within the
       // repeat block jumps to the end.
       
       repeat {
-        let len = pmatch[1].rm_eo - pmatch[1].rm_so;
-        let f = s.dropFirst(Int(pmatch[1].rm_so)).prefix(Int(len))
+        let f = k.1
         
         if (second) {
-          errno = 0;
-          ks.f2 = size_t(strtoul(f, NULL, 10))
-          if (errno != 0) {
-            err(2, "-k");
-          }
-          if (ks.f2 == 0) {
-            warn("%s",getstr(5));
-            goto end;
+          ks.f2 = size_t(f)!
+          if ks.f2 == 0 {
+            warn("0 field in key specs")
+            break
           }
         } else {
-          errno = 0;
-          ks.f1 = size_t(strtoul(f, NULL, 10))
-          if (errno != 0) {
-            err(2, "-k");
-          }
+          ks.f1 = size_t(f)!
           if (ks.f1 == 0) {
-            warn("%s",getstr(5));
-            goto end;
+            warn("0 field in key specs")
+            break
           }
         }
         
-        if (pmatch[2].rm_eo > pmatch[2].rm_so) {
-          let len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
-          let c = s.dropFirst(Int(pmatch[2].rm_so) + 1).prefix(Int(len))
-          
+        if let c = k.2 {
           if (second) {
-            errno = 0;
-            ks.c2 = size_t(strtoul(c, NULL, 10))
-            if (errno != 0) {
-              err(2, "-k");
-            }
+            ks.c2 = size_t(c)!
           } else {
-            errno = 0;
-            ks.c1 = size_t(strtoul(c, NULL, 10))
+            ks.c1 = size_t(c)!
             if (errno != 0) {
               err(2, "-k");
             }
             if (ks.c1 == 0) {
-              warn("%s",getstr(6));
+              warn("0 column in key specs")
               break // was goto end;
             }
           }
@@ -1074,202 +1073,129 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
           }
         }
         
-        if (pmatch[3].rm_eo > pmatch[3].rm_so) {
-          for i in pmatch[3].rm_so ..< pmatch[3].rm_eo {
-            check_mutually_exclusive_flags(s[i], mef_flags);
-            if (s[i] == "b") {
+        if let ssa = k.3 {
+          for sss in ssa {
+            try check_mutually_exclusive_flags(sss, &mef_flags)
+            if (sss == "b") {
               if (second) {
-                ks.pos2b = true;
+                ks.pos2b = true
+              } else {
+                ks.pos1b = true
               }
-              else {
-                ks.pos1b = true;
-              }
-            } else if (!set_sort_modifier(&(ks.sm), s[i])) {
+            } else if (!set_sort_modifier(&(ks.sm), sss, &options)) {
               break // was goto end;
             }
           }
         }
-        
-        ret = 0;
+        return true
       } while false
-    }
-              
-  end:
-    return (ret);
+    return false
   }
   
   /*
    * Parse -k option value.
    */
-  func parse_k(_ s : String, _ ks : key_specs) {
-    int ret = -1;
-    bool mef_flags[NUMBER_OF_MUTUALLY_EXCLUSIVE_FLAGS] =
-    { false, false, false, false, false, false };
+  func parse_k(_ s : String, _ ks : inout key_spec, _ options : inout CommandOptions) throws(CmdErr) -> Bool {
+    var mef_flags = [ false, false, false, false, false, false ]
     
-    if (s && *s) {
-      char *sptr;
-      
-      sptr = strchr(s, ",");
-      if (sptr) {
-        size_t size1;
-        char *pos1, *pos2;
-        
-        size1 = sptr - s;
-        
-        if (size1 < 1) {
-          return (-1);
-        }
-        pos1 = sort_malloc((size1 + 1) * sizeof(char));
-        
-        strncpy(pos1, s, size1);
-        pos1[size1] = "\0";
-        
-        ret = parse_pos(pos1, ks, mef_flags, false);
-        
-        sort_free(pos1);
-        if (ret < 0) {
-          return (ret);
-        }
-        
-        pos2 = sort_strdup(sptr + 1);
-        ret = parse_pos(pos2, ks, mef_flags, true);
-        sort_free(pos2);
-      } else {
-        ret = parse_pos(s, ks, mef_flags, false);
-      }
+    guard !s.isEmpty else { return false }
+    
+    let s2 = s.split(separator: ",", maxSplits: 1)
+    if s2.count == 1 {
+      return try parse_pos(s, &ks, &mef_flags, false, &options)
     }
     
-    return (ret);
+    let pos1 = s2[0]
+    if pos1.isEmpty { return false }
+    
+    guard try parse_pos(String(pos1), &ks, &mef_flags, false, &options) else { return false }
+    
+    let pos2 = s2[1]
+    return try parse_pos(String(pos2), &ks, &mef_flags, true, &options)
   }
   
   /*
    * Parse POS in +POS -POS option.
    */
-  func parse_pos_obs(_ s : String, _ nf : inout Int, _ nc : inout Int, _ sopts : inout String) -> Int
-  {
-    var re = regex_t()
-    var pmatch = (0..<3).map { _ in regmatch_t() }
+  func parse_pos_obs(_ s : Substring, _ nf : inout Int, _ nc : inout Int, _ sopts : inout String) -> Bool {
 
-    let sregexp = "^([0-9]+)(\\.[0-9]+)?([A-Za-z]+)?$"
-
-    var ret = -1;
-    var nmatch = 4;
-    
-    nc = 0
-    nf = 0
-    
-    if (regcomp(&re, sregexp, REG_EXTENDED) != 0) {
-      return (-1);
+    let rege = /^([0-9]+)(\\.[0-9]+)?([A-Za-z]+)?$/
+    if let k = s.matches(of: rege).first {
+      let nf = Int(k.1)!
+      if let k2 = k.2 {
+        let nc = Int(k2.dropFirst())!
+      }
+      if let k3 = k.3 {
+        sopts = String(k3)
+      }
+      return true
     }
-    
-    if (regexec(&re, s, nmatch, &pmatch, 0) == 0)
-        && pmatch[0].rm_eo > pmatch[0].rm_so
-        && pmatch[1].rm_eo > pmatch[1].rm_so {
-      
-      let len = pmatch[1].rm_eo - pmatch[1].rm_so;
-      let f = s.dropFirst(Int(pmatch[1].rm_so)).prefix(Int(len))
-      
-      errno = 0;
-      *nf = (size_t) strtoul(f, NULL, 10);
-      if (errno != 0) {
-        errx(2, "%s", getstr(11));
-      }
-      
-      if (pmatch[2].rm_eo > pmatch[2].rm_so) {
-        let len = pmatch[2].rm_eo - pmatch[2].rm_so - 1;
-        let c = s.dropFirst(Int(pmatch[2].rm_so) + 1).prefix(Int(len))
-
-        errno = 0;
-        *nc = (size_t) strtoul(c, NULL, 10);
-        if (errno != 0) {
-          errx(2, "%s", getstr(11));
-        }
-      }
-      
-      if (pmatch[3].rm_eo > pmatch[3].rm_so) {
-        
-        let len = pmatch[3].rm_eo - pmatch[3].rm_so;
-        sopts = String( s.dropFirst(Int(pmatch[3].rm_so)).prefix(Int(len)))
-      }
-      
-      ret = 0;
-    }
-//  end:
-    return (ret);
+    return false
   }
   
   
   /*
    * "Translate" obsolete +POS1 -POS2 syntax into new -kPOS1,POS2 syntax
    */
-  func fix_obsolete_keys(int *argc, char **argv)
-  {
-    char sopt[129];
-    
-    for (int i = 1; i < *argc; i++) {
-      char *arg1;
-      
-      arg1 = argv[i];
-      
-      if (strcmp(arg1, "--") == 0) {
+  func fix_obsolete_keys(_ args : [String]) -> [String] {
+    var argv = [String]()
+    var ite = args.makeIterator()
+    argv.append(ite.next()!)
+    while var arg1 = ite.next() {
+      var again = false
+      repeat {
+        again = false
+      if arg1 == "--" {
         /* Following arguments are treated as filenames. */
         break;
+        argv.append(arg1)
       }
       
-      if (strlen(arg1) > 1 && arg1[0] == "+") {
-        char sopts1[128];
-        
-        sopts1[0] = 0;
-        var c1 = 0
-        var f1 = 0
-        
-        if (parse_pos_obs(arg1 + 1, &f1, &c1, sopts1) < 0) {
-          continue;
-        }
-        else {
-          f1 += 1;
-          c1 += 1;
-          if (i + 1 < *argc) {
-            char *arg2 = argv[i + 1];
+        if arg1.count > 1 && arg1.first == "+" {
+          var f1 = 0
+          var c1 = 0
+          var sopts1 = ""
+          if parse_pos_obs(arg1.dropFirst(), &f1, &c1, &sopts1) {
+            f1 += 1;
+            c1 += 1;
             
-            if (strlen(arg2) > 1 &&
-                arg2[0] == "-") {
-              char sopts2[128];
-              
-              sopts2[0] = 0;
-              var c2 = 0
-              var f2 = 0
-              
-              if (parse_pos_obs(arg2 + 1,
-                                &f2, &c2, sopts2) >= 0) {
+            var sopts2 = ""
+            var c2 = 0
+            var f2 = 0
+            
+            if let arg2 = ite.next() {
+              if arg2.first == "-",
+                 parse_pos_obs(arg2.dropFirst(),
+                               &f2, &c2, &sopts2) {
                 if (c2 > 0) {
                   f2 += 1;
                 }
-                sprintf(sopt, "-k%d.%d%s,%d.%d%s",
-                        f1, c1, sopts1, f2, c2, sopts2);
-                argv[i] = sort_strdup(sopt);
-                for (int j = i + 1; j + 1 < *argc; j++)
-                      argv[j] = argv[j + 1];
-                *argc -= 1;
-                continue;
+                let sopt = "-k\(f1).\(c1)\(sopts1),\(f2).\(c2)\(sopts2)"
+                argv.append(sopt)
+                continue
               }
+              arg1 = arg2
+              again = true
             }
+            let sopt = "-k\(f1).\(c1)\(sopts1)"
+            argv.append(sopt)
           }
-          sprintf(sopt, "-k%d.%d%s", f1, c1, sopts1);
-          argv[i] = sort_strdup(sopt);
+        } else {
+          argv.append(arg1)
         }
-      }
+      } while again
     }
+    argv.append(contentsOf: ite.map { $0 })
+    return argv
   }
-  
-  
-  
   
   /*
    * Seed random sort
    */
   func get_random_seed(_ random_source : String?) {
-
+    fatalError("\(#function) not yet implemented")
+    
+    /*
     let randseed = Array(repeating: UInt8(0), count: 32)
     let rsfd : Int32 = -1
     let rd = randseed.count
@@ -1338,8 +1264,9 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
       close(rsfd)
     }
     
-    SHA256_Init(&sha256_ctx);
-    SHA256_Update(&sha256_ctx, randseed, rd);
+    CC_SHA256_Init(&sha256_ctx)
+    CC_SHA256_Update(&sha256_ctx, randseed, rd)
+     */
   }
   
 }

@@ -53,10 +53,10 @@ z b m f
     try await run(withStdin: i, output: o)
   }
   
-  @Test("Tests sorting an empty file") func empty() async throws {
-    try await run(output: "")
-    try await run(output: "", args: "-c")
-    try await run(output: "", args: "-c", "-u")
+  @Test("Tests sorting an empty file", arguments: [
+    [], ["-c"], ["-c", "-u"],
+  ]) func empty(_ args : [String]) async throws {
+    try await run(output: "", args: args)
   }
   
   @Test("Determination of end of option list", .disabled("need to figure out how to test this")) func end_of_options() async throws {
