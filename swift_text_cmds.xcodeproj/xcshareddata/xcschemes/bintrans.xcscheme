@@ -58,11 +58,19 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "uuencode"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "base64"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-b"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "regress.in"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

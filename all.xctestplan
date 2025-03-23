@@ -83,13 +83,6 @@
     {
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E754C6332D0E4EFA00D5A3D7",
-        "name" : "edTest"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E73F98832D443DD000E89FF3",
         "name" : "expandTest"
       }
@@ -139,20 +132,6 @@
     {
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E73F98AA2D44995F00E89FF3",
-        "name" : "lookTest"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E76971802CF62C5700F3903F",
-        "name" : "md5Test"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E73F98CF2D449BD300E89FF3",
         "name" : "nlTest"
       }
@@ -190,13 +169,6 @@
         "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E76971AA2CF62C8200F3903F",
         "name" : "sedTest"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E76971B82CF62C8800F3903F",
-        "name" : "sortTest"
       }
     },
     {
