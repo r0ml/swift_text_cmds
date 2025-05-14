@@ -10,7 +10,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class uniqTest {
+@Suite() class uniqTest {
 
   let ex = "uniq"
   

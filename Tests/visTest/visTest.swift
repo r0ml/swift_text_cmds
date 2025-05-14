@@ -19,7 +19,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class visTest : ShellTest {
+@Suite() class visTest : ShellTest {
 
   let cmd = "vis"
   let suiteBundle = "text_cmds_visTest"

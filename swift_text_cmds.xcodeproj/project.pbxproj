@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
-		FC7A7E91149875C30086576A /* executables */ = {
+		FC7A7E91149875C30086576A /* all_commands */ = {
 			isa = PBXAggregateTarget;
-			buildConfigurationList = FC7A7E92149875C30086576A /* Build configuration list for PBXAggregateTarget "executables" */;
+			buildConfigurationList = FC7A7E92149875C30086576A /* Build configuration list for PBXAggregateTarget "all_commands" */;
 			buildPhases = (
 				FD3562041B828154008A70F6 /* Install grep variant links */,
 				2A6BBF43275EAE8D00EBBEA6 /* Install test files */,
@@ -48,7 +48,7 @@
 				FC7A7ED3149875E00086576A /* PBXTargetDependency */,
 				FC7A7ED5149875E00086576A /* PBXTargetDependency */,
 			);
-			name = executables;
+			name = all_commands;
 			productName = executables;
 		};
 /* End PBXAggregateTarget section */
@@ -194,7 +194,6 @@
 		E73A01052D2C881900BFE085 /* column.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = E73A01042D2C881900BFE085 /* column.xctestplan */; };
 		E73A01142D2C885F00BFE085 /* columnTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73A01022D2C879000BFE085 /* columnTest.swift */; };
 		E73DCD912D3BF8680053BB7C /* DataSlice.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73DCD902D3BF8680053BB7C /* DataSlice.swift */; };
-		E73DCDA42D3D97DC0053BB7C /* SWCompression in Frameworks */ = {isa = PBXBuildFile; productRef = E73DCDA32D3D97DC0053BB7C /* SWCompression */; };
 		E73F98772D44345E00E89FF3 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E73F98762D44345E00E89FF3 /* ShellTesting */; };
 		E73F987B2D44355800E89FF3 /* fmtTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73F98662D44332400E89FF3 /* fmtTest.swift */; };
 		E73F988F2D443E1200E89FF3 /* expandTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73F987D2D443D5A00E89FF3 /* expandTest.swift */; };
@@ -1994,7 +1993,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E73DCDA42D3D97DC0053BB7C /* SWCompression in Frameworks */,
 				E73F99832D45836900E89FF3 /* CMigration in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3693,7 +3691,6 @@
 			);
 			name = show;
 			packageProductDependencies = (
-				E73DCDA32D3D97DC0053BB7C /* SWCompression */,
 				E73F99822D45836900E89FF3 /* CMigration */,
 			);
 			productName = show;
@@ -4883,7 +4880,6 @@
 			mainGroup = FC7A7B2E149865C70086576A;
 			packageReferences = (
 				E7E6250B2D14995000E26DA9 /* XCRemoteSwiftPackageReference "libxo" */,
-				E73DCDA22D3D97BA0053BB7C /* XCRemoteSwiftPackageReference "SWCompression" */,
 				E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */,
 				E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */,
 			);
@@ -4891,7 +4887,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FC7A7E91149875C30086576A /* executables */,
+				FC7A7E91149875C30086576A /* all_commands */,
 				FC7A7B38149865C80086576A /* banner */,
 				2A1513192946F9A20051ED9C /* bintrans */,
 				E70C05BE2D246FA500442F2D /* bintransTest */,
@@ -10220,7 +10216,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FC7A7E92149875C30086576A /* Build configuration list for PBXAggregateTarget "executables" */ = {
+		FC7A7E92149875C30086576A /* Build configuration list for PBXAggregateTarget "all_commands" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FC7A7E93149875C30086576A /* Release */,
@@ -10248,14 +10244,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E73DCDA22D3D97BA0053BB7C /* XCRemoteSwiftPackageReference "SWCompression" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tsolomko/SWCompression.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.8.6;
-			};
-		};
 		E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/r0ml/CMigration";
@@ -10283,11 +10271,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E73DCDA32D3D97DC0053BB7C /* SWCompression */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E73DCDA22D3D97BA0053BB7C /* XCRemoteSwiftPackageReference "SWCompression" */;
-			productName = SWCompression;
-		};
 		E73F98762D44345E00E89FF3 /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;

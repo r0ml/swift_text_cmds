@@ -3,7 +3,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class columnTest : ShellTest {
+@Suite() class columnTest : ShellTest {
   
   let cmd = "column"
   let suiteBundle = "text_cmds_columnTest"

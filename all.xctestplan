@@ -1,18 +1,6 @@
 {
   "configurations" : [
     {
-      "id" : "9E7D1CBD-F789-4AEC-B255-F849678DFF91",
-      "name" : "Original",
-      "options" : {
-        "environmentVariableEntries" : [
-          {
-            "key" : "TEST_ORIGINAL",
-            "value" : "1"
-          }
-        ]
-      }
-    },
-    {
       "id" : "6528D620-2352-4DF3-9B2A-4B2E12A736DC",
       "name" : "Swift",
       "options" : {

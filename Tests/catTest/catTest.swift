@@ -32,7 +32,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class catTest : ShellTest  {
+@Suite() class catTest : ShellTest  {
   
   let cmd = "cat"
   let suiteBundle = "text_cmds_catTest"

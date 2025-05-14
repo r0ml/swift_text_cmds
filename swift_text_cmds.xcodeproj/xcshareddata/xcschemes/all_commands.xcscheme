@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FC7A7E91149875C30086576A"
-               BuildableName = "executables"
-               BlueprintName = "executables"
+               BuildableName = "all_commands"
+               BlueprintName = "all_commands"
                ReferencedContainer = "container:swift_text_cmds.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -56,8 +56,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FC7A7E91149875C30086576A"
-            BuildableName = "executables"
-            BlueprintName = "executables"
+            BuildableName = "all_commands"
+            BlueprintName = "all_commands"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

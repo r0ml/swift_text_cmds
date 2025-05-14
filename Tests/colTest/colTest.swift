@@ -8,7 +8,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class colTest : ShellTest {
+@Suite() class colTest : ShellTest {
   
   let cmd = "col"
   let suiteBundle = "text_cmds_colTest"

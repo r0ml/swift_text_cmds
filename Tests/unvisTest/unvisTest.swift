@@ -3,7 +3,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class unvisTest : ShellTest {
+@Suite() class unvisTest : ShellTest {
 
   let cmd = "unvis"
   let suiteBundle = "text_cmds_unvisTest"

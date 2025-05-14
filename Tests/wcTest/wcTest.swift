@@ -9,7 +9,7 @@
 
 import ShellTesting
 
-@Suite(.serialized) class wcTest : ShellTest {
+@Suite() class wcTest : ShellTest {
   let tv="""
 Der bode en underlig gråsprængt en
 på den yderste nøgne ø; –
