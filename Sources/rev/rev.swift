@@ -33,7 +33,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class rev : ShellCommand {
@@ -63,23 +62,23 @@ import CMigration
     var rval = 0
     if options.args.isEmpty {
       do {
-        for try await line in FileHandle.standardInput.bytes.lines {
+        for try await line in FileDescriptor.standardInput.bytes.lines {
           print(String(line.reversed()))
         }
       } catch {
-        warn("read failure on stdin: \(error.localizedDescription)")
+        warn("read failure on stdin: \(error)")
         exit(1)
       }
     }
     for f in options.args {
       do {
-      let fh = try FileHandle(forReadingFrom: URL(filePath: f))
+      let fh = try FileDescriptor(forReading: f)
         for try await line in fh.bytes.lines {
           print(String(line.reversed()))
         }
         try fh.close()
       } catch {
-        warn("read failure on \(f): \(error.localizedDescription)")
+        warn("read failure on \(f): \(error)")
         rval = 1
       }
     }

@@ -34,7 +34,6 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-import Foundation
 import CMigration
 
 extension tail {
@@ -47,7 +46,7 @@ extension tail {
   }
     
   // Reads and prints file content based on the given style and offset
-  func forward(_ fp : FileHandle, _ filename: String, _ options : CommandOptions) async throws {
+  func forward(_ fp : FileDescriptor, _ filename: String, _ options : CommandOptions) async throws {
     
     
     var offset = options.off
@@ -70,8 +69,8 @@ extension tail {
         
         if offset == 0 { break }
         while offset > 0 {
-          let ch = try fp.read(upToCount: 1)
-          guard let ch else { break }
+          let ch = try fp.readUpToCount(1)
+          guard ch.count > 0 else { break }
           if ch[0] == UnicodeScalar("\n").value {
             offset -= 1
           }
@@ -95,7 +94,7 @@ extension tail {
 
         if fp.isRegularFile {
           if options.off == 0 {
-            try fp.seekToEnd()
+            try fp.seek(offset: 0, from: .end)
           } else {
             try await rlines(fp, filename, options)
           }
@@ -113,11 +112,11 @@ extension tail {
       }
     }
   */
-    try FileHandle.standardOutput.synchronize()
+    fsync(FileDescriptor.standardOutput.rawValue)
   }
   
   // Reads and prints the last `offset` lines of the file
-  func rlines(_ fp: FileHandle, _ filename: String, _ options : CommandOptions) async throws {
+  func rlines(_ fp: FileDescriptor, _ filename: String, _ options : CommandOptions) async throws {
     /*
      * Using mmap on network filesystems can frequently lead
      * to distress, and even on local file systems other processes
@@ -131,11 +130,11 @@ extension tail {
      * just print the whole file.
      */
 
-    let size = try fp.seekToEnd()
+    let size = try fp.seek(offset: 0, from: .end)
     guard size > 0 else { return }
     
     // FIXME: should it be LOCK_EX ?
-    if 0 != flock(fp.fileDescriptor, LOCK_SH) {
+    if 0 != flock(fp.rawValue, LOCK_SH) {
       throw CmdErr(1, "failed to lock file \(filename)")
     }
     
@@ -146,10 +145,11 @@ extension tail {
     
     while offset > 0 {
       offset -= off_t(blksize)
-      try fp.seek(toOffset: UInt64(offset))
+      try fp.seek(offset: offset, from: .start)
       
       let length = min(blksize, Int(size) - 1 - Int(offset))
-      guard let buf = try fp.read(upToCount: length) else {
+      let buf = try fp.readUpToCount(length)
+      guard buf.count > 0 else {
         ierr(filename)
         return
       }
@@ -168,7 +168,7 @@ extension tail {
       }
     }
 
-    try fp.seek(toOffset: UInt64(offset))
+    try fp.seek(offset: offset, from: .start)
 
     for try await line in fp.bytes.lines /* dropFirst(Int(offset)). */ {
       print(line)
@@ -179,13 +179,14 @@ extension tail {
     }
   */
     
-    flock(fp.fileDescriptor, LOCK_UN)
+    flock(fp.rawValue, LOCK_UN)
   }
   
   
-  func show(_ fp : FileHandle) async throws -> Bool {
+  func show(_ fp : FileDescriptor) async throws -> Bool {
 
-    while let dd = try fp.read(upToCount: 8192) {
+    while true {
+      let dd = try fp.readUpToCount(8192)
       // FIXME: put me back -- the filename changed
       /*      if (last != file) {
        if (vflag || (qflag == 0 && no_files > 1))
@@ -193,10 +194,11 @@ extension tail {
        last = file;
        }
        */
-      try FileHandle.standardOutput.write(contentsOf: dd)
+      if dd.count == 0 { break }
+      try FileDescriptor.standardOutput.write(dd)
     }
     // FIXME: if there is a file error, remove it from the list -- but keep the place in case it starts working again
-    try FileHandle.standardOutput.synchronize()
+    fsync(FileDescriptor.standardOutput.rawValue)
     return true
   }
 
@@ -210,7 +212,7 @@ extension tail {
     case ADD_EVENTS
   }
   
-  func set_events(_ files : [(FileHandle, String)], _ options : CommandOptions) throws(CmdErr) -> (Int32, [kevent]) {
+  func set_events(_ files : [(FileDescriptor, String)], _ options : CommandOptions) throws(CmdErr) -> (Int32, [kevent]) {
     var ts = timespec(tv_sec: 0, tv_nsec: 0)
 
     var evs : [kevent] = []
@@ -218,21 +220,21 @@ extension tail {
     action = Action.USE_KQUEUE
     for (n, (fp, fn)) in files.enumerated() {
       var sf = statfs()
-      if fstatfs(fp.fileDescriptor, &sf) == 0 &&
+      if fstatfs(fp.rawValue, &sf) == 0 &&
           (sf.f_flags & UInt32(MNT_LOCAL)) == 0 {
         action = .USE_SLEEP;
         return (-1, [])
       }
 
-      if (options.Fflag && fp != FileHandle.standardInput) {
-        var ev = kevent(ident: UInt(fp.fileDescriptor), filter: Int16(EVFILT_VNODE),
+      if (options.Fflag && fp != FileDescriptor.standardInput) {
+        var ev = kevent(ident: UInt(fp.rawValue), filter: Int16(EVFILT_VNODE),
                         flags: UInt16(EV_ADD | EV_ENABLE | EV_CLEAR),
                         fflags: UInt32(NOTE_DELETE | NOTE_RENAME),
                         data: 0,
                         udata: nil)
         evs.append(ev)
       }
-      var ev = kevent(ident: UInt(fp.fileDescriptor),
+      var ev = kevent(ident: UInt(fp.rawValue),
                       filter: Int16(EVFILT_READ),
                       flags: UInt16(EV_ADD | EV_ENABLE | EV_CLEAR),
                       fflags: 0,
@@ -252,7 +254,7 @@ extension tail {
   
   
   // Displays the file content and handles event-driven following (`-f` flag)
-  func follow(_ files: [(FileHandle, String)], _ options : CommandOptions) async throws {
+  func follow(_ files: [(FileDescriptor, String)], _ options : CommandOptions) async throws {
     
     var active = false
     

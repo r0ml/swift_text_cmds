@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 @main final class unexpand : ShellCommand {
@@ -69,17 +68,17 @@ import CMigration
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     if options.args.isEmpty {
       do {
-        try await tabify(FileHandle.standardInput, "stdin", options: options)
-      } catch(let e) {
+        try await tabify(FileDescriptor.standardInput, "stdin", options: options)
+      } catch {
         warn("stdin")
       }
     } else {
       for filename in options.args {
         do {
-          let u = URL(filePath: filename)
-          let fh = try FileHandle(forReadingFrom: u)
+//          let u = URL(filePath: filename)
+          let fh = try FileDescriptor(forReading: filename)
           try await tabify(fh, filename, options: options)
-        } catch(let e) {
+        } catch {
           warn(filename)
         }
       }
@@ -87,7 +86,7 @@ import CMigration
   }
   
   
-  func tabify(_ fh : FileHandle, _ curfile : String, options : CommandOptions) async throws(CmdErr) {
+  func tabify(_ fh : FileDescriptor, _ curfile : String, options : CommandOptions) async throws(CmdErr) {
 //    int dcol, doneline, limit, n, ocol, width;
 //    wint_t ch;
 
@@ -99,13 +98,13 @@ import CMigration
     var n = 0
     var writingRestOfLine = false
     do {
-      for try await ch in fh.bytes.characters {
+      for try await ch in fh.characters {
         if writingRestOfLine {
           if ch != "\n" {
-            FileHandle.standardOutput.write(String(ch))
+            FileDescriptor.standardOutput.write(String(ch))
             continue
           }
-          FileHandle.standardOutput.write(String(ch))
+          FileDescriptor.standardOutput.write(String(ch))
           writingRestOfLine = false
           dcol = 0
           ocol = 0
@@ -145,7 +144,7 @@ import CMigration
             if (dcol - ocol < 2) {
               break;
             }
-            FileHandle.standardOutput.write("\t")
+            FileDescriptor.standardOutput.write("\t")
             ocol = (1 + ocol / options.tabstops[0]) * options.tabstops[0]
           }
         } else {
@@ -154,7 +153,7 @@ import CMigration
             n += 1
           }
           while (ocol < dcol && n < options.tabstops.count && ocol < limit) {
-            FileHandle.standardOutput.write("\t")
+            FileDescriptor.standardOutput.write("\t")
             n += 1
             ocol = options.tabstops[n]
           }
@@ -162,24 +161,24 @@ import CMigration
         
         /* Then spaces. */
         while (ocol < dcol && ocol < limit) {
-          FileHandle.standardOutput.write(" ")
+          FileDescriptor.standardOutput.write(" ")
           ocol += 1
         }
         
         if (ch == "\u{08}") {
-          FileHandle.standardOutput.write("\u{08}")
+          FileDescriptor.standardOutput.write("\u{08}")
           if ocol > 0 {
             ocol -= 1
             dcol -= 1
           }
         } else if (ch == "\n") {
-          FileHandle.standardOutput.write("\n");
+          FileDescriptor.standardOutput.write("\n");
           doneline = false
           ocol = 0
           dcol = 0
           continue;
         } else if (ch != " " || dcol > limit) {
-          FileHandle.standardOutput.write( String(ch) )
+          FileDescriptor.standardOutput.write( String(ch) )
           let cc = ch.unicodeScalars.first!.value
           // FIXME: replace wcwidth with a Swifty equivalent
           let width = Int(wcwidth(wchar_t(cc)))
@@ -197,7 +196,7 @@ import CMigration
           writingRestOfLine = true
         }
       }
-    } catch(let e) {
+    } catch {
 //    if (ferror(stdin)) {
       warn(curfile)
     }

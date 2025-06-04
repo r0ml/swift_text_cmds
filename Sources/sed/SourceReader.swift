@@ -1,7 +1,6 @@
 // Copyright (c) 1868 Charles Babbage
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 
-import Foundation
 import CMigration
 
 extension SedProcess {
@@ -19,7 +18,7 @@ extension SedProcess {
   func mf_fgets() async throws -> String? {
     
     /*
-     var inFile = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
+     var inFile = FileDescriptor.standardInput.bytes.lines.makeAsyncIterator()
      while let l = try await inFile.next() {
      
      }
@@ -50,7 +49,7 @@ extension SedProcess {
         }
 /*        self.inp = try PeekableAsyncIterator( self.filelist.removeFirst() )
         if options.inplace != nil {
-          if self.inp?.fh == FileHandle.standardInput {
+          if self.inp?.fh == FileDescriptor.standardInput {
             throw CmdErr(1, "-I or -i may not be used with stdin")
           }
         }
@@ -91,23 +90,21 @@ extension SedProcess {
   
   func mf_close_file() throws {
     if let sti = self.inp {
-      if sti.fh != FileHandle.standardInput {
+      if sti.fh != FileDescriptor.standardInput {
         try sti.fh?.close()
         // if there was a backup file, remove it
         if let oldfname {
           // make sure the backup name is available
-          try? FileManager.default.removeItem(at: URL(filePath: oldfname))
+          unlink(oldfname)
           
           // FIXME: should oldfname be a URL?
-          do {
-            try FileManager.default.linkItem(at: URL(filePath: sti.fname), to: URL(filePath: oldfname))
-          } catch {
+          if 0 != link(oldfname, sti.fname) {
             do {
               try posixRename(from: sti.fname, to: oldfname)
             } catch {
               if let tmpfname {
-                try? FileManager.default.removeItem(at: tmpfname)
-                throw CmdErr(1, "renaming \(sti.fname) to \(oldfname) failed: \(error.localizedDescription)")
+                unlink(tmpfname)
+                throw CmdErr(1, "renaming \(sti.fname) to \(oldfname) failed: \(error)")
               }
             }
           }
@@ -115,19 +112,19 @@ extension SedProcess {
         }
         
         if let tmpfname {
-          if outfile != FileHandle.standardOutput {
+          if outfile != FileDescriptor.standardOutput {
             do {
               try outfile.close()
             } catch {
-              try? FileManager.default.removeItem(at: tmpfname)
-              throw CmdErr(1, "closing \(outfname): \(error.localizedDescription)")
+              unlink(tmpfname)
+              throw CmdErr(1, "closing \(outfname): \(error)")
             }
             
             do {
               try posixRename(from: tmpfname.path, to: inp!.fname)
             } catch {
-              try? FileManager.default.removeItem(at: tmpfname)
-              throw CmdErr(1, "rename \(tmpfname) to \(inp!.fname): \(error.localizedDescription)")
+              unlink(tmpfname)
+              throw CmdErr(1, "rename \(tmpfname) to \(inp!.fname): \(error)")
             }
             
           }
@@ -149,7 +146,7 @@ extension SedProcess {
     let fnam = self.filelist.removeFirst()
     // open file
     if fnam == "-"  || fnam == "/dev/stdin" {
-      self.inp = PeekableAsyncIterator(FileHandle.standardInput, "stdin")
+      self.inp = PeekableAsyncIterator(FileDescriptor.standardInput, "stdin")
       
       if options.inplace != nil {
         throw CmdErr(1, "-I or -i may not be used with stdin")
@@ -159,9 +156,9 @@ extension SedProcess {
       if let inplace = options.inplace {
         var v = false
         do {
-          v = try FileWrapper(url: URL(filePath: fnam)).isRegularFile
+          v = try isRegularFile(FilePath(fnam) )
         } catch {
-          throw CmdErr(1, "checking \(fnam): \(error.localizedDescription)")
+          throw CmdErr(1, "checking \(fnam): \(error)")
         }
         if v != true {
           throw CmdErr(1, "\(fnam): in-place editing only works for regular files")
@@ -169,28 +166,28 @@ extension SedProcess {
         if !inplace.isEmpty {
           oldfname = "\(fnam)\(inplace)"
         }
-        let dirbuf = URL(filePath: fnam).absoluteURL.deletingLastPathComponent()
-        let base = URL(filePath: fnam).lastPathComponent
-        let pid = ProcessInfo.processInfo.processIdentifier
-        let stmpfname = ".!\(pid)!\(base)"
-        tmpfname = URL(filePath: stmpfname, relativeTo: dirbuf)
-        try? FileManager.default.removeItem(at: tmpfname!)
         
-        if outfile != FileHandle.standardOutput {
+        let dirbuf = FilePath(fnam).removingLastComponent()
+//        let dirbuf = URL(filePath: fnam).absoluteURL.deletingLastPathComponent()
+        let base = FilePath(fnam).lastComponent!
+        let pid = getpid()
+        let stmpfname = ".!\(pid)!\(base)"
+        tmpfname = dirbuf.appending(stmpfname)
+        unlink(tmpfname!)
+        
+        if outfile != FileDescriptor.standardOutput {
           try? outfile.close()
         }
         outfname = tmpfname!.relativePath
-        if FileManager.default.createFile(atPath: tmpfname!.path, contents: nil, attributes: [:]) {
+        
           do {
             
-            outfile = try FileHandle(forWritingTo:  tmpfname!)
+            outfile = try FileDescriptor.open(tmpfname!.path, .writeOnly, options: [.create])
           } catch {
-            throw CmdErr(1, "opening for writing: \(stmpfname): \(error.localizedDescription)")
+            throw CmdErr(1, "opening for writing: \(stmpfname): \(error)")
           }
           outfname = tmpfname!.path
-        } else {
-          throw CmdErr(1, "creating \(stmpfname): failed")
-        }
+
         // fchown
         // fchmod
         if !options.ispan {
@@ -201,7 +198,7 @@ extension SedProcess {
         }
         
       } else {
-        outfile = FileHandle.standardOutput
+        outfile = FileDescriptor.standardOutput
         outfname = "stdout"
       }
       
@@ -209,7 +206,7 @@ extension SedProcess {
       do {
         self.inp = try PeekableAsyncIterator(fnam)
       } catch {
-        throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
+        throw CmdErr(1, "\(fnam): \(error)")
       }
     }
     return true
@@ -314,25 +311,25 @@ enum inpSourceType {
 }
 
 class PeekableAsyncIterator {
-//  var iter : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator
+//  var iter : AsyncLineSequence<FileDescriptor.AsyncBytes>.AsyncIterator
 
-//  var iter : FileHandle.AsyncBytes.AsyncLineIterator
-  var iter : AsyncLineSequenceX<FileHandle.AsyncBytes>.AsyncIterator
+//  var iter : FileDescriptor.AsyncBytes.AsyncLineIterator
+  var iter : AsyncLineReader.AsyncIterator
   
   var peeked : String? = nil
-  var fh : FileHandle?
+  var fh : FileDescriptor?
   var fname : String = "?"
   
   init(_ f : String) throws {
     self.fname = f
-    let fh = try FileHandle(forReadingFrom: URL(filePath: f))
+    let fh = try FileDescriptor(forReading: f)
     self.fh = fh
-    self.iter = fh.bytes.linesNLX.makeAsyncIterator()
+    self.iter = fh.bytes.lines.makeAsyncIterator()
   }
   
-  init(_ fh : FileHandle, _ f : String) {
+  init(_ fh : FileDescriptor, _ f : String) {
     self.fh = fh
-    self.iter = fh.bytes.linesNLX.makeAsyncIterator()
+    self.iter = fh.bytes.lines.makeAsyncIterator()
     self.fname = f
   }
   
@@ -352,4 +349,19 @@ class PeekableAsyncIterator {
     }
     return peeked
   }
+}
+
+// ========================
+
+public func isRegularFile(_ path : FilePath) throws -> Bool {
+    var statBuf = stat()
+    let result = path.string.withCString { cPath in
+        stat(cPath, &statBuf)
+    }
+
+    if result != 0 {
+        throw Errno(rawValue: errno)
+    }
+
+    return (statBuf.st_mode & S_IFMT) == S_IFREG
 }

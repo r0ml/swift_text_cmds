@@ -42,7 +42,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 /*

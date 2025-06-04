@@ -147,7 +147,6 @@
  *   been tested on my FreeBSD machine. Your mileage may vary.
  */
 
-import Foundation
 import CMigration
 
 @main final class fmt : ShellCommand {
@@ -278,7 +277,7 @@ import CMigration
   var x0: Int = 0                           // Horizontal position ignoring leading whitespace
   var pendingSpaces: Int = 0                // Spaces to add before the next word
 
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     
     setlocale(LC_CTYPE, "")
     var goalLengthSet = false
@@ -289,13 +288,14 @@ import CMigration
     // Process files or standard input
     if !options.args.isEmpty {
       for file in options.args {
-        process_named_file(file, options)
+        await process_named_file(file, options)
       }
     } else {
       // Read from standard input
-      if let standardInput = InputStream(fileAtPath: "/dev/stdin") {
-        processStream(stream: standardInput, name: "standard input", options)
-      } else {
+      do {
+      let standardInput = try FileDescriptor(forReading: "/dev/stdin")
+        try await processStream(stream: standardInput, name: "standard input", options)
+      } catch {
         throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
       }
     }
@@ -351,11 +351,8 @@ import CMigration
     guard let first = line.first, first.isUppercase else {
       return false
     }
-    let pattern = "^[A-Z][-A-Za-z0-9]*:\\s"
-    if let _ = line.range(of: pattern, options: .regularExpression) {
-      return true
-    }
-    return false
+    let pattern = try! Regex("^[A-Z][-A-Za-z0-9]*:\\s")
+    return line.contains( pattern ) 
   }
   
   /// Calculates the length of indentation (number of leading spaces) in a line.
@@ -453,27 +450,30 @@ import CMigration
   }
   
   /// Centers each line in the stream.
-  func centerStream(stream: InputStream, name: String, _ options : CommandOptions) {
-    let buffer = StreamReader(stream: stream)
-    while let line = buffer.nextLine() {
-      let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-      let lineWidth = trimmedLine.reduce(0) { $0 + wcwidth($1) }
-      var padding = ""
-      var currentWidth = 0
-      while currentWidth < options.goalLength - lineWidth {
-        padding += " "
-        currentWidth += 1
+  func centerStream(stream: FileDescriptor, name: String, _ options : CommandOptions) async {
+//    let buffer = StreamReader(stream: stream)
+    do {
+      for try await line in stream.bytes.lines {
+        let trimmedLine = String((line.drop { $0.isWhitespace }).reversed().drop(while: { $0.isWhitespace }).reversed())
+        let lineWidth = trimmedLine.reduce(0) { $0 + wcwidth($1) }
+        var padding = ""
+        var currentWidth = 0
+        while currentWidth < options.goalLength - lineWidth {
+          padding += " "
+          currentWidth += 1
+        }
+        print("\(padding)\(trimmedLine)")
       }
-      print("\(padding)\(trimmedLine)")
-    }
-    if buffer.hasError {
-      fputs("Error reading \(name)\n", stderr)
-      nErrors += 1
+      
+    } catch {
+        fputs("Error reading \(name)\n", stderr)
+        nErrors += 1
     }
   }
   
+  /*
   /// Reads a single line from the stream, handling tabs, control characters, and backspaces.
-  func getLine(stream: InputStream, _ options : CommandOptions) -> String? {
+  func getLine(stream: FileDescriptor, _ options : CommandOptions) -> String? {
     var line = ""
     var spacesPending = 0
     var troff = false
@@ -506,6 +506,7 @@ import CMigration
     }
     return nil
   }
+   */
   
   /// Safely reallocates memory. In Swift, memory management is handled automatically,
   /// so this function is not needed. Included for completeness.
@@ -514,34 +515,34 @@ import CMigration
     return nil
   }
   
-
+/*
   // MARK: - Stream Reader
   
   /// A simple line reader for InputStream.
   class StreamReader {
-    let stream: InputStream
+    let stream: FileDescriptor
     let bufferSize: Int
-    var buffer: [UInt8]
+//    var buffer: [UInt8]
     var atEOF: Bool = false
     
-    init(stream: InputStream, bufferSize: Int = 4096) {
+    init(stream: FileDescriptor, bufferSize: Int = 4096) {
       self.stream = stream
       self.bufferSize = bufferSize
-      self.buffer = [UInt8](repeating: 0, count: bufferSize)
-      stream.open()
+//      self.buffer = [UInt8](repeating: 0, count: bufferSize)
+//      stream.open()
     }
     
     deinit {
-      stream.close()
+      try? stream.close()
     }
     
     var hasError: Bool = false
     
-    func nextLine() -> String? {
+    func nextLine() throws -> String? {
       var line = ""
       while true {
-        let bytesRead = stream.read(&buffer, maxLength: bufferSize)
-        if bytesRead < 0 {
+        let bytesRead = try stream.readUpToCount(bufferSize)
+        if bytesRead.isEmpty {
           hasError = true
           return nil
         }
@@ -570,101 +571,110 @@ import CMigration
     }
   }
   
+ */
+  
   // MARK: - Processing Functions
   
   /// Processes a single named file.
-  func processNamedFile(_ name: String, _ options : CommandOptions) {
-    guard let fileStream = InputStream(fileAtPath: name) else {
+  func processNamedFile(_ name: String, _ options : CommandOptions) async {
+    var fileStream : FileDescriptor
+    do {
+      fileStream = try FileDescriptor(forReading: name)
+    } catch {
       fputs("Warning: Could not open file \(name)\n", stderr)
       nErrors += 1
       return
     }
-    processStream(stream: fileStream, name: name, options)
-    if fileStream.streamStatus == .error {
-      fputs("Warning: Error reading file \(name)\n", stderr)
-      nErrors += 1
+    do {
+      try await processStream(stream: fileStream, name: name, options)
+    } catch {
+        fputs("Warning: Error reading file \(name)\n", stderr)
+        nErrors += 1
     }
+
   }
+
   
   /// Processes a stream. This is where the real work happens, except centering is handled separately.
-  func processStream(stream: InputStream, name: String, _ options: CommandOptions) {
+  func processStream(stream: FileDescriptor, name: String, _ options: CommandOptions) async {
     var lastIndent = SILLY
     var paraLineNumber = 0
     var firstIndent = SILLY
     var prevHeaderType: HdrType = .paragraphStart
     
     if options.centerP {
-      centerStream(stream: stream, name: name, options)
+      await centerStream(stream: stream, name: name, options)
       return
     }
     
-    let buffer = StreamReader(stream: stream)
-    while let line = buffer.nextLine() {
-      let np = indentLength(line)
-      var headerType: HdrType = .nonHeader
-      
-      if options.grokMailHeaders && prevHeaderType != .nonHeader {
-        if np == 0 && mightBeHeader(line) {
-          headerType = .header
-        } else if np > 0 && prevHeaderType.rawValue > HdrType.nonHeader.rawValue {
-          headerType = .continuation
-        }
-      }
-      
-      // Determine if a new paragraph should be started
-      let isBlank = line.trimmingCharacters(in: .whitespaces).isEmpty
-      let isTroff = line.starts(with: ".") && !options.formatTroff
-      let shouldStartNewParagraph = isBlank ||
-      isTroff ||
-      headerType == .header ||
-      (headerType == .nonHeader && prevHeaderType.rawValue > HdrType.nonHeader.rawValue) ||
-      (np != lastIndent && headerType != .continuation && (!options.allowIndentedParagraphs || paraLineNumber != 1))
-      
-      if shouldStartNewParagraph {
-        newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: np, options)
-        paraLineNumber = 0
-        firstIndent = np
-        lastIndent = np
-        if headerType == .header {
-          lastIndent = 2 // For continuation lines
-        }
-        if isBlank || isTroff {
-          if isBlank {
-            print()
-          } else {
-            print(line)
+    do {
+      //    let buffer = StreamReader(stream: stream)
+      for try await line in stream.bytes.lines {
+        let np = indentLength(line)
+        var headerType: HdrType = .nonHeader
+        
+        if options.grokMailHeaders && prevHeaderType != .nonHeader {
+          if np == 0 && mightBeHeader(line) {
+            headerType = .header
+          } else if np > 0 && prevHeaderType.rawValue > HdrType.nonHeader.rawValue {
+            headerType = .continuation
           }
-          prevHeaderType = .paragraphStart
-          continue
         }
-      } else {
-        if np != lastIndent && headerType != .continuation {
+        
+        // Determine if a new paragraph should be started
+        let isBlank = line.drop { $0.isWhitespace }.isEmpty
+        let isTroff = line.starts(with: ".") && !options.formatTroff
+        let shouldStartNewParagraph = isBlank ||
+        isTroff ||
+        headerType == .header ||
+        (headerType == .nonHeader && prevHeaderType.rawValue > HdrType.nonHeader.rawValue) ||
+        (np != lastIndent && headerType != .continuation && (!options.allowIndentedParagraphs || paraLineNumber != 1))
+        
+        if shouldStartNewParagraph {
+          newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: np, options)
+          paraLineNumber = 0
+          firstIndent = np
           lastIndent = np
+          if headerType == .header {
+            lastIndent = 2 // For continuation lines
+          }
+          if isBlank || isTroff {
+            if isBlank {
+              print()
+            } else {
+              print(line)
+            }
+            prevHeaderType = .paragraphStart
+            continue
+          }
+        } else {
+          if np != lastIndent && headerType != .continuation {
+            lastIndent = np
+          }
         }
+        prevHeaderType = headerType
+        
+        // Process the words in the line
+        let words = line.split(separator: " ", omittingEmptySubsequences: false)
+        for (index, wordSlice) in words.enumerated() {
+          let word = String(wordSlice)
+          let spaces = (index < words.count - 1) ? 1 : 0
+          outputWord(indent0: firstIndent, indent1: lastIndent, word: word, spaces: spaces, options)
+        }
+        paraLineNumber += 1
       }
-      prevHeaderType = headerType
       
-      // Process the words in the line
-      let words = line.split(separator: " ", omittingEmptySubsequences: false)
-      for (index, wordSlice) in words.enumerated() {
-        let word = String(wordSlice)
-        let spaces = (index < words.count - 1) ? 1 : 0
-        outputWord(indent0: firstIndent, indent1: lastIndent, word: word, spaces: spaces, options)
-      }
-      paraLineNumber += 1
-    }
-    
-    // Finish the last paragraph
-    newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
-    if buffer.hasError {
+      // Finish the last paragraph
+      newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
+    } catch {
       fputs("Warning: Error reading \(name)\n", stderr)
       nErrors += 1
     }
   }
   
   /// Processes a named file by opening it and passing its stream to `processStream`.
-  func process_named_file(_ name: String, _ options : CommandOptions) {
-    processNamedFile(name, options)
+  func process_named_file(_ name: String, _ options : CommandOptions) async {
+    await processNamedFile(name, options)
   }
   
   // MARK: - Enumeration

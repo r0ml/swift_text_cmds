@@ -32,7 +32,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 // copied from vis.swift
@@ -104,21 +103,21 @@ struct visOptions : OptionSet {
   
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     if options.args.isEmpty {
-      try await process(FileHandle.standardInput, "<stdin>", options.eflags)
+      try await process(FileDescriptor.standardInput, "<stdin>", options.eflags)
     } else {
       for arg in options.args {
-        let u = URL(filePath: arg)
+//        let u = URL(filePath: arg)
         do {
-          let fh = try FileHandle(forReadingFrom: u)
+          let fh = try FileDescriptor(forReading: arg)
           try await process(fh, arg, options.eflags)
         } catch(let e) {
-          warn( "\(arg): \(e.localizedDescription)" )
+          warn( "\(arg): \(e)" )
         }
       }
     }
   }
   
-  func process(_ fh : FileHandle, _ filename: String, _ eflags: visOptions) async throws(CmdErr) {
+  func process(_ fh : FileDescriptor, _ filename: String, _ eflags: visOptions) async throws(CmdErr) {
     var offset = 0
 //    var c: Int32
 //    var ret: Int32
@@ -126,7 +125,7 @@ struct visOptions : OptionSet {
     var outc: Character = "\0"
     
     do {
-      for try await c in fh.bytes.characters {
+      for try await c in fh.characters {
         offset += 1
 //      again:
         let cc = c.unicodeScalars.first!.value
@@ -140,7 +139,7 @@ struct visOptions : OptionSet {
             offset -= 1
             continue
           case .SYNBAD:
-            var se = FileHandle.standardError
+            var se = FileDescriptor.standardError
             print("\(filename): offset: \(offset): can't decode", to: &se)
             state = (0, .S_GROUND)
           case .ZERO, .NOCHAR:

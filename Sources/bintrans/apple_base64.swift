@@ -46,8 +46,6 @@
  */
 
 
-import Foundation
-
 let Base64 =
 Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
 

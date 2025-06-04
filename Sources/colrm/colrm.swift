@@ -31,7 +31,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class colrm : ShellCommand {
@@ -83,7 +82,7 @@ import CMigration
     let TAB = 8
     
     do {
-      for try await buf in FileHandle.standardInput.bytes.linesNLX {
+      for try await buf in FileDescriptor.standardInput.bytes.lines {
         var column = 0
         let bx = buf.compactMap { ch in
           switch ch {
@@ -106,10 +105,10 @@ import CMigration
             return nil
           }
         }
-        FileHandle.standardOutput.write(String(bx))
+        FileDescriptor.standardOutput.write(String(bx))
       }
     } catch {
-      throw CmdErr(1, "error reading input: \(error.localizedDescription)")
+      throw CmdErr(1, "error reading input: \(error)")
     }
                
   }

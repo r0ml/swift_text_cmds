@@ -33,7 +33,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class col : ShellCommand {
@@ -254,7 +253,7 @@ import CMigration
                 warned = true
                 let ff = cur_line < 0 ? "past first line" : "-- line already flushed"
                 let msg = "warning: can't back up \(ff)"
-                FileHandle.standardError.write("\(msg)\n")
+                FileDescriptor.standardError.write("\(msg)\n")
               }
               cur_line = this_line - adjust;
             }
@@ -342,7 +341,9 @@ import CMigration
   }
   
   func PUTC(_ ch: Character) {
-    FileHandle.standardOutput.write(String(ch))
+    let so = FileDescriptor.standardOutput
+    let k = ch.utf8
+    let _ = withUnsafeBytes(of: k) { try? so.write($0) }
   }
   
   /*

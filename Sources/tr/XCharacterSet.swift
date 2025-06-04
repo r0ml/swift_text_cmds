@@ -1,8 +1,6 @@
 // Copyright (c) 1868 Charles Babbage
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 
-import Foundation
-
 public protocol Containable {
   func contains(_ c : Unicode.Scalar) -> Bool
   @discardableResult mutating func insert(_ c : Unicode.Scalar) -> (inserted: Bool, memberAfterInsert: UnicodeScalar)

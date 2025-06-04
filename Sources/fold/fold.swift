@@ -37,7 +37,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 // Constants
@@ -115,11 +114,13 @@ let DEFLINEWIDTH = 80
         }
         
         do {
-          let input = try String(contentsOfFile: file, encoding: .utf8)
+          let input = try readFileAsString(at: file)
+//          let input = try String(contentsOfFile: file, encoding: .utf8)
           let folded = fold(width: options.width, input: input, options: options)
           print(folded, terminator: "")
         } catch {
-          FileHandle.standardError.write("fold: \(file): \(error.localizedDescription)\n".data(using: .utf8)!)
+          var se = FileDescriptor.standardError
+          print("fold: \(file): \(error)", to: &se)
           rval = 1
         }
       }
@@ -211,9 +212,9 @@ let DEFLINEWIDTH = 80
   
   // Helper function to read from standard input
   func readStdin() -> String? {
-    let inputHandle = FileHandle.standardInput
-    let data = inputHandle.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)
+    let inputHandle = FileDescriptor.standardInput
+    let data = try? inputHandle.readToEnd()
+    return String(decoding: data ?? [], as: UTF8.self)
   }
   
 }

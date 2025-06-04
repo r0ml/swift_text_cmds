@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class cat : ShellCommand {
@@ -118,21 +117,25 @@ import CMigration
     for path in options.args {
       if path == "-" {
         filename = "stdin"
-        let fh = FileHandle.standardInput
+        let fh = FileDescriptor.standardInput
         if cooked {
           cookCat(fh, options)
         } else {
-          rawCat(fh)
+          do {
+            try rawCat(fh)
+          } catch(let e) {
+            throw CmdErr(1, "\(e)")
+          }
         }
       } else {
         filename = path
         do {
-          let fh = try FileHandle(forReadingFrom: URL(fileURLWithPath: path))
+          let fh = try FileDescriptor(forReading: path)
           defer { try? fh.close() }
             if cooked {
               cookCat(fh, options)
             } else {
-              rawCat(fh)
+              try rawCat(fh)
             }
             
           } catch(let e ) {
@@ -143,28 +146,24 @@ import CMigration
     }
   }
   
-  func cookCat(_ fileHandle: FileHandle, _ options : CommandOptions) {
+  func cookCat(_ fileHandle: FileDescriptor, _ options : CommandOptions) {
       var line = 0
       var gobble = false
       var prev: Character = "\n"
       
-      let stdout = FileHandle.standardOutput
-    var stderr = FileHandle.standardError
+      let stdout = FileDescriptor.standardOutput
+    var stderr = FileDescriptor.standardError
     
       // Helper to write to stdout
       func writeToStdout(_ text: String) {
-          if let data = text.data(using: .utf8) {
-              stdout.write(data)
-          } else {
-              print("Error: Unable to write to stdout", to: &stderr)
-          }
+        print(text, terminator: "") // writes as utf8?
       }
 
       // Read and process file line by line
-      var buffer = Data()
-      while let data = try? fileHandle.read(upToCount: 1), !data.isEmpty {
-          buffer.append(data)
-        guard var current = String(data: data, encoding: .isoLatin1)?.first else { continue }
+      var buffer = [UInt8]()
+      while let data = try? fileHandle.readUpToCount(1), !data.isEmpty {
+        buffer.append(contentsOf: data)
+        guard var current = String(decoding: data, as: ISOLatin1.self).first else { continue }
           
           if prev == "\n" {
             if options.flags.contains(.sflag) {
@@ -178,7 +177,7 @@ import CMigration
               
             if options.flags.contains(.nflag) {
               if !options.flags.contains(.bflag) || current != "\n" {
-                      writeToStdout(String(format: "%6d\t", line + 1))
+                      writeToStdout(cFormat("%6d\t", line + 1))
                       line += 1
               } else if options.flags.contains(.eflag) {
                       writeToStdout("      \t")
@@ -218,13 +217,13 @@ import CMigration
   }
   
   // Raw cat (direct file copy)
-  func rawCat(_ fd : FileHandle) {
-    var ofd = FileHandle.standardOutput
+  func rawCat(_ fd : FileDescriptor) throws {
+    let ofd = FileDescriptor.standardOutput
     while true {
-      let bytes = fd.readData(ofLength: BUFSIZE_SMALL)
+      let bytes = try fd.readUpToCount(BUFSIZE_SMALL)
       if bytes.count == 0 { break }
       do {
-        try ofd.write(contentsOf: bytes)
+        try ofd.write(bytes)
       } catch {
         perror("stdout")
         exit(1)

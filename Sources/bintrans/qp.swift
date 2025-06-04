@@ -29,7 +29,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 extension bintrans {
@@ -45,7 +44,7 @@ extension bintrans {
   }
   
   
-  func decode_quoted_printable(_ bodyx : String, _ fpo : FileHandle) {
+  func decode_quoted_printable(_ bodyx : String, _ fpo : FileDescriptor) {
     var body = Substring(bodyx)
     while !body.isEmpty {
       let c = body.removeFirst()
@@ -75,7 +74,7 @@ extension bintrans {
           } else {
             let d = decode_char(body)
             body = body.dropFirst(2)
-            fpo.write(Data([d]))
+            try? fpo.write([d])
           }
         default:
           fpo.write(String(c))
@@ -91,7 +90,7 @@ extension bintrans {
     return String([a,b])
   }
                   
-  func encode_quoted_printable(_ bodyx : String, _ fpo : FileHandle) {
+  func encode_quoted_printable(_ bodyx : String, _ fpo : FileDescriptor) {
 
     var prev = "\0".first!
     var linelen = 0
@@ -146,16 +145,16 @@ extension bintrans {
     }
   }
   
-  func qp(_ fp : FileHandle, _ fpo : FileHandle, _ encode : Bool) async throws(CmdErr)   {
+  func qp(_ fp : FileDescriptor, _ fpo : FileDescriptor, _ encode : Bool) async throws(CmdErr)   {
     let codec = encode ? encode_quoted_printable : decode_quoted_printable
     
     do {
-      for try await line in fp.bytes.linesNLX {
+      for try await line in fp.bytes.lines {
         // (getline(&line, &linecap, fp) > 0)
         codec(line, fpo);
       }
     } catch(let e) {
-      throw CmdErr(1, "\(e.localizedDescription)")
+      throw CmdErr(1, "\(e)")
     }
   }
   
@@ -185,21 +184,21 @@ extension bintrans {
   }
   
   func main_quotedprintable(_ options : CommandOptions) async throws(CmdErr) {
-    var fp = FileHandle.standardInput
+    var fp = FileDescriptor.standardInput
     if let inf = options.inFile {
       do {
-        fp = try FileHandle(forReadingFrom: URL(filePath: inf, directoryHint: .notDirectory))
+        fp = try FileDescriptor(forReading: inf)
       } catch(let e) {
-        throw CmdErr(1, "unable to open \(inf) for input: \(e.localizedDescription)")
+        throw CmdErr(1, "unable to open \(inf) for input: \(e)")
       }
     }
     
-    var fpo = FileHandle.standardOutput
+    var fpo = FileDescriptor.standardOutput
     if let outf = options.outFile {
       do {
-        fpo = try FileHandle(forWritingTo: URL(filePath: outf, directoryHint: .notDirectory))
+        fpo = try FileDescriptor(forWriting: outf)
       } catch(let e) {
-        throw CmdErr(1,"unable to open \(outf) for output: \(e.localizedDescription)")
+        throw CmdErr(1,"unable to open \(outf) for output: \(e)")
       }
     }
     

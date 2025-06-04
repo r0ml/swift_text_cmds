@@ -29,7 +29,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class bintrans : ShellCommand {
@@ -126,7 +125,7 @@ usage: [bintrans] <uuencode | uudecode> ...
         case "o", "output":
           options.outFile = v
         case "version":
-          FileHandle.standardError.write("FreeBSD base64\n")
+          FileDescriptor.standardError.write("FreeBSD base64\n")
           exit(0)
         case "h", "help":
           print(usage)

@@ -35,7 +35,7 @@ SUCH DAMAGE.
 */
 
 
-import Foundation
+import CMigration
 
 extension tail {
   
@@ -49,7 +49,7 @@ extension tail {
    * it is displayed from the character closest to the beginning of the input to
    * the end.
    */
-  func bytes(_ fp: FileHandle, _ filename: String, _ off : off_t) throws -> Int {
+  func bytes(_ fp: FileDescriptor, _ filename: String, _ off : off_t) throws -> Int {
 
     fatalError("not yet implemented")
     /*
@@ -129,7 +129,7 @@ extension tail {
    * it is displayed from the line closest to the beginning of the input to
    * the end.
    */
-  func lines(_ fp : FileHandle, _ filename: String, _ options : CommandOptions) async throws {
+  func lines(_ fp : FileDescriptor, _ filename: String, _ options : CommandOptions) async throws {
     
 //    fatalError("not yet implemented")
     

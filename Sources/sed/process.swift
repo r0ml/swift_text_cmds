@@ -36,7 +36,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 public enum Branch : Error {
@@ -60,7 +59,7 @@ class SedProcess {
   // here rather than in PeekableAsyncIterator because it continues across files
   var linenum : Int = 0
   var oldfname : String?
-  var tmpfname : URL?
+  var tmpfname : String?
   
   var nflag : Bool = false
   var filelist : [String]
@@ -68,7 +67,7 @@ class SedProcess {
   var termwidth = -1
 
   // The C code references a few other global variables or functions not shown here:
-  var outfile: FileHandle = FileHandle.standardOutput
+  var outfile = FileDescriptor.standardOutput
   var outfname: String = "(standard output)"   // used in error messages
   var HS = SPACE("")
   
@@ -184,7 +183,7 @@ class SedProcess {
             fatalError("not possible")
           }
         case "a":
-          appends.append(cp.t) // s_appends(type: .AP_STRING, s: cp.t))
+          try appends.append(FileDescriptor(forReading: cp.t)) // s_appends(type: .AP_STRING, s: cp.t))
           
         case "b":
           if cp.t.isEmpty { throw Branch.to([]) }
@@ -289,7 +288,7 @@ class SedProcess {
               PS.append_newline = true
             } else if nl.last == "\r\n" {
               PS.append_newline = true
-              nl = nl.dropLast().appending("\r")
+              nl = nl.dropLast() + "\r"
             } else {
               PS.append_newline = false
             }
@@ -329,7 +328,7 @@ class SedProcess {
           quit = true
           
         case "r":
-          appends.append(URL(filePath: cp.t)) // s_appends(type: .AP_FILE, s: cp.t))
+          appends.append(cp.t) // s_appends(type: .AP_FILE, s: cp.t))
           
         case "s":
           let j = try substitute(&PS, cp)
@@ -358,8 +357,8 @@ class SedProcess {
               prog[i].u = .fd(fh)
               //            cp.fd = fh
             }
-            try fh!.write(contentsOf: PS.space.data(using: .utf8)!)
-            try fh!.write(contentsOf: "\n".data(using: .utf8)!)
+            fh!.write(PS.space)
+            fh!.write("\n")
           }
         case "x":
           // swap PS and HS
@@ -619,8 +618,8 @@ class SedProcess {
         ssub.wfd = try openFileForWCommand(wfile)
       }
       // write pattern space to ssub.wfd
-      try ssub.wfd?.write(contentsOf: PS.space.data(using: .utf8)!)
-      try ssub.wfd?.write(contentsOf: "\n".data(using: .utf8)!)
+      ssub.wfd?.write(PS.space)
+      ssub.wfd?.write("\n")
     }
     return true
   }
@@ -657,13 +656,15 @@ class SedProcess {
       switch ap {
         case is String: // .AP_STRING:
           try writeStringToOutfile(ap as! String)
-        case is URL: // .AP_FILE:
+        case is FileDescriptor: // .AP_FILE:
           // read the file and write it to outfile
           do {
-            let f = try FileHandle(forReadingFrom: ap as! URL)
+            let f = ap as! FileDescriptor
               // read in chunks
-            while let data = try f.read(upToCount: 8*1024) {
-              try outfile.write(contentsOf: data)
+            while true {
+              let data = try f.readUpToCount(8*1024)
+              if data.count == 0 { break }
+              try outfile.write(data)
             }
             try f.close()
           } catch {
@@ -692,19 +693,19 @@ class SedProcess {
    * We'll replicate in simplified form.
    */
   func lputs(_ s : String) throws {
-    if outfile != FileHandle.standardOutput {
+    if outfile != FileDescriptor.standardOutput {
       termwidth = 60
     }
     var win = winsize()
     
     // Set the termwidth if it has not yet been set
     if termwidth == -1 {
-      if let c = ProcessInfo.processInfo.environment["COLUMNS"], !c.isEmpty {
+      if let c = getenv("COLUMNS"), !c.isEmpty {
         if let cc = Int(c) {
           termwidth = cc
         }
       } else if
-        ioctl(FileHandle.standardOutput.fileDescriptor, TIOCGWINSZ, &win) != 0 && win.ws_col > 0 {
+        ioctl(FileDescriptor.standardOutput.rawValue, TIOCGWINSZ, &win) != 0 && win.ws_col > 0 {
           termwidth = Int(win.ws_col)
         } else {
           termwidth = 60
@@ -752,7 +753,7 @@ class SedProcess {
             col = 0
           }
           for kk in k {
-            let z = String(format: "\\%03o", kk)
+            let z = cFormat("\\%03o", kk)
             outfile.write(z)
           }
           col += 4 * k.count
@@ -997,7 +998,7 @@ class SedProcess {
     }
   }
   
-  func writeFd(_ fd: FileHandle, _ str: String) {
+  func writeFd(_ fd: FileDescriptor, _ str: String) {
     // Write the first count bytes of `str`
     do {
       if let d = str.data(using: .utf8) {
@@ -1010,13 +1011,11 @@ class SedProcess {
   */
   
   /*
-   * Helper to write a String to outfile (FileHandle)
+   * Helper to write a String to outfile (FileDescriptor)
    */
   // FIXME: combine with OUT() ?
   func writeStringToOutfile(_ s: String) throws {
-    if let data = s.data(using: .utf8) {
-      try outfile.write(contentsOf: data)
-    }
+      outfile.write(s)
   }
   
   /**

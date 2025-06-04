@@ -33,7 +33,6 @@
  SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class column : ShellCommand {
@@ -81,36 +80,28 @@ import CMigration
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
     var data = String()
-    var se = FileHandle.standardError
+    var se = FileDescriptor.standardError
     var eval = 0
     
     if options.args.count == 0 {
       do {
-        if let d = try FileHandle.standardInput.readToEnd(),
-           let s = String(data: d, encoding: .utf8) {
-          data.append(s)
-        } else {
-          "stdin: string encoding error\n".write(to: &se)
-          eval = 1
-        }
+        let d = try FileDescriptor.standardInput.readToEnd()
+        let s = String(decoding: d, as: UTF8.self)
+        data.append(s)
       } catch {
-        "stdin: \(error.localizedDescription)".write(to: &se)
+        "stdin: \(error)".write(to: &se)
         eval = 1
       }
     } else {
       for a in options.args {
         do {
-          let fp = try FileHandle(forReadingFrom: URL(filePath: a))
-          if let d = try fp.readToEnd(),
-             let s = String(data: d, encoding: .utf8) {
+          let fp = try FileDescriptor(forReading: a)
+          let d = try fp.readToEnd()
+             let s = String(decoding: d, as: UTF8.self) 
             data.append(s)
-          } else {
-            "\(a): string encoding error\n".write(to: &se)
-            eval = 1
-          }
           try fp.close()
         } catch {
-          "\(a): \(error.localizedDescription)\n".write(to: &se)
+          "\(a): \(error)\n".write(to: &se)
           eval = 1
         }
       }

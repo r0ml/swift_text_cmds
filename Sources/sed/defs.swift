@@ -39,7 +39,8 @@
   $FreeBSD$
  */
 
-import Foundation
+
+import CMigration
 
 /**
  * Matches `enum e_atype` in defs.h
@@ -62,7 +63,7 @@ class s_subst {
   var icase: Bool = false    // True if 'I' flag
   var wfile: String? = nil   // wfile path, or nil
   
-  var wfd: FileHandle? = nil   // Cached file for output (write)
+  var wfd: FileDescriptor? = nil   // Cached file for output (write)
   
   var re: regex_t? = nil     // Regular expression
   var src : String? = nil
@@ -92,7 +93,7 @@ enum command_u {
   case c([s_command])
   case s(s_subst)
   case y(s_tr)
-  case fd(FileHandle?)
+  case fd(FileDescriptor?)
   case b(ArraySlice<Int>)
 }
 
@@ -137,7 +138,8 @@ enum e_args {
  */
 protocol Appendable {}
 extension String : Appendable {}
-extension URL : Appendable {}
+// extension URL : Appendable {}
+extension FileDescriptor : Appendable {}
 
 /**
  * Matches `typedef struct { ... } SPACE` in defs.h

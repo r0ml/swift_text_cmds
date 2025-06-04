@@ -1,7 +1,6 @@
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 // from a file containing the following notice:
 
-import Foundation
 import CMigration
 
 /*-
@@ -733,7 +732,7 @@ class grepDoer {
           // #endif
         
         if myParsec.f.binary {
-          r = myParsec.ln.dat.data(using: .isoLatin1)!.withUnsafeBytes { p in
+          r = encodeLatin1Lossy(myParsec.ln.dat).withUnsafeBytes { p in
             regexec(&pati.1, p.baseAddress, 1, &pmatch, leflags)
           }
         } else {
@@ -1086,3 +1085,9 @@ class grepDoer {
   
 }
 
+
+public func encodeLatin1Lossy(_ string: String) -> [UInt8] {
+    string.unicodeScalars.map { scalar in
+        scalar.value <= 0xFF ? UInt8(scalar.value) : UInt8(ascii: "?")
+    }
+}

@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 // MARK: - Constants and Global Variables
@@ -81,25 +80,25 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
         do {
           if file == "-" {
             // Read from standard input
-            try processInput(fileHandle: FileHandle.standardInput, curfile: "stdin", options: options)
+            try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin", options: options)
           } else {
             // Open the file
-            let url = URL(fileURLWithPath: file)
-            let fileHandle = try FileHandle(forReadingFrom: url)
+//            let url = URL(fileURLWithPath: file)
+            let fileHandle = try FileDescriptor(forReading: file)
             try processInput(fileHandle: fileHandle, curfile: file, options: options)
             try fileHandle.close()
           }
         } catch {
-          warn("Warning: \(file): \(error.localizedDescription)")
+          warn("Warning: \(file): \(error)")
           rval = 1
         }
       }
     } else {
       do {
         // No files provided, read from standard input
-        try processInput(fileHandle: FileHandle.standardInput, curfile: "stdin", options: options)
+        try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin", options: options)
       } catch {
-        warn("Warning: stdin: \(error.localizedDescription)")
+        warn("Warning: stdin: \(error)")
         rval = 1
       }
     }
@@ -158,7 +157,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   /// Writes a message to stderr.
   /// - Parameter message: The message to write.
   func warn(_ message: String) {
-    FileHandle.standardError.write("\(message)\n".data(using: .utf8)!)
+    FileDescriptor.standardError.write("\(message)\n")
   }
   
 
@@ -167,17 +166,20 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   /// - Parameters:
   ///   - fileHandle: The file handle to read from.
   ///   - curfile: The current file name being processed.
-  func processInput(fileHandle: FileHandle, curfile: String, options: CommandOptions) throws {
+  func processInput(fileHandle: FileDescriptor, curfile: String, options: CommandOptions) throws {
     var column = 0
     
     // Read data in chunks]
-    while let data = try fileHandle.read(upToCount: 4096) {
+    while true {
+      let data = try fileHandle.readUpToCount(4096)
+      if data.count == 0 { break }
       
       // Convert data to a string using the current locale's encoding
-      guard let string = String(data: data, encoding: .utf8) else {
-        warn("Warning: Could not decode data from \(curfile)")
-        exit(EXIT_FAILURE)
-      }
+      let string = String(decoding: data, as: UTF8.self)
+      //else {
+      //  warn("Warning: Could not decode data from \(curfile)")
+      //  exit(EXIT_FAILURE)
+      // }
       
       // Iterate over each Unicode scalar in the string
       for wc in string {

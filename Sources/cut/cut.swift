@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class cut : ShellCommand {
@@ -57,7 +56,7 @@ usage: cut -b list [-n] [file ...]
     var autostart : Int = 0
     var autostop : Int = 0
   
-    var fcn : ((FileHandle, String, CommandOptions) async throws(CmdErr) -> Void)?
+    var fcn : ((FileDescriptor, String, CommandOptions) async throws(CmdErr) -> Void)?
     var args : [String] = CommandLine.arguments
   }
   
@@ -208,7 +207,7 @@ usage: cut -b list [-n] [file ...]
   }
 
   
-  func c_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+  func c_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
 //    wint_t ch;
 //    int col;
 //    char *pos;
@@ -216,12 +215,12 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.linesNLX {
+      for try await linel in fh.bytes.lines {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
 //          if i.1 {
-//            FileHandle.standardOutput.write(String(i.0))
+//            FileDescriptor.standardOutput.write(String(i.0))
 //          }
 
         
@@ -238,14 +237,14 @@ usage: cut -b list [-n] [file ...]
          */
         if options.autostop > 0 {
           k.append(contentsOf: line.dropFirst(options.positions.count))
-//          FileHandle.standardOutput.write(String(line.dropFirst(options.positions.count)))
+//          FileDescriptor.standardOutput.write(String(line.dropFirst(options.positions.count)))
         }
         // if lastnl {
 
         if !k.isEmpty {
           print(String(k))
         }
-//          FileHandle.standardOutput.write("\n")
+//          FileDescriptor.standardOutput.write("\n")
       // }
         /*
          if (ch != '\n') {
@@ -265,28 +264,28 @@ usage: cut -b list [-n] [file ...]
        }
        */
     } catch {
-      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+      throw CmdErr(1, "reading from \(fname): \(error)")
     }
   }
 
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     if options.args.isEmpty {
-      try await options.fcn!(FileHandle.standardInput, "stdin", options)
+      try await options.fcn!(FileDescriptor.standardInput, "stdin", options)
     } else {
       for fnam in options.args {
         do {
-          let fp = try FileHandle.init(forReadingFrom: URL(fileURLWithPath: fnam))
+          let fp = try FileDescriptor.init(forReading: fnam)
           try await options.fcn!(fp, fnam, options)
           try fp.close()
         } catch(let e) {
-          throw CmdErr(1, "reading from: \(fnam): \(e.localizedDescription)")
+          throw CmdErr(1, "reading from: \(fnam): \(e)")
         }
       }
     }
   }
   
   
-  func f_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr)
+  func f_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr)
   {
 //    wchar_t ch;
 //    int field, i, isdelim;
@@ -300,7 +299,7 @@ usage: cut -b list [-n] [file ...]
     
     
     do {
-      for try await linel in fh.bytes.linesNLX {
+      for try await linel in fh.bytes.lines {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var linef : [Substring]
@@ -324,7 +323,7 @@ usage: cut -b list [-n] [file ...]
         print(linef.joined(separator: String(options.dchar)), terminator: "\n") // lastnl ? "\n" : "")
       }
     } catch {
-      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+      throw CmdErr(1, "reading from \(fname): \(error)")
     }
   }
 
@@ -414,7 +413,7 @@ usage: cut -b list [-n] [file ...]
   }
 */
   
-  func b_cut(_ fh : FileHandle, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+  func b_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
 //    wint_t ch;
 //    int col;
 //    char *pos;
@@ -422,12 +421,12 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.linesNLX {
+      for try await linel in fh.bytes.lines {
         let lastnl = linel.last == "\n"
         let line = lastnl ? String(linel.dropLast()) : String(linel)
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
 //          if i.1 {
-//            FileHandle.standardOutput.write(String(i.0))
+//            FileDescriptor.standardOutput.write(String(i.0))
 //          }
 
         
@@ -444,14 +443,14 @@ usage: cut -b list [-n] [file ...]
          */
         if options.autostop > 0 {
           k.append(contentsOf: line.dropFirst(options.positions.count))
-//          FileHandle.standardOutput.write(String(line.dropFirst(options.positions.count)))
+//          FileDescriptor.standardOutput.write(String(line.dropFirst(options.positions.count)))
         }
         // if lastnl {
 
         if !k.isEmpty {
           print(String(k))
         }
-//          FileHandle.standardOutput.write("\n")
+//          FileDescriptor.standardOutput.write("\n")
       // }
         /*
          if (ch != '\n') {
@@ -471,7 +470,7 @@ usage: cut -b list [-n] [file ...]
        }
        */
     } catch {
-      throw CmdErr(1, "reading from \(fname): \(error.localizedDescription)")
+      throw CmdErr(1, "reading from \(fname): \(error)")
     }
   }
   

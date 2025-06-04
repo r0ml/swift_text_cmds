@@ -38,7 +38,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 // We replicate the Apple usage of PATH_MAX or fallback
@@ -167,7 +166,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
         throw e
       }
       else {
-        throw CmdErr(1, error.localizedDescription)
+        throw CmdErr(1, "\(error)")
       }
     }
     
@@ -201,15 +200,15 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
 /**
  * Minimal file I/O helpers for the 'w' command usage.
  */
-func openFileForWCommand(_ path: String) throws(CompileErr) -> FileHandle {
+func openFileForWCommand(_ path: String) throws(CompileErr) -> FileDescriptor {
   // O_WRONLY|O_APPEND|O_CREAT|O_TRUNC in the original code => open for writing
   do {
-    FileManager.default.createFile(atPath: path, contents: nil, attributes: nil)
-    let fd = try FileHandle(forWritingTo: URL(filePath: path))
+    let fd = try FileDescriptor.open(path, .writeOnly, options: [.create])
+
     //    let fd = open(path, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0o666)
     //    if fd == -1 {
   return fd
   } catch {
-    throw CompileErr("\(path): \(error.localizedDescription)")
+    throw CompileErr("\(path): \(error)")
   }
 }

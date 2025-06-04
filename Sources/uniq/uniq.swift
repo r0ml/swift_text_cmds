@@ -36,7 +36,6 @@
  * SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class uniq : ShellCommand {
@@ -142,18 +141,18 @@ import CMigration
     do {
       
       if options.args.count == 0 || options.args[0] == "-" {
-        for try await line in FileHandle.standardInput.bytes.lines {
+        for try await line in FileDescriptor.standardInput.bytes.lines {
           doLine(line, options)
         }
       } else {
-        for try await line in URL(fileURLWithPath: options.args[0]).lines {
+        for try await line in try FileDescriptor(forReading: options.args[0]).bytes.lines {
           doLine(line, options)
         }
       }
       doLine(nil, options)
       
     } catch(let e) {
-      throw CmdErr(1, e.localizedDescription)
+      throw CmdErr(1, "\(e)")
     }
   }
   
@@ -178,7 +177,7 @@ import CMigration
   
   func show(_ s : String, _ options : CommandOptions) {
     if options.cflag {
-      print( String(format: "%4ld ", repeats+1) + s)
+      print( cFormat("%4ld ", repeats+1) + s)
     } else {
       print(s)
     }

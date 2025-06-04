@@ -30,9 +30,8 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
-import System
+// import System
 
 let MB_CUR_MAX = 4
 
@@ -146,13 +145,13 @@ let MB_CUR_MAX = 4
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     
     if options.args.isEmpty {
-      await process(fileHandle: FileHandle.standardInput, options: options)
+      await process(fileHandle: FileDescriptor.standardInput, options: options)
     } else {
       for f in options.args {
         do {
-          await process(fileHandle: try FileHandle(forReadingFrom: URL(fileURLWithPath: f)), options: options)
+          await process(fileHandle: try FileDescriptor(forReading: f), options: options)
         } catch(let e) {
-          warn(e.localizedDescription)
+          warn("\(e)")
         }
       }
     }
@@ -162,7 +161,7 @@ let MB_CUR_MAX = 4
   
   // ================================================
   
-  func process(fileHandle: FileHandle, options: CommandOptions) async {
+  func process(fileHandle: FileDescriptor, options: CommandOptions) async {
     var last : Character = "\n"
     
     // Helper to convert a character to its visual representation
@@ -172,7 +171,7 @@ let MB_CUR_MAX = 4
         return String(UnicodeScalar(char))
       } else {
         // Example: encode non-ASCII characters
-        return "\\x" + String(format: "%02x", char)
+        return "\\x" + cFormat("%02x", char)
       }
     }
     
@@ -181,7 +180,7 @@ let MB_CUR_MAX = 4
       var thischar : Character
       var readahead : Character = "\0"
       var first = true
-      for try await c in fileHandle.bytes.characters {
+      for try await c in fileHandle.characters {
         if first {
           readahead = c
           first = false
@@ -196,7 +195,7 @@ let MB_CUR_MAX = 4
         last = handleChar(readahead, nil, options: options)
       }
     } catch(let e) {
-      fatalError("failed to read character:  \(e.localizedDescription)")
+      fatalError("failed to read character:  \(e)")
     }
     if (options.fold && last != "\n") {
       print(options.eflags.contains(.MIMESTYLE) ? "=\n" : "\\\n", terminator: "")
@@ -596,11 +595,11 @@ let MB_CUR_MAX = 4
     }
     
     /* See comment in istrsenvisx() output loop, below. */
-    let cx = String(c).data(using: .utf8)!
+    let cx = String(c)
     var dst = ""
     for cj in cx {
       // FIXME: do_mbyte should maybe take the character and uff8 it
-        dst.append(do_mbyte( Character(UnicodeScalar(cj)), flags, nextc, iswextra))
+        dst.append(do_mbyte( cj, flags, nextc, iswextra))
     }
     
     return dst

@@ -49,7 +49,6 @@
  * assumption about the input.
  */
 
-import Foundation
 import CMigration
 import Synchronization
 
@@ -73,14 +72,14 @@ let filesToClean = Mutex<[String]>([])
   var nfiles = 0
   var maxfiles = 0
   var lineno: Int64 = 0
-  var truncofs: UInt64 = 0
-  var ofp: FileHandle!
+  var truncofs: Int64 = 0
+  var ofp: FileDescriptor!
   
   // Instead of FILE* we read the entire input into an array of lines.
   var inputLines = [String]()
   var inputIndex = 0
   
-  var _overfile : FileHandle? { // Overflow file for toomuch()
+  var _overfile : FileDescriptor? { // Overflow file for toomuch()
     didSet {
       if _overfile == nil {
         isof = false
@@ -94,9 +93,9 @@ let filesToClean = Mutex<[String]>([])
     }
   }
   
-  var origsrcx : FileHandle! //  AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator?
+  var origsrcx : FileDescriptor! //  AsyncLineSequence<FileDescriptor.AsyncBytes>.AsyncIterator?
   
-  var srcx : FileHandle! //  AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator!
+  var srcx : FileDescriptor! //  AsyncLineSequence<FileDescriptor.AsyncBytes>.AsyncIterator!
     
   var isof : Bool = false
   
@@ -152,13 +151,13 @@ let filesToClean = Mutex<[String]>([])
     
     // Open the input file.
     if infn == "-" {
-      origsrcx = FileHandle.standardInput
+      origsrcx = FileDescriptor.standardInput
       // Use standard input.
       infn = "stdin"
     } else {
       
       do {
-        origsrcx = try FileHandle(forReadingFrom: URL(filePath: infn) )
+        origsrcx = try FileDescriptor(forReading: infn )
       } catch {
         throw CmdErr(1, "Cannot open file \(infn)")
       }
@@ -236,16 +235,17 @@ let filesToClean = Mutex<[String]>([])
       while true {
         guard let p = try await get_line() else { break }
         // FIXME: handle encoding correctly
-        try ofp.write(contentsOf: p.data(using: .utf8)!)
+        let pp = p.utf8
+        withUnsafeBytes(of: pp) { try? ofp.write($0) }
       }
       
       if !options.sflag {
-        let k = try ofp.offset()
+        let k = try ofp.seek(offset: 0, from: .current)
         print("\(k)")
       }
       try ofp.close()
     } catch {
-      throw CmdErr(1, "read or write error: \(error.localizedDescription)")
+      throw CmdErr(1, "read or write error: \(error)")
     }
   
   try toomuch(file: nil, 0)
@@ -265,13 +265,13 @@ let filesToClean = Mutex<[String]>([])
    I’ll also convert macOS-specific #ifdef __APPLE__ parts but keep in mind Swift is mostly for macOS. I’ll make sure to correctly implement locale setting, flags, and the file handling logic.
    
    I’ll start converting the key functions such as usage(), handlesig(), and newfile() into Swift.
-   For file handling, Swift’s FileHandle seems a good alternative to C’s FILE*. I’ll handle reading lines and writing files similarly to how C did with fgets() and fopen(), using Swift’s capabilities like readLine() for line-by-line reading.
+   For file handling, Swift’s FileDescriptor seems a good alternative to C’s FILE*. I’ll handle reading lines and writing files similarly to how C did with fgets() and fopen(), using Swift’s capabilities like readLine() for line-by-line reading.
    I’ll need to manage output file creation, signal handling (using DispatchSourceSignal or signal() from Darwin), and error handling, which will be adjusted to Swift’s error handling style.
    
-   Converting file handling in Swift will involve using FileHandle for reading from files, but I’ll likely load the entire file into an array and simulate line-by-line reading with an index. I’ll keep track of the current file pointer using this index, and for the overflow file (overfile), I can use a similar approach with a separate array.
+   Converting file handling in Swift will involve using FileDescriptor for reading from files, but I’ll likely load the entire file into an array and simulate line-by-line reading with an index. I’ll keep track of the current file pointer using this index, and for the overflow file (overfile), I can use a similar approach with a separate array.
    The logic for functions like get_line() and toomuch() needs to simulate file pointers, which is tricky since files may be large. I think I’ll stick to converting the structure first.
    
-   In Swift, I plan to use FileHandle for reading and writing files. For reading lines, I’ll load the entire input content into an array and simulate reading line-by-line using an index. If there’s an overflow file (overfile), I can simulate it by using a separate array (overflowLines).
+   In Swift, I plan to use FileDescriptor for reading and writing files. For reading lines, I’ll load the entire input content into an array and simulate reading line-by-line using an index. If there’s an overflow file (overfile), I can simulate it by using a separate array (overflowLines).
    For managing file creation and regular expressions, I’ll implement newfile() to create files based on a prefix and a counter. The do_rexp(expr:) function will use NSRegularExpression to apply pattern matching and output the results to files.
    I’ll also implement toomuch() to adjust the line reading appropriately. It’s not a complete simulation, but it should work for the conversion.
    */
@@ -295,24 +295,25 @@ let filesToClean = Mutex<[String]>([])
   /// Create a new output file based on the current nfiles count.
   /// The filename is created by concatenating the prefix with the nfiles number,
   /// zero–padded to the requested width.
-  func newfile(_ options : CommandOptions) throws(CmdErr) -> FileHandle {
+  func newfile(_ options : CommandOptions) throws(CmdErr) -> FileDescriptor {
     // Construct the file name.
-    let numStr = String(format: "%0\(options.sufflen)d", nfiles)
+    let numStr = cFormat("%0\(options.sufflen)d", nfiles)
     currfile = options.prefix + numStr
 
     // Create an empty file.
-    let fm = FileManager.default
-    if fm.createFile(atPath: currfile, contents: nil, attributes: nil) == false {
-      throw CmdErr(1, "Cannot create file \(currfile)")
-    }
+//    let fm = FileManager.default
+//    if fm.createFile(atPath: currfile, contents: nil, attributes: nil) == false {
+//      throw CmdErr(1, "Cannot create file \(currfile)")
+//    }
+
     filesToClean.withLock { $0.append(currfile) }
     do {
-      let fp = try FileHandle(forUpdating: URL(filePath: currfile))
-      try fp.seek(toOffset: 0)
+      let fp = try FileDescriptor.open(currfile, .readWrite, options: [.create])
+      try fp.seek(offset: 0, from: .start)
       nfiles += 1
       return fp
     } catch {
-      throw CmdErr(1, "Cannot open file \(currfile): \(error.localizedDescription)")
+      throw CmdErr(1, "Cannot open file \(currfile): \(error)")
     }
   }
   
@@ -331,11 +332,11 @@ let filesToClean = Mutex<[String]>([])
               //      if (fflush(overfile) != 0)
               //        err(1, "overflow");
               do {
-                try _overfile.synchronize()
-                try _overfile.truncate(atOffset: truncofs)
+                fsync(_overfile.rawValue)
+                try _overfile.resize(to: truncofs)
                 try _overfile.close()
               } catch {
-                throw CmdErr(1, "overflow: \(error.localizedDescription)" )
+                throw CmdErr(1, "overflow: \(error)" )
               }
               self._overfile = nil
             }
@@ -347,7 +348,7 @@ let filesToClean = Mutex<[String]>([])
         lineno += 1
         return lbuf
       } catch {
-        throw CmdErr(1, "reading: \(error.localizedDescription)")
+        throw CmdErr(1, "reading: \(error)")
       }
     }
   }
@@ -356,7 +357,7 @@ let filesToClean = Mutex<[String]>([])
 
   
   /// Conceptually rewind the input (as obtained by get_line()) back `n' lines.
-  func toomuch(file: FileHandle?, _ nn: Int) throws(CmdErr) {
+  func toomuch(file: FileDescriptor?, _ nn: Int) throws(CmdErr) {
     var n = nn
     /*
     if let _overfile {
@@ -384,20 +385,20 @@ let filesToClean = Mutex<[String]>([])
       // Wind the overflow file backwards to `n' lines before the
       // current one.
 
-      var x = UInt64.max
+      var x = Int64.max
     outer:
       repeat {
-        let k = try ofp.offset()
-        let kk = k < BUFSIZ ? 0 : k - UInt64(BUFSIZ)
-        try ofp.seek(toOffset: kk)
-        let buf = try ofp.read(upToCount: Int(BUFSIZ))
+        let k = try ofp.seek(offset: 0, from: .current)
+        let kk = k < BUFSIZ ? 0 : k - Int64(BUFSIZ)
+        try ofp.seek(offset: kk, from: .start)
+        let buf = try ofp.readUpToCount(Int(BUFSIZ))
 //f            errx(1, "can't read overflowed output");
-        try ofp.seek(toOffset: kk)
+        try ofp.seek(offset: kk, from: .start)
 //            err(1, "%s", currfile);
-        for (i, c) in buf!.reversed().enumerated() {
+        for (i, c) in buf.reversed().enumerated() {
           if c == 10 {
             if n == 0 {
-              x = kk + UInt64(buf!.count - i)
+              x = kk + Int64(buf.count - i)
               break outer }
             n -= 1
           }
@@ -407,14 +408,14 @@ let filesToClean = Mutex<[String]>([])
           break;
         }
       } while n > 0
-      try ofp.seek(toOffset: x)
+      try ofp.seek(offset: x, from: .start)
       
     // get_line() will read from here. Next call will truncate to
     // truncofs in this file.
     _overfile = ofp
     truncofs = x
     } catch {
-      throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+      throw CmdErr(1, "\(currfile): \(error)")
     }
   }
   
@@ -470,31 +471,33 @@ let filesToClean = Mutex<[String]>([])
       ofp = try newfile(options)
     } else {
       // Create a temporary file.
-      let tempName = ProcessInfo.processInfo.globallyUniqueString
-      let fm = FileManager.default
-      if fm.createFile(atPath: tempName, contents: nil, attributes: nil) == false {
-        throw CmdErr(1, "tmpfile creation failed")
+      let tempName = globallyUniqueString()
+//      let fm = FileManager.default
+//      if fm.createFile(atPath: tempName, contents: nil, attributes: nil) == false {
+//        throw CmdErr(1, "tmpfile creation failed")
+//      }
+      do {
+        ofp = try FileDescriptor.open(tempName, .readWrite, options: [.create])
+        try ofp.seek(offset: 0, from: .start)
+      } catch {
+        throw CmdErr(1, "tmpfile open failed: \(error)")
       }
       filesToClean.withLock { $0.append(tempName) }
-      do {
-        ofp = try FileHandle(forUpdating: URL(filePath: tempName))
-        try ofp.seek(toOffset: 0)
-      } catch {
-        throw CmdErr(1, "tmpfile open failed: \(error.localizedDescription)")
-      }
     }
+    
+
     
     var first = true
     var matched = false
     while let line = try await get_line() {
       // Write the line (with a newline) to the output file.
-      if let data = line.data(using: .utf8) {
-        do {
-          try ofp.write(contentsOf: data)
-        } catch {
-          throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
-        }
-      }
+//      if let data = line.data(using: .utf8) {
+//        do {
+          ofp.write(line)
+//        } catch {
+//          throw CmdErr(1, "\(currfile): \(error)")
+//        }
+//      }
       // After the first line, check if the current line matches the regex.
       if !first {
         do {
@@ -524,25 +527,25 @@ let filesToClean = Mutex<[String]>([])
       // For positive offset: copy requested number of lines after the match
       for _ in 1..<ofs {
         if let line = try await get_line() {
-          if let data = line.data(using: .utf8) {
-            do {
-              try ofp.write(contentsOf: data)
-            } catch {
-              throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
-            }
-          }
+//          if let data = line.data(using: .utf8) {
+//            do {
+              try ofp.write(line)
+//            } catch {
+//              throw CmdErr(1, "\(currfile): \(error)")
+//            }
+//          }
         }
       }
       try toomuch(file: nil, 0)
       do {
         try ofp.close()
       } catch {
-        throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+        throw CmdErr(1, "\(currfile): \(error)")
       }
     }
     
     if !options.sflag && delim == "/" {
-      let oo = try! ofp.offset()
+      let oo = try! ofp.seek(offset: 0, from: .current)
       print("\(oo)")
     }
     
@@ -566,22 +569,22 @@ let filesToClean = Mutex<[String]>([])
         guard let line = try await get_line() else {
           throw CmdErr(1, "\(lastline): out of range")
         }
-        if let data = line.data(using: .utf8) {
-          do {
-            try ofp.write(contentsOf: data)
-          } catch {
-            throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
-          }
-        }
+//        if let data = line.data(using: .utf8) {
+//          do {
+            ofp.write(line)
+//          } catch {
+//            throw CmdErr(1, "\(currfile): \(error)")
+//          }
+//        }
       }
       if !options.sflag {
-        let oo = try! ofp.offset()
+        let oo = try! ofp.seek(offset: 0, from: .current)
         print("\(oo)")
       }
       do {
         try ofp.close()
       } catch {
-        throw CmdErr(1, "\(currfile): \(error.localizedDescription)")
+        throw CmdErr(1, "\(currfile): \(error)")
       }
       if reps <= 0 { break }
       reps -= 1
@@ -604,33 +607,67 @@ func handlesig(signal: Int32) {
 func cleanup() {
   if (doclean.withLock { $0 } ) {
     let k = filesToClean.withLock { $0 }
-    let fm = FileManager.default
+//    let fm = FileManager.default
     for i in k {
-      try? fm.removeItem(atPath: i)
+      unlink(i)
     }
   }
 }
 
 
-extension FileHandle {
+extension FileDescriptor {
   public func fgets(_ n : Int? = nil) throws -> String? {
     let nn = n ?? Int.max
-    let off = try self.offset()
-    guard let nc = try self.read(upToCount: nn) else { return nil }
+    let off = try self.seek(offset: 0, from: .current)
+    let nc = try self.readUpToCount(nn)
+    if nc.isEmpty { return nil }
     let j = if let k = nc.firstIndex(of: 10) {
-      nc.prefix(through: k)
+      Array(nc.prefix(through: k))
     } else {
       nc
     }
     // position after the last carriage return
-    try self.seek(toOffset: off+UInt64(j.count))
-    guard let s = String(data: j, encoding: .utf8) else {
-      throw StringEncodingError.invalid("string encoding error")
-    }
+    try self.seek(offset: off+Int64(j.count), from: .start)
+    let s = String(decoding: j, as: UTF8.self)
     return s
   }
 }
 
 enum StringEncodingError: Error {
     case invalid(String)
+}
+
+
+// ============
+
+private extension String {
+    func leftPad(toLength: Int, withPad character: Character) -> String {
+        if self.count >= toLength { return self }
+        return String(repeating: character, count: toLength - self.count) + self
+    }
+}
+
+public func globallyUniqueString() -> String {
+    // Generate UUID
+  var uuid: [UInt8] = Array(repeating: 0, count: 16)
+  uuid_generate(&uuid)
+
+    let uuidHex = uuid.map { byte in
+        String(byte, radix: 16, uppercase: true).leftPad(toLength: 2, withPad: "0")
+    }.joined()
+
+    let uuidFormatted = "\(uuidHex.prefix(8))-\(uuidHex.dropFirst(8).prefix(4))-\(uuidHex.dropFirst(12).prefix(4))-\(uuidHex.dropFirst(16).prefix(4))-\(uuidHex.dropFirst(20).prefix(12))"
+
+    // Use gettimeofday for microsecond timestamp
+    var tv = timeval()
+    gettimeofday(&tv, nil)
+    let microseconds = UInt64(tv.tv_sec) * 1_000_000 + UInt64(tv.tv_usec)
+
+    // Get PID
+    let pid = UInt64(getpid())
+
+    // Combine time + pid and format
+    let suffix = String(microseconds ^ pid, radix: 16, uppercase: true).leftPad(toLength: 16, withPad: "0")
+
+    return "\(uuidFormatted)-\(suffix)"
 }

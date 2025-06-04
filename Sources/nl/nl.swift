@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 /// <#Description#>
@@ -134,16 +133,16 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
 
-    var fp = FileHandle.standardInput
+    var fp = FileDescriptor.standardInput
     switch options.args.count {
       case 0:
         break
       case 1:
         if options.args[0] != "-" {
           do {
-            fp = try FileHandle(forReadingFrom: URL(filePath: options.args[0]) )
+            fp = try FileDescriptor(forReading: options.args[0] )
           } catch {
-            throw CmdErr(1, "\(options.args[0]): \(error.localizedDescription)")
+            throw CmdErr(1, "\(options.args[0]): \(error)")
           }
         }
       default:
@@ -235,7 +234,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   // ((sizeof (int) * CHAR_BIT - 1) * 302 / 1000 + 2)
   let INT_STRLEN_MAXIMUM = ((MemoryLayout<Int32>.size * Int(CHAR_BIT) - 1) * 302 / 1000 + 2)
   
-  func filter(_ fp : FileHandle, _ options : CommandOptions) async throws(CmdErr) {
+  func filter(_ fp : FileDescriptor, _ options : CommandOptions) async throws(CmdErr) {
     
     var adjblank: UInt = 0  // adjacent blank lines
     
@@ -284,7 +283,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
         if donumber {
           
           // print(String(fmtcheck(options.format, "%*d"), options.width, line), terminator: "")
-          print(String(format: options.format.rawValue, options.width, line), terminator: "")
+          print(cFormat(options.format.rawValue, options.width, line), terminator: "")
           
           line += options.incr
         } else {
@@ -294,7 +293,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
         print(buffer)
       }
     } catch {
-      throw CmdErr(1, "read error: \(error.localizedDescription)")
+      throw CmdErr(1, "read error: \(error)")
     }
   }
   

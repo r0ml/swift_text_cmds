@@ -32,7 +32,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 @main final class grep : ShellCommand {
@@ -281,7 +280,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     }
     
     var args : [String] = CommandLine.arguments
-    if let eopts = ProcessInfo.processInfo.environment["GREP_OPTIONS"], !eopts.isEmpty {
+    if let eopts = getenv("GREP_OPTIONS"), !eopts.isEmpty {
       let aargs = eopts.split(separator: " ", omittingEmptySubsequences: true).map { String($0) }
       args = [CommandLine.arguments[0]]+aargs+CommandLine.arguments.dropFirst()
     }
@@ -441,7 +440,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.filebehave = .MMAP
         case "V", "version":
           let msg = "\(pn) (BSD grep, GNU compatible) \(VERSION)"
-          var fh = FileHandle.standardError
+          var fh = FileDescriptor.standardError
           print(msg, to: &fh)
           exit(0);
         case "v", "invert-match":
@@ -477,7 +476,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           if v.isEmpty || vv == "auto" ||
               vv == "tty" ||
               vv == "if-tty" {
-            let term = ProcessInfo.processInfo.environment["TERM"]
+            let term = getenv("TERM")
             if isatty(STDOUT_FILENO) != 0 &&
                 term != nil &&
                 vv != "dumb" {
@@ -630,7 +629,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   }
   
   func init_color(_ d : String) -> String {
-    if let c = ProcessInfo.processInfo.environment["GREP_COLOR"], !c.isEmpty {
+    if let c = getenv("GREP_COLOR"), !c.isEmpty {
       return c
     } else {
       return d
@@ -666,17 +665,17 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
 
    // Reads searching patterns from a file and adds them with add_pattern().
   func read_patterns(_ fn : String, _ options : inout CommandOptions) async throws(CmdErr) {
-    var f : FileHandle
+    var f : FileDescriptor
     if fn == "-" {
-      f = FileHandle.standardInput
+      f = FileDescriptor.standardInput
     } else {
       do {
-        try f = FileHandle(forReadingFrom: URL(fileURLWithPath: fn))
+        try f = FileDescriptor(forReading: fn)
       } catch {
-        throw CmdErr(2, "read error: \(fn): \(error.localizedDescription)")
+        throw CmdErr(2, "read error: \(fn): \(error)")
       }
     }
-    defer { if f != FileHandle.standardInput { try? f.close() } }
+    defer { if f != FileDescriptor.standardInput { try? f.close() } }
 
 /*    if ((fstat(fileno(f), &st) == -1) || (S_ISDIR(st.st_mode))) {
       fclose(f);
@@ -686,14 +685,14 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     line = NULL;
  */
     do {
-      for try await var line in f.bytes.linesNLX {
+      for try await var line in f.bytes.lines {
         //    while ((rlen = getline(&line, &len, f)) != -1) {
         if line.isEmpty || line.first == "\0" { continue }
         if line.last == "\n" { line.removeLast() }
         add_pattern(line, &options)
       }
     } catch {
-      throw CmdErr(2, "read error: \(fn): \(error.localizedDescription)")
+      throw CmdErr(2, "read error: \(fn): \(error)")
     }
   }
 

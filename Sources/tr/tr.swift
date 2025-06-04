@@ -33,7 +33,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class tr : ShellCommand {
@@ -51,7 +50,7 @@ import CMigration
     var dflag = false
     var sflag = false
     var uflag = false   // -u: unbuffered output
-    var input = FileHandle.standardInput
+    var input = FileDescriptor.standardInput
     
     var string1: String = ""
     var string2: String? = nil     // Only used for translation and squeeze+delete mode.
@@ -87,10 +86,10 @@ import CMigration
           break
         case "i":
           do {
-            let k = try FileHandle(forReadingFrom: URL(filePath: v))
+            let k = try FileDescriptor(forReading: v)
             options.input = k
           } catch {
-            throw CmdErr(1, "error reading \(v): \(error.localizedDescription)")
+            throw CmdErr(1, "error reading \(v): \(error)")
           }
         case "?":
           fallthrough
@@ -389,7 +388,7 @@ import CMigration
         }
         
     }
-    try? FileHandle.standardOutput.synchronize()
+    fsync(FileDescriptor.standardOutput.rawValue)
   }
   
   

@@ -31,7 +31,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 import zlib
 // import Compression
@@ -48,10 +47,10 @@ enum FILE {
 }
 
 class file {
-  var fd : FileHandle
+  var fd : FileDescriptor
   var binary : Bool = false
   
-  var buffer : Data = Data()
+  var buffer = [UInt8]()
   var bufrange : Range<Int> = 0..<0
   
 //  var inputFilter : InputFilter<Data>?
@@ -114,7 +113,7 @@ class file {
      * for future files.
      */
 
-    buffer = buffer.subdata(in: bufrange)
+    buffer = Array(buffer[bufrange])
 
     
     // FIXME: put me back
@@ -129,11 +128,11 @@ class file {
       case .GZIP:
         
 //        do {
-          let z = UnsafeMutableBufferPointer<CChar>.allocate(capacity: MAXBUFSIZ)
+          let z = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: MAXBUFSIZ)
           let nr = gzread(gzbufdesc, z.baseAddress!, UInt32(MAXBUFSIZ));
           if nr > 0 {
-            let b = Data(bytesNoCopy: z.baseAddress!, count: Int(nr), deallocator: .free)
-            buffer.append(b)
+            let b = UnsafeBufferPointer(start: z.baseAddress!, count: Int(nr))
+            buffer.append(contentsOf: b)
             bufrange = 0..<buffer.count
           } else if nr < 0 {
             let str = String(cString: strerror(errno))
@@ -221,9 +220,8 @@ class file {
         //   #endif /* __APPLE__ */
       default:
         do {
-          if let b = try fd.read(upToCount: MAXBUFSIZ) {
-            buffer.append(b)
-          }
+          let b = try fd.readUpToCount(MAXBUFSIZ)
+          buffer.append(contentsOf: b)
           bufrange = 0..<buffer.count
           return true
         } catch {
@@ -266,18 +264,18 @@ class file {
     }
     
     /* Look for a newline in the remaining part of the buffer */
-    let fileeold = Data([options.fileeol.asciiValue!])
-    let t = buffer.range(of: fileeold, in: bufrange) ?? bufrange
-    let str = buffer.subdata(in: bufrange.startIndex..<t.upperBound)
-    bufrange = t.upperBound ..< bufrange.upperBound
+    let fileeold = [options.fileeol.asciiValue!]
+    let t = buffer.firstIndexKMP(of: fileeold, in: bufrange) ?? buffer.endIndex
+    let str = buffer[bufrange.startIndex..<t+fileeold.count]
+    bufrange = t+fileeold.count ..< bufrange.upperBound
     
-    if String(data: str, encoding: .utf8) == nil {
+    if String(validating: str, as: UTF8.self) == nil {
       binary = true
     }
     
     let ss =
-    binary ? String(data: str, encoding: .isoLatin1)! : String(data: str, encoding: .utf8) ??
-    String(data: str, encoding: .isoLatin1)!
+    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: UTF8.self) ??
+    String(validating: str, as: ISOLatin1.self)!
     pc.ln.dat = ss
     return ss
     
@@ -291,12 +289,12 @@ class file {
   init?(_ path : String?, _ behav : FILE, _ fileeol : Character, _ binbehav : grep.BINFILE) {
     self.behave = behav
     
-    var url : URL?
+ //   var url : URL?
     if let path {
       name = path
-      url = URL(fileURLWithPath: path)
+//      url = URL(fileURLWithPath: path)
       do {
-        fd = try FileHandle(forReadingFrom: url!)
+        fd = try FileDescriptor(forReading: path)
       } catch {
         return nil
       }
@@ -304,12 +302,12 @@ class file {
       name = "stdin"
       /* Processing stdin implies --line-buffered. */
 //      options.lbflag = true
-      fd = FileHandle.standardInput
+      fd = FileDescriptor.standardInput
     }
     
     if (behave == FILE.MMAP) {
       var st = stat()
-      let fse = fstat(fd.fileDescriptor, &st)
+      let fse = fstat(fd.rawValue, &st)
       if fse == -1 || st.st_size > OFF_MAX ||
           !S_ISREG(st.st_mode) {
         behave = .STDIO
@@ -325,7 +323,7 @@ class file {
 //#endif /* __APPLE__ */
         let fsiz = Int(st.st_size)
         let bbuffer = mmap(nil, fsiz, PROT_READ, flags,
-                      fd.fileDescriptor, 0);
+                      fd.rawValue, 0);
   
         // FIXME: there is no way to determine if the data will be memory mapped or read in
         // The work-around is to manually memory-map
@@ -350,7 +348,7 @@ class file {
 //        #ifdef __APPLE__
       case .GZIP:
         
-        guard let gzbufdesc = gzdopen(fd.fileDescriptor, "r") else { try? fd.close();
+        guard let gzbufdesc = gzdopen(fd.rawValue, "r") else { try? fd.close();
           let str = String(cString: strerror(errno))
           warn("read error \(name): \(str)")
           return nil }
@@ -445,10 +443,60 @@ class file {
     */
   func grep_close() {
     /* Reset read buffer and line buffer */
-    buffer = Data()
+    buffer = [UInt8]()
     bufrange = 0..<0
     try? fd.close()
   }
 
   
+}
+
+
+public extension Array where Element: Equatable {
+    /// Searches for the first occurrence of the given subarray in the specified range using KMP.
+    ///
+    /// - Parameters:
+    ///   - sub: The subarray to search for.
+    ///   - searchRange: The index range in `self` where the search is performed.
+    /// - Returns: The starting index of the match, or `nil` if not found.
+    func firstIndexKMP(of sub: [Element], in searchRange: Range<Int>? = nil) -> Int? {
+        guard !sub.isEmpty else { return nil }
+
+        let start = searchRange?.lowerBound ?? 0
+      let end = Swift.min(searchRange?.upperBound ?? self.count, self.count)
+
+        guard sub.count <= end - start else { return nil }
+
+        // Build prefix table
+        var prefix = [Int](repeating: 0, count: sub.count)
+        var j = 0
+        for i in 1..<sub.count {
+            while j > 0 && sub[i] != sub[j] {
+                j = prefix[j - 1]
+            }
+            if sub[i] == sub[j] {
+                j += 1
+            }
+            prefix[i] = j
+        }
+
+        // KMP search within the specified range
+        var i = start
+        var k = 0
+        while i < end {
+            if self[i] == sub[k] {
+                i += 1
+                k += 1
+                if k == sub.count {
+                    return i - k
+                }
+            } else if k > 0 {
+                k = prefix[k - 1]
+            } else {
+                i += 1
+            }
+        }
+
+        return nil
+    }
 }

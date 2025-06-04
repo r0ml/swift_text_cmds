@@ -33,38 +33,36 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 extension bintrans {
   func main_base64_encode(_ inp : String?, _ outp : String?,  _ w : String?, _ options : inout CommandOptions) throws(CmdErr) {
     options.raw = true
     
-    var infp : FileHandle = FileHandle.standardInput
+    var infp = FileDescriptor.standardInput
     var name = "stdin"
     
     if let inp, inp != "-" {
       name = inp
-      let u = URL(filePath: inp)
+        //      let u = URL(filePath: inp)
       do {
-        let xinfp = try FileHandle(forReadingFrom: u)
+        let xinfp = try FileDescriptor(forReading: inp)
         infp = xinfp
       } catch(let e) {
-        throw CmdErr(1, "\(inp): Permission denied \(e.localizedDescription))")
+        throw CmdErr(1, "\(inp): Permission denied \(e))")
       }
     }
 
-    var outfp : FileHandle = FileHandle.standardOutput
+    var outfp = FileDescriptor.standardOutput
     if let outp, outp != "-"  {
-      let u = URL(filePath: outp)
+//      let u = URL(filePath: outp)
       do {
-        if !FileManager.default.fileExists(atPath: u.path) {
-          FileManager.default.createFile(atPath: u.path, contents: nil)
-        }
-        let xoutfp = try FileHandle(forWritingTo: u)
+        
+        // FIXME: does it work both ways?
+        let xoutfp = try FileDescriptor.open(outp, .writeOnly, options: [.create])
         outfp = xoutfp
       } catch(let e) {
-        throw CmdErr(1, "\(outp): Permission denied (\(e.localizedDescription))")
+        throw CmdErr(1, "\(outp): Permission denied (\(e))")
       }
     }
     
@@ -74,7 +72,7 @@ extension bintrans {
     
     var d = Decoder(options: options)
     if inp == nil {
-      d.inHandle = FileHandle.standardInput
+      d.inHandle = FileDescriptor.standardInput
       d.inFile = "stdin"
     } else {
       d.inHandle = infp
@@ -82,7 +80,7 @@ extension bintrans {
     }
     if outp == nil {
       d.outFile = "stdout"
-      d.outHandle = FileHandle.standardOutput
+      d.outHandle = FileDescriptor.standardOutput
     } else {
       d.outHandle = outfp
       d.outFile = outp!
@@ -94,7 +92,7 @@ extension bintrans {
     do {
       try outfp.close()
     } catch(let e) {
-      throw CmdErr(1, "closing output: \(e.localizedDescription)")
+      throw CmdErr(1, "closing output: \(e)")
     }
   }
   
@@ -130,7 +128,7 @@ extension bintrans {
   }
   
   func main_encode(_ options : CommandOptions) throws(CmdErr) {
-    var fh = FileHandle.standardInput
+    var fh = FileDescriptor.standardInput
     var mode : UInt16 = 0
     var name : String = "stdin"
     var d = Decoder(options: options)
@@ -138,12 +136,12 @@ extension bintrans {
       case 2:      // optional first argument is input file
         do {
           name = options.args[0]
-          fh = try FileHandle(forReadingFrom: URL(filePath: options.args[0], directoryHint: .notDirectory))
+          fh = try FileDescriptor(forReading: options.args[0])
         } catch(let e) {
-          throw CmdErr(1, "opening input file \(options.args[0]): \(e.localizedDescription)")
+          throw CmdErr(1, "opening input file \(options.args[0]): \(e)")
         }
         var sb = stat()
-        fstat(fh.fileDescriptor, &sb)
+        fstat(fh.rawValue, &sb)
 
         let RWX = S_IRWXU|S_IRWXG|S_IRWXO
         mode = sb.st_mode & RWX
@@ -158,14 +156,14 @@ extension bintrans {
     d.inHandle = fh
     d.inFile = name
     
-    var ofh = FileHandle.standardOutput
+    var ofh = FileDescriptor.standardOutput
     
     if let oof = options.outFile {
       d.outFile = oof
       do {
-        ofh = try FileHandle(forWritingTo: URL(filePath: oof, directoryHint: .notDirectory))
+        ofh = try FileDescriptor(forWriting: oof)
       } catch(let e) {
-        throw CmdErr(1, "unable to open \(oof) for output: \(e.localizedDescription)")
+        throw CmdErr(1, "unable to open \(oof) for output: \(e)")
       }
     }
     d.outHandle = ofh
@@ -179,7 +177,7 @@ extension bintrans {
     do {
       try ofh.close()
     } catch(let e) {
-      throw CmdErr(1, "write error: \(e.localizedDescription)")
+      throw CmdErr(1, "write error: \(e)")
     }
   }
   
@@ -205,12 +203,15 @@ extension bintrans {
     //    size_t rv, written;
     
     if (!d.options.raw) {
-      d.outHandle.write("begin-base64 \(String(format: "%lo", mode)) \(av)\n");
+      d.outHandle.write("begin-base64 \(cFormat("%lo", mode)) \(av)\n");
     }
     
     var carry = 0
     do {
-      while var buf = try d.inHandle.read(upToCount: 1023) {
+      while true {
+        
+        var buf = try d.inHandle.readUpToCount(1023)
+        if buf.isEmpty { break }
         let buf2 = apple_b64_ntop(&buf)
         
         //      if (rv == -1) {
@@ -236,7 +237,7 @@ extension bintrans {
       }
     } catch(let e) {
       // FIXME: include file name in error message
-      throw CmdErr(1, "read error: \(e.localizedDescription)")
+      throw CmdErr(1, "read error: \(e)")
     }
     if (d.options.columns == 0 || carry != 0) {
       d.outHandle.write("\n")
@@ -257,15 +258,18 @@ extension bintrans {
 //    char buf[80];
     
     if (!d.options.raw) {
-      d.outHandle.write("begin \(String(format: "%lo", mode)) \(av)\n")
+      d.outHandle.write("begin \(cFormat("%lo", mode)) \(av)\n")
     }
     do {
-      while var buf = try d.inHandle.read(upToCount: 45) {
+      while true {
+        
+      var buf = try d.inHandle.readUpToCount(45)
+        if buf.isEmpty { break }
       var ch = ENC( UInt8(buf.count))
         d.outHandle.write(String(ch))
       while !buf.isEmpty {
         /* Pad with nulls if not a multiple of 3. */
-        var p = Data(buf.prefix(3))
+        var p = buf.prefix(3)
         buf.removeFirst(p.count)
         while p.count < 3 { p.append(0) }
 
@@ -286,7 +290,7 @@ extension bintrans {
     }
       try d.inHandle.close()
     } catch(let e) {
-      throw CmdErr(1, "read error: \(e.localizedDescription)")
+      throw CmdErr(1, "read error: \(e)")
     }
     if (!d.options.raw) {
       print("\(ENC(0))\nend")

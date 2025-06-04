@@ -36,7 +36,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class tail : ShellCommand {
@@ -143,23 +142,23 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     if options.filePaths.count > 0 && options.fflag {
       let files = try options.filePaths.map { (x : String) throws(CmdErr) in
         do {
-          return try (FileHandle(forReadingFrom: URL(filePath: x)), x)
+          return try (FileDescriptor(forReading: x), x)
         } catch {
           // FIXME: in the original, it doesn't throw, it warns and continues
-          throw CmdErr(1, "\(x): \(error.localizedDescription)")
+          throw CmdErr(1, "\(x): \(error)")
         }
       }
       do {
         try await follow(files, options)
       } catch {
-        throw CmdErr(1, error.localizedDescription)
+        throw CmdErr(1, "\(error)")
       }
     } else if options.filePaths.count > 0 {
       var first = true
       for fn in options.filePaths {
         for x in options.filePaths {
           do {
-            let fp = try FileHandle(forReadingFrom: URL(filePath: x))
+            let fp = try FileDescriptor(forReading: x)
             if options.vflag || (!options.qflag && options.filePaths.count > 1) {
               if (!first) { print("") }
               print("==> \(fn) <==")
@@ -174,7 +173,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
             
           } catch {
             // FIXME: in the original, it doesn't throw, it warns and continues
-            throw CmdErr(1, "\(x): \(error.localizedDescription)")
+            throw CmdErr(1, "\(x): \(error)")
           }
           
         }
@@ -186,7 +185,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
        * Determine if input is a pipe.  4.4BSD will set the SOCKET
        * bit in the st_mode field for pipes.  Fix this then.
        */
-      if (lseek(FileHandle.standardInput.fileDescriptor, 0, SEEK_CUR) == -1 &&
+      if (lseek(FileDescriptor.standardInput.rawValue, 0, SEEK_CUR) == -1 &&
           errno == ESPIPE) {
         errno = 0;
         fflag = false    /* POSIX.2 requires this. */
@@ -194,14 +193,14 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
       
       do {
         if (options.rflag) {
-          try await reverse(FileHandle.standardInput, fn, options)
+          try await reverse(FileDescriptor.standardInput, fn, options)
         } else if fflag {
-          try await follow([(FileHandle.standardInput, fn)], options)
+          try await follow([(FileDescriptor.standardInput, fn)], options)
         } else {
-          try await forward(FileHandle.standardInput, fn, options)
+          try await forward(FileDescriptor.standardInput, fn, options)
         }
       } catch {
-        throw CmdErr(1, error.localizedDescription)
+        throw CmdErr(1, "\(error)")
       }
     }
     // exit(Int32(rval))
@@ -255,10 +254,10 @@ func expand_number(_ input: String) throws -> UInt64 {
         "E": 1024 * 1024 * 1024 * 1024 * 1024 * 1024 // Exabytes
     ]
     
-    let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-    let regex = try NSRegularExpression(pattern: "^([0-9]+)([BKMGTPE]?)$")
+  let trimmed = input.drop { $0.isWhitespace || $0.isNewline }.uppercased()
+    let regex = try! Regex("^([0-9]+)([BKMGTPE]?)$")
     
-    guard let match = regex.firstMatch(in: trimmed, range: NSRange(location: 0, length: trimmed.utf16.count)) else {
+    guard let match = regex.firstMatch(in: trimmed) else {
         throw ExpandNumberError.invalidFormat
     }
     

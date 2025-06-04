@@ -2,7 +2,6 @@
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
 // from a file with the following notice:
 
-import Foundation
 import CMigration
 
 @main final class template : ShellCommand {

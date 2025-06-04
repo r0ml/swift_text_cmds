@@ -37,7 +37,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 @main final class paste : ShellCommand {
@@ -118,12 +117,12 @@ import CMigration
   
   // Translating: typedef struct _list { ... } LIST;
   struct LIST {
-    var fp: FileHandle
-    var lineit : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator?
+    var fp: FileDescriptor
+    var lineit : AsyncLineReader.AsyncIterator?
     var eof = false
     var name: String
     
-    init(fp: FileHandle, name: String) {
+    init(fp: FileDescriptor, name: String) {
       self.fp = fp
       self.name = name
       self.lineit = fp.bytes.lines.makeAsyncIterator()
@@ -139,13 +138,13 @@ import CMigration
       let newLP : LIST
 
       if p == "-" {
-        newLP = LIST(fp: FileHandle.standardInput, name: "stdin")
+        newLP = LIST(fp: FileDescriptor.standardInput, name: "stdin")
       } else {
         do {
-          let fp = try FileHandle(forReadingFrom: URL(filePath: p))
+          let fp = try FileDescriptor(forReading: p)
           newLP = LIST(fp: fp, name: p)
         } catch {
-          throw CmdErr(1, "\(p): \(error.localizedDescription)")
+          throw CmdErr(1, "\(p): \(error)")
         }
       }
 
@@ -174,7 +173,7 @@ import CMigration
         do {
           line = try await head[i].lineit?.next()
         } catch {
-          throw CmdErr(Int(EX_IOERR), "Error reading \(lp.name); \(error.localizedDescription)")
+          throw CmdErr(Int(EX_IOERR), "Error reading \(lp.name); \(error)")
         }
 
         if line == nil {
@@ -200,19 +199,19 @@ import CMigration
   // MARK: - sequential()
   
   func sequential(_ options : CommandOptions) async throws(CmdErr) -> Bool {
-    var fp: FileHandle
+    var fp: FileDescriptor
     var failed = false
     var needdelim = false
     var dlmss = Substring(options.delim)
     
     for p in options.args {
       if p == "-" {
-        fp = FileHandle.standardInput
+        fp = FileDescriptor.standardInput
       } else {
         do {
-          fp = try FileHandle(forReadingFrom: URL(filePath: p))
+          fp = try FileDescriptor(forReading: p)
         } catch {
-          warn("\(p): \(error.localizedDescription)")
+          warn("\(p): \(error)")
           failed = true
           continue
         }
@@ -220,7 +219,7 @@ import CMigration
       dlmss = Substring(options.delim)
       needdelim = false
       do {
-        for try await ch in fp.bytes.characters {
+        for try await ch in fp.characters {
           if needdelim {
             needdelim = false
             if dlmss.isEmpty {
@@ -235,13 +234,13 @@ import CMigration
           }
         }
       } catch {
-        throw CmdErr(1, "reading: \(error.localizedDescription)")
+        throw CmdErr(1, "reading: \(error)")
       }
       
       if needdelim {
         print("", terminator: "\n")
       }
-      if fp != FileHandle.standardInput {
+      if fp != FileDescriptor.standardInput {
         try? fp.close()
       }
     }

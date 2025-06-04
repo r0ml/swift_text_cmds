@@ -35,7 +35,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 @main final class comm : ShellCommand {
@@ -76,13 +75,13 @@ import CMigration
   }
   
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
-    var fp1 : FileHandle
-    var fp2 : FileHandle
+    var fp1 : FileDescriptor
+    var fp2 : FileDescriptor
     do {
-      fp1 = try FileHandle(forReadingFrom: URL(filePath: options.args[0]))
-      fp2 = try FileHandle(forReadingFrom: URL(filePath: options.args[1]))
+      fp1 = try FileDescriptor(forReading: options.args[0])
+      fp2 = try FileDescriptor(forReading: options.args[1])
     } catch {
-      throw CmdErr(1, "unable to read input files: \(error.localizedDescription)")
+      throw CmdErr(1, "unable to read input files: \(error)")
     }
 
     /* for each column printed, add another tab offset */
@@ -104,14 +103,14 @@ import CMigration
         do {
           line1 = try await fpi1.next()
         } catch {
-          throw CmdErr(1, "\(options.args[0]): \(error.localizedDescription)")
+          throw CmdErr(1, "\(options.args[0]): \(error)")
         }
       }
       if read2 {
         do {
           line2 = try await fpi2.next()
         } catch {
-          throw CmdErr(1, "\(options.args[1]): \(error.localizedDescription)")
+          throw CmdErr(1, "\(options.args[1]): \(error)")
         }
       }
       
@@ -131,15 +130,15 @@ import CMigration
       
       let tline1 = options.iflag ? line1?.lowercased() : line1
       let tline2 = options.iflag ? line2?.lowercased() : line2
-      let cmp = tline1!.compare(tline2!)
+//      let cmp = tline1!.compare(tline2!)
       
-      if cmp == .orderedSame {
+      if tline1 == tline2 {
         read1 = true
         read2 = true
         if let col3 {
           print("\(col3)\(line1!)")
         }
-      } else if cmp == .orderedAscending {
+      } else if tline1! < tline2! {
         read1 = true
         read2 = false
         if let col1 {
@@ -159,7 +158,7 @@ import CMigration
   
   
   
-  func show(_ fp : AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator, _ fn : String, _ offset : String?, _ line2 : String) async throws(CmdErr) {
+  func show(_ fp : AsyncLineReader.AsyncIterator, _ fn : String, _ offset : String?, _ line2 : String) async throws(CmdErr) {
     var fpi = fp
     var buf2 : String? = line2
     do {
@@ -171,7 +170,7 @@ import CMigration
         buf2 = try await fpi.next()
       }
     } catch {
-      throw CmdErr(1, "\(fn): \(error.localizedDescription)")
+      throw CmdErr(1, "\(fn): \(error)")
     }
   }
 

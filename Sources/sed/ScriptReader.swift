@@ -1,7 +1,6 @@
 // Copyright (c) 1868 Charles Babbage
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 
-import Foundation
 import CMigration
 
 enum s_compunit {
@@ -10,7 +9,7 @@ enum s_compunit {
 }
 
 class ScriptReader {
-  //    var f: AsyncLineSequence<FileHandle.AsyncBytes>.AsyncIterator? = nil
+  //    var f: AsyncLineSequence<FileDescriptor.AsyncBytes>.AsyncIterator? = nil
   //    var s: String? = nil
   private var inp : inpSource = inpSource()
   var linenum : Int = 0
@@ -24,14 +23,14 @@ class ScriptReader {
   
   class inpSource {
     var type = inpSourceType.ST_EOF
-    var fh : FileHandle?
-    //    var ai  : FileHandle.AsyncBytes.AsyncLineIterator!
-    var ai  : AsyncLineSequenceX<FileHandle.AsyncBytes>.AsyncIterator!
+    var fh : FileDescriptor?
+    //    var ai  : FileDescriptor.AsyncBytes.AsyncLineIterator!
+    var ai  : AsyncLineReader.AsyncIterator!
     var string : Substring!
   }
   
   
-  //  var current_script : FileHandle = FileHandle.standardInput
+  //  var current_script : FileDescriptor = FileDescriptor.standardInput
   
   func next_file(_ options : sed.CommandOptions ) throws(CmdErr) -> Bool {
     // script is a global list
@@ -45,8 +44,8 @@ class ScriptReader {
         // open file
         if fnam == "-"  || fnam == "/dev/stdin" {
           self.inp.type = .ST_FILE
-          self.inp.fh = FileHandle.standardInput
-          self.inp.ai = FileHandle.standardInput.bytes.linesNLX.makeAsyncIterator()
+          self.inp.fh = FileDescriptor.standardInput
+          self.inp.ai = FileDescriptor.standardInput.bytes.lines.makeAsyncIterator()
           self.fname = "stdin"
           
           if options.inplace != nil {
@@ -57,13 +56,13 @@ class ScriptReader {
           
         } else {
           do {
-            let fh = try FileHandle(forReadingFrom: URL(filePath: fnam))
+            let fh = try FileDescriptor(forReading: fnam)
             //          st.inp =  .ST_FILE( fh.bytes.lines.makeAsyncIterator(), fh)
             self.inp.type = .ST_FILE
             self.inp.fh = fh
-            self.inp.ai = fh.bytes.linesNLX.makeAsyncIterator( )
+            self.inp.ai = fh.bytes.lines.makeAsyncIterator( )
           } catch {
-            throw CmdErr(1, "\(fnam): \(error.localizedDescription)")
+            throw CmdErr(1, "\(fnam): \(error)")
           }
           self.fname = fnam
         }
@@ -114,7 +113,7 @@ class ScriptReader {
             self.inp.type = .ST_EOF
             continue again
           } catch {
-            throw CmdErr(1, "reading \(self.fname): \(error.localizedDescription)")
+            throw CmdErr(1, "reading \(self.fname): \(error)")
           }
         case .ST_STRING:
           if self.linenum == 0,

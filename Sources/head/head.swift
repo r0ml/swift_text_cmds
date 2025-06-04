@@ -30,13 +30,14 @@
  * SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
-extension FileHandle {
+extension FileDescriptor {
   func readLine() -> String? {
     var line = ""
-    while let char = try? self.read(upToCount: 1), let string = String(data: char, encoding: .utf8), !string.isEmpty {
+    while let char = try? self.readUpToCount(1) {
+      let string = String(decoding: char, as: UTF8.self)
+      if string.isEmpty { break }
       if string == "\n" {
         line += string
         break
@@ -49,7 +50,7 @@ extension FileHandle {
 
 @main final class head : ShellCommand {
   
-  func head(_ file: FileHandle, lines: Int) {
+  func head(_ file: FileDescriptor, lines: Int) {
     var count = lines
     while count > 0, let line = file.readLine() {
       print(line, terminator: "")
@@ -57,17 +58,17 @@ extension FileHandle {
     }
   }
   
-  func headBytes(_ file: FileHandle, bytes: Int) {
+  func headBytes(_ file: FileDescriptor, bytes: Int) throws {
     var remainingBytes = bytes
     let bufferSize = 4096
-    var buffer = Data(repeating: 0, count: bufferSize)
+  //  var buffer = Data(repeating: 0, count: bufferSize)
     
     while remainingBytes > 0 {
       let bytesToRead = min(bufferSize, remainingBytes)
-      let data = file.readData(ofLength: bytesToRead)
+      let data = try file.readUpToCount(bytesToRead)
       guard !data.isEmpty else { break }
       remainingBytes -= data.count
-      FileHandle.standardOutput.write(data)
+      try FileDescriptor.standardOutput.write(data)
     }
   }
   
@@ -137,19 +138,19 @@ extension FileHandle {
     let useStandardInput = opts.args.isEmpty
     if useStandardInput {
       if let lineCount = opts.lineCount {
-        head(FileHandle.standardInput, lines: lineCount)
+        head(FileDescriptor.standardInput, lines: lineCount)
       } else if let byteCount = opts.byteCount {
-        headBytes(FileHandle.standardInput, bytes: byteCount)
+        try? headBytes(FileDescriptor.standardInput, bytes: byteCount)
       }
     } else {
-      var se = FileHandle.standardError
+      var se = FileDescriptor.standardError
       for file in opts.args {
-        let u = URL(filePath: file)
-        var fileHandle : FileHandle
+//        let u = URL(filePath: file)
+        var fileHandle : FileDescriptor
         do {
-          fileHandle = try FileHandle(forReadingFrom: u)
+          fileHandle = try FileDescriptor(forReading: file)
         } catch( let e) {
-          print("Cannot open file: \(file) \(e.localizedDescription))", to: &se)
+          print("Cannot open file: \(file) \(e))", to: &se)
           continue
         }
         
@@ -160,7 +161,7 @@ extension FileHandle {
         if let lineCount = opts.lineCount {
           head(fileHandle, lines: lineCount)
         } else if let byteCount = opts.byteCount {
-          headBytes(fileHandle, bytes: byteCount)
+          try? headBytes(fileHandle, bytes: byteCount)
         }
         try? fileHandle.close()
       }

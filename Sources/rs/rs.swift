@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 let BUFSIZ: Int = 8192
@@ -187,7 +186,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     do {
       try await try_fileContents(&opts)
     } catch {
-      throw CmdErr(1, "reading input: \(error.localizedDescription)")
+      throw CmdErr(1, "reading input: \(error)")
     }
     
     if opts.flags.contains(.SHAPEONLY) {
@@ -243,7 +242,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     let nullpad = options.flags.contains(.NULLPAD)
       
     
-    var flines = FileHandle.standardInput.bytes.lines.makeAsyncIterator()
+    var flines = FileDescriptor.standardInput.bytes.lines.makeAsyncIterator()
     
     for _ in 0..<options.skip {
       if let curline = try await flines.next() {

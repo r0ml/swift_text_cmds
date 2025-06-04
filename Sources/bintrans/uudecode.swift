@@ -33,14 +33,13 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 struct Decoder {
   var inFile : String = "stdin"
   var outFile : String = "stdout"
-  var inHandle : FileHandle = FileHandle.standardInput
-  var outHandle : FileHandle = FileHandle.standardOutput
+  var inHandle = FileDescriptor.standardInput
+  var outHandle = FileDescriptor.standardOutput
   var options : bintrans.CommandOptions
 
 }
@@ -52,36 +51,36 @@ extension bintrans {
     options.rflag = true
     
     var inFile : String
-    var infp : FileHandle
+    var infp : FileDescriptor
     
     if let inp, inp != "-" {
       inFile = inp
       do {
-        let u = URL(filePath: inp)
-        let xinfp = try FileHandle(forReadingFrom: u)
+//        let u = URL(filePath: inp)
+        let xinfp = try FileDescriptor(forReading: inp)
         infp = xinfp
       } catch(let e) {
-        throw CmdErr(1, "\(inp): Permission denied (\(e.localizedDescription))")
+        throw CmdErr(1, "\(inp): Permission denied (\(e))")
       }
     } else {
       inFile = "stdin";
-      infp = FileHandle.standardInput
+      infp = FileDescriptor.standardInput
     }
     
-    var outfp : FileHandle = FileHandle.standardOutput
+    var outfp : FileDescriptor = FileDescriptor.standardOutput
     var outFile = "stdout"
     if let outp {
       if outp == "-" {
-        outfp = FileHandle.standardOutput
+        outfp = FileDescriptor.standardOutput
       }
       else {
-        let u = URL(filePath: outp)
+//        let u = URL(filePath: outp)
         do {
-          let xoutfp = try FileHandle(forWritingTo: u)
+          let xoutfp = try FileDescriptor(forWriting: outp)
           outFile = outp
           outfp = xoutfp
         } catch(let e) {
-          throw CmdErr(1, "\(outp): Permission denied (\(e.localizedDescription))")
+          throw CmdErr(1, "\(outp): Permission denied (\(e))")
         }
       }
     }
@@ -155,7 +154,7 @@ extension bintrans {
       for inFile in options.args {
         do {
           if let di = d.options.inFile { d.inFile = di }
-          d.inHandle = try FileHandle(forReadingFrom: URL(filePath: d.inFile, directoryHint: .notDirectory))
+          d.inHandle = try FileDescriptor(forReading: d.inFile)
           d.inFile = inFile
           rval |= try await decode(&d)
           try d.inHandle.close()
@@ -181,7 +180,7 @@ extension bintrans {
       
       /*      if (d.outHandle == nil) {
        d.outFile = "/dev/stdout";
-       d.outHandle = FileHandle.standardOutput
+       d.outHandle = FileDescriptor.standardOutput
        }
        */
       var leftover = ""
@@ -202,7 +201,7 @@ extension bintrans {
           }
           else {
             if let o = uu_decode(buf) {
-              d.outHandle.write(o)
+              try d.outHandle.write(o)
             } else {
               OUT_OF_RANGE(d.inFile, d.outFile)
               break
@@ -283,7 +282,7 @@ extension bintrans {
         }
       }
     } catch(let e){
-      throw CmdErr(1, "read error: \(d.inFile): \(e.localizedDescription)")
+      throw CmdErr(1, "read error: \(d.inFile): \(e)")
     }
     return 0
   }
@@ -324,7 +323,7 @@ extension bintrans {
     
     // POSIX says "/dev/stdout" is a 'magic cookie' not a special file.
     if fn == "/dev/stdout" {
-      d.outHandle = FileHandle.standardOutput
+      d.outHandle = FileDescriptor.standardOutput
       d.outFile = fn
     }
     
@@ -357,10 +356,9 @@ extension bintrans {
     if d.options.oflag {
       do {
         d.outFile = d.options.outFile!
-        d.outHandle = try FileHandle(forWritingTo:
-                                      URL(filePath: d.outFile, directoryHint: .notDirectory))
+        d.outHandle = try FileDescriptor(forWriting: d.outFile)
       } catch(let e) {
-        throw CmdErr(1, "\(d.outFile): \(e.localizedDescription)")
+        throw CmdErr(1, "\(d.outFile): \(e)")
       }
       return 2
     } else
@@ -368,7 +366,7 @@ extension bintrans {
     /* POSIX says "/dev/stdout" is a 'magic cookie' not a special file. */
     if (d.options.pflag || d.outFile == "/dev/stdout") {
       d.outFile = "/dev/stdout"
-      d.outHandle = FileHandle.standardOutput
+      d.outHandle = FileDescriptor.standardOutput
       return 2
     }
     else {
@@ -424,9 +422,9 @@ extension bintrans {
         return 1
       }
       do {
-        d.outHandle = try FileHandle(forWritingTo: URL(filePath: d.outFile, directoryHint: .notDirectory))
+        d.outHandle = try FileDescriptor(forWriting: d.outFile)
       } catch(let e) {
-        warn("\(e.localizedDescription): \(d.inFile): \(d.outFile)")
+        warn("\(e): \(d.inFile): \(d.outFile)")
         return 1
       }
       
@@ -434,7 +432,7 @@ extension bintrans {
         try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: d.outFile)
         //      if (0 != fchmod(d.outHandle.fileDescriptor, mode) && EPERM != errno) {
       } catch(let e) {
-        warn("\(e.localizedDescription)\(d.inFile): \(d.outFile)")
+        warn("\(e)\(d.inFile): \(d.outFile)")
         // FIXME: handle the error
         try? d.outHandle.close()
         return 1
@@ -505,14 +503,14 @@ extension bintrans {
   
   func checkout(_ d : inout Decoder, _ rvalx : Int) -> Int {
     var rval = rvalx
-    if d.outHandle != FileHandle.standardOutput {
+    if d.outHandle != FileDescriptor.standardOutput {
       do {
         try d.outHandle.close()
       } catch(let e) {
-        warn("\(d.inFile): \(d.outFile): \(e.localizedDescription)")
+        warn("\(d.inFile): \(d.outFile): \(e)")
         rval = 1
       }
-      d.outHandle = FileHandle.standardOutput
+      d.outHandle = FileDescriptor.standardOutput
       d.outFile = "/dev/stdout"
       }
       return rval
@@ -536,7 +534,7 @@ extension bintrans {
       return 1
   }
   
-  func uu_decode( _ bufx : String ) -> Data? {
+  func uu_decode( _ bufx : String ) -> [UInt8]? {
     //     int i, ch;
     //      char *p;
     //      char buf[MAXPATHLEN+1];
@@ -557,10 +555,10 @@ extension bintrans {
          */
         var i = DEC(buf.first!)
         if i <= 0 {
-          return Data()
+          return [UInt8]()
         }
         buf.removeFirst()
-        var outp = Data()
+        var outp = [UInt8]()
     
         while i > 0 {
           var p = Array(buf.prefix(4))
@@ -574,7 +572,7 @@ extension bintrans {
               return nil // OUT_OF_RANGE(d.inFile, d.outFile)
             }
             
-            var chx = Data()
+            var chx = [UInt8]()
             chx.append( DEC(p[0]) << 2 | DEC(p[1]) >> 4 )
             chx.append( DEC(p[1]) << 4 | DEC(p[2]) >> 2 )
             chx.append( DEC(p[2]) << 6 | DEC(p[3]) )
@@ -585,7 +583,7 @@ extension bintrans {
                 return nil // OUT_OF_RANGE(d.inFile, d.outFile)
               }
               let ch = DEC(p[0]) << 2 | DEC(p[1]) >> 4
-              outp.append(contentsOf: Data([ch]))
+              outp.append(contentsOf: [ch])
             }
             if (i >= 2) {
               if !(IS_DEC(p[1]) &&
@@ -594,7 +592,7 @@ extension bintrans {
               }
               
               let ch = DEC(p[1]) << 4 | DEC(p[2]) >> 2
-              outp.append(contentsOf: Data([ch]))
+              outp.append(contentsOf: [ch])
             }
           }
           i -= min(3,i)
@@ -629,7 +627,7 @@ extension bintrans {
       //        strcpy(inbuf, leftover);
       //        switch (get_line(inbuf + strlen(inbuf),
       //                         sizeof(inbuf) - strlen(inbuf))) {
-      let inbuf = leftover.appending(inb)
+      let inbuf = leftover + inb
       // FIXME: what to do with the checks?
       /*
        case 0:

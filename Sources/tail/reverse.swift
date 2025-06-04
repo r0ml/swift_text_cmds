@@ -34,7 +34,6 @@ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 
-import Foundation
 import CMigration
 
 extension tail {
@@ -57,7 +56,7 @@ extension tail {
    *  REG  mmap the file and display the lines
    *  NOREG  cyclically read input into a linked list of buffers
    */
-  func reverse(_ fp : FileHandle, _ fn : String, _ options : CommandOptions) async throws {
+  func reverse(_ fp : FileDescriptor, _ fn : String, _ options : CommandOptions) async throws {
     if (options.style != .REVERSE && options.off == 0) {
       return;
     }
@@ -90,7 +89,7 @@ extension tail {
   /*
    * r_reg -- display a regular file in reverse order by line.
    */
-  func r_reg(_ fp : FileHandle, _ fn : String, _ options : CommandOptions) throws {
+  func r_reg(_ fp : FileDescriptor, _ fn : String, _ options : CommandOptions) throws {
 
     let k = try Data(contentsOf: URL(filePath: fn), options: .mappedIfSafe)
     
@@ -100,7 +99,7 @@ extension tail {
     while curoff >= k.startIndex {
       if let t = k.lastIndex(of: 10, before: curoff) {
         let l = k.subdata(in: t.advanced(by: 1)..<curoff)
-        // try FileHandle.standardOutput.write(contentsOf: l)
+        // try FileDescriptor.standardOutput.write(contentsOf: l)
         print( String(data: Data(l), encoding: .utf8)! )
         curoff = t
         
@@ -123,7 +122,7 @@ extension tail {
       }
     }
     
-    let size = try fp.seekToEnd()
+    let size = try fp.seek(offset: 0, from: .end)
     if 0 == size {
       return
     }
@@ -210,7 +209,7 @@ extension tail {
    * user warned).
    */
   
-  func r_buf(_ fp: FileHandle, _ filename: String) async throws {
+  func r_buf(_ fp: FileDescriptor, _ filename: String) async throws {
 
     var lns : [String] = []
     for try await line in fp.bytes.lines {
@@ -241,10 +240,10 @@ extension Data {
   }
 }
 
-extension FileHandle {
+extension FileDescriptor {
   public var isRegularFile : Bool {
     var sbp = stat()
-    if fstat(self.fileDescriptor, &sbp) != 0 {
+    if fstat(self.rawValue, &sbp) != 0 {
       return false
     }
     return (sbp.st_mode & S_IFMT) == S_IFREG

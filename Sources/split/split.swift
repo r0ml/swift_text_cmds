@@ -33,10 +33,7 @@
   SUCH DAMAGE.
  */
 
-
-import Foundation
 import CMigration
-
 
 @main final class split : ShellCommand {
 
@@ -55,8 +52,8 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var chunks: Int = 0         // Chunks count to split into
     var clobber: Bool = true    // Whether to overwrite existing output files
     var numlines: Int = 0       // Line count to split on
-    var iurl : URL? = nil
-    var ifd: FileHandle = FileHandle.standardInput
+    var iurl : String? = nil
+    var ifd: FileDescriptor = FileDescriptor.standardInput
     var fname: String = ""      // File name prefix
     var sufflen: Int = 2        // File name suffix length
     // for non-Apple, it is true
@@ -64,7 +61,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var pflag: Bool = false
     var dflag: Bool = false
     var rgx : regex_t = regex_t()
-    var regexPattern: NSRegularExpression?
+//    var regexPattern: NSRegularExpression?
     var args : [String] = CommandLine.arguments
   }
   
@@ -73,7 +70,8 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     let supportedFlags = "0::1::2::3::4::5::6::7::8::9::a:b:cdl:n:p:"
     let go = BSDGetopt(supportedFlags)
 
-    let locale = Locale.current.identifier
+    // FIXME: need to put the locale back in
+//    let locale = Locale.current.identifier
     
 
     while let (k, v) = try go.getopt() {
@@ -148,14 +146,14 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     
     if args.count > 0 { // input file
       if args[0] == "-" {
-        options.ifd = FileHandle.standardInput
+        options.ifd = FileDescriptor.standardInput
       } else {
         do {
-          let u = URL(filePath: args[0])
-          options.iurl = u
-          options.ifd = try FileHandle(forReadingFrom: u)
+//          let u = URL(filePath: args[0])
+          options.iurl = args[0]
+          options.ifd = try FileDescriptor(forReading: args[0])
         } catch {
-          throw CmdErr(1, "\(args[0]): \(error.localizedDescription)")
+          throw CmdErr(1, "\(args[0]): \(error)")
         }
       }
       args.removeFirst()
@@ -201,18 +199,18 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     
     var bcnt = 0
     var nfiles = 0
-    var buffer : Data?
+    var buffer : ArraySlice<UInt8>
     var state = splitState(options)
     
 //    let k = AsyncBlockSequence(fileHandle: options.ifd, chunkSize: options.bytecnt)
 
     while true {
       do {
-        buffer = try options.ifd.read(upToCount: MAXBSIZE)
+        buffer = try ArraySlice(options.ifd.readUpToCount(MAXBSIZE))
       } catch {
-        throw CmdErr(1, "read: \(error.localizedDescription)")
+        throw CmdErr(1, "read: \(error)")
       }
-      guard var buffer else { break }
+      guard buffer.count > 0 else { break }
       var len = buffer.count
       if state.ofd == nil {
             if options.chunks == 0 || nfiles < options.chunks {
@@ -226,9 +224,9 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
         let dist = options.bytecnt - bcnt
         
         do {
-          try state.ofd?.write(contentsOf: buffer.prefix(dist))
+          try state.ofd?.write(Array(buffer.prefix(dist)))
         } catch {
-          throw CmdErr(1, "write: \(error.localizedDescription)")
+          throw CmdErr(1, "write: \(error)")
         }
         
         buffer = buffer.dropFirst(dist)
@@ -240,9 +238,9 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
             nfiles += 1
           }
           do {
-            try state.ofd?.write(contentsOf: buffer.prefix(options.bytecnt))
+            try state.ofd?.write(Array(buffer.prefix(options.bytecnt)))
           } catch {
-            throw CmdErr(1, "write: \(error.localizedDescription)")
+            throw CmdErr(1, "write: \(error)")
           }
           buffer = buffer.dropFirst(options.bytecnt)
           len -= options.bytecnt
@@ -255,9 +253,9 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           }
           
           do {
-            try state.ofd?.write(contentsOf: buffer)
+            try state.ofd?.write(Array(buffer))
           } catch {
-            throw CmdErr(1, "write: \(error.localizedDescription)")
+            throw CmdErr(1, "write: \(error)")
           }
         } else {
           try? state.ofd?.close()
@@ -267,9 +265,9 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       } else {
         bcnt += len
         do {
-          try state.ofd?.write(contentsOf: buffer)
+          try state.ofd?.write(Array(buffer))
         } catch {
-          throw CmdErr(1, "write: \(error.localizedDescription)")
+          throw CmdErr(1, "write: \(error)")
         }
       }
       }
@@ -282,7 +280,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var rgx = options.rgx
     
     do {
-      for try await line in options.ifd.bytes.linesNLX {
+      for try await line in options.ifd.bytes.lines {
         if options.pflag {
           var pmatch = regmatch_t()
           pmatch.rm_so = 0
@@ -307,21 +305,13 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           try newfile(options, &state)
         }
         
-        do {
-          if let ld = line.data(using: .utf8) {
-            try state.ofd?.write(contentsOf: ld )
-          } else {
-            throw CmdErr(1, "Unable to convert output to UTF8")
-          }
-        } catch {
-          throw CmdErr(1, "write: \(error.localizedDescription)")
-        }
+        state.ofd?.write(line)
         
       }
     } catch let e as CmdErr {
       throw e
     } catch {
-      throw CmdErr(1, "read: \(error.localizedDescription)")
+      throw CmdErr(1, "read: \(error)")
     }
   }
   
@@ -330,10 +320,10 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var options = opts
     var fs = 0
     do {
-      fs = try options.iurl?.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? -1
+      fs = try fileSize(at: FilePath(options.iurl!))
     } catch {
       if let iurl = options.iurl {
-        throw CmdErr(1, "Stat error: \(iurl.relativePath)")
+        throw CmdErr(1, "Stat error: \(iurl)")
       } else {
         throw CmdErr(1, "Stat error: stdin")
       }
@@ -351,7 +341,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var fnum = 0
     var fname = ""
     var sufflen = 2
-    var ofd : FileHandle?
+    var ofd : FileDescriptor?
     
     init(_ options: CommandOptions) {
       self.sufflen = options.sufflen
@@ -369,7 +359,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       do {
         try ofd.close()
       } catch {
-        throw CmdErr(1, "closing file: \(error.localizedDescription)")
+        throw CmdErr(1, "closing file: \(error)")
       }
     } else {
       if state.fname.isEmpty {
@@ -422,18 +412,14 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       
       do {
         if !options.clobber {
-          if FileManager.default.fileExists(atPath: state.fname+fpnt) {
+          if fileExists(atPath: state.fname+fpnt) {
             continue
           }
         }
-        if FileManager.default.createFile(atPath: state.fname+fpnt, contents: Data()) {
-          state.ofd = try FileHandle(forWritingTo: URL(filePath: state.fname+fpnt))
+          state.ofd = try FileDescriptor.open(state.fname + fpnt, .writeOnly, options: [.create])
           break
-        } else {
-            fatalError("failed to create file")
-        }
       } catch {
-        throw CmdErr(1, "writing to \(state.fname): \(error.localizedDescription)")
+        throw CmdErr(1, "writing to \(state.fname): \(error)")
       }
     }
   }
@@ -451,4 +437,17 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     return String(fpnt)
   }
   
+}
+
+public func fileSize(at path: FilePath) throws -> Int {
+    var statBuf = stat()
+    let result = path.string.withCString { cPath in
+        stat(cPath, &statBuf)
+    }
+
+    if result != 0 {
+        throw Errno(rawValue: errno)
+    }
+
+    return Int(statBuf.st_size)
 }

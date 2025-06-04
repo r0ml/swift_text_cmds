@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 
 @main final class lam : ShellCommand {
@@ -52,8 +51,8 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
     
     var pad : Bool = false
     var name : String = "stdin"
-    var fileHandle : FileHandle?
-    var fp : AsyncCharacterSequence<FileHandle.AsyncBytes>.AsyncIterator?
+    var fileHandle : FileDescriptor?
+    var fp : AsyncCharacterReader.AsyncIterator?
     var eof = false
   }
 
@@ -81,13 +80,13 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       if !p.hasPrefix("-") || p == "-" {
         // processing file name
         if p == "-" {
-          ip.fileHandle = FileHandle.standardInput
+          ip.fileHandle = FileDescriptor.standardInput
         } else {
           do {
-            let fp = try FileHandle(forReadingFrom: URL(fileURLWithPath: p))
+            let fp = try FileDescriptor(forReading: p)
             ip.fileHandle = fp
           } catch {
-            throw CmdErr(1, "\(p): \(error.localizedDescription)")
+            throw CmdErr(1, "\(p): \(error)")
           }
         }
 
@@ -106,7 +105,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
           ip.eol = T ? options.args.last?.eol : "\n"
         }
 
-        ip.fp = ip.fileHandle!.bytes.characters.makeAsyncIterator()
+        ip.fp = ip.fileHandle!.characters.makeAsyncIterator()
         options.args.append(ip)
         ip = FileOptions()
         continue
@@ -254,7 +253,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       do {
         c = try await ip.fp!.next()
       } catch {
-        throw CmdErr(Int(EX_IOERR), "\(ip.name): \(error.localizedDescription)")
+        throw CmdErr(Int(EX_IOERR), "\(ip.name): \(error)")
       }
 
       if c == nil {

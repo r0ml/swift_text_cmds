@@ -32,7 +32,6 @@
 
  */
 
-import Foundation
 import CMigration
 import libxo
 import Darwin
@@ -179,22 +178,22 @@ import Synchronization
     var gotsp = false
     var warned = false
     var file : String
-    var fh : FileHandle
+    var fh : FileDescriptor
     
     if xfile != nil {
       file = xfile!
-      let u = URL(filePath: file)
+//      let u = URL(filePath: file)
       do {
-        let fhh = try FileHandle(forReadingFrom: u)
+        let fhh = try FileDescriptor(forReading: file)
         fh = fhh
         //      fd = open(file, O_RDONLY)
         //      if (fd < 0) {
       } catch(let e) {
-        xo_warn( "\(file): open \(e.localizedDescription))")
+        xo_warn( "\(file): open \(e))")
         return true
       }
     } else {
-      fh = FileHandle.standardInput
+      fh = FileDescriptor.standardInput
 //      fd = STDIN_FILENO
       file = "stdin"
     }
@@ -206,7 +205,7 @@ import Synchronization
        * just stat it.
        */
       if (!options.doline && !options.dolongline) {
-        if (fstat(fh.fileDescriptor, &sb) != 0) {
+        if (fstat(fh.rawValue, &sb) != 0) {
           xo_warn("\(file): fstat")
           try? fh.close()
           return true
@@ -227,12 +226,11 @@ import Synchronization
        * handling.
        */
       while true {
-        var buf : Data?
+        var buf : [UInt8]
         do {
-          buf = try fh.read(upToCount: Int(MAXBSIZE))
-          if buf == nil { break }
-          if buf!.count == 0 { break }
-          len = UInt(buf!.count)
+          buf = try fh.readUpToCount(Int(MAXBSIZE))
+          if buf.count == 0 { break }
+          len = UInt(buf.count)
         } catch( let e) {
           xo_warn("\(file): read");
           try? fh.close()
@@ -243,7 +241,7 @@ import Synchronization
         }
         charct += len;
         if (options.doline || options.dolongline) {
-          for d in buf! {
+          for d in buf {
             if (d == Character("\n").asciiValue) {
               if (tmpll > llct) {
                 llct = tmpll
@@ -265,13 +263,12 @@ import Synchronization
       gotsp = true;
       warned = false;
 //      var mbs = mbstate_t()
-      var buf = Data()
+      var buf = [UInt8]()
       while true {
         do {
-          let bufx = try fh.read(upToCount: Int(MAXBSIZE))
-          if bufx == nil { break }
-          if bufx!.count == 0 { break }
-          buf.append(bufx!)
+          let bufx = try fh.readUpToCount(Int(MAXBSIZE))
+          if bufx.count == 0 { break }
+          buf.append(contentsOf: bufx)
         } catch(let e) {
           xo_warn("\(file): read")
           try? fh.close()

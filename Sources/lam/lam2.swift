@@ -1,7 +1,6 @@
 // Copyright (c) 1868 Charles Babbage
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 
-import Foundation
 
 // MARK: - Data Structures
 
@@ -30,13 +29,13 @@ struct Column {
 /// A structure representing a streaming reader for file fragments.
 /// It reads a file handle piecewise until the terminator (given as a single byte) is found.
 struct FragmentReader {
-    let fileHandle: FileHandle
+    let fileHandle: FileDescriptor
     let terminator: UInt8
     var buffer = Data()
     let chunkSize = 4096
     var atEOF = false
 
-    init(fileHandle: FileHandle, terminator: Character) {
+    init(fileHandle: FileDescriptor, terminator: Character) {
         self.fileHandle = fileHandle
         self.terminator = terminator.asciiValue ?? 10
     }
@@ -212,12 +211,12 @@ func laminateStream(columns: [Column], trailingSeparator: String?) {
     var streams: [StreamFileData] = []
     // Open each file (or standard input) and create a FragmentReader.
     for col in columns {
-        let fileHandle: FileHandle
+        let fileHandle: FileDescriptor
         if col.filename == "-" {
-            fileHandle = FileHandle.standardInput
+            fileHandle = FileDescriptor.standardInput
         } else {
             do {
-                fileHandle = try FileHandle(forReadingFrom: URL(fileURLWithPath: col.filename))
+                fileHandle = try FileDescriptor(forReadingFrom: URL(fileURLWithPath: col.filename))
             } catch {
                 fputs("Error opening file \(col.filename): \(error)\n", stderr)
                 exit(1)
@@ -260,7 +259,7 @@ func laminateStream(columns: [Column], trailingSeparator: String?) {
         }
         if omitNewlineOutput {
             if let data = outputLine.data(using: .utf8) {
-                FileHandle.standardOutput.write(data)
+                FileDescriptor.standardOutput.write(data)
             }
         } else {
             print(outputLine)

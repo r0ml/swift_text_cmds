@@ -34,7 +34,6 @@
  */
 
 
-import Foundation
 import CMigration
 import Darwin
 
@@ -85,7 +84,7 @@ struct Decoration : OptionSet {
   
   
   /*
-  func filter(_ f : FileHandle) async throws {
+  func filter(_ f : FileDescriptor) async throws {
 //    wint_t c;
 //    int i, w;
 //    int copy;

@@ -36,7 +36,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 // Constants/defines used by compile.c
@@ -860,10 +859,9 @@ extension sed {
           s.wfile = String(wbuf)
           if !aflag {
             do {
-              FileManager.default.createFile(atPath: s.wfile!, contents: nil, attributes: nil)
-              s.wfd = try FileHandle(forWritingTo: URL(filePath: s.wfile!))
+              s.wfd = try FileDescriptor.open(s.wfile!, .writeOnly, options: [.create])
             } catch {
-              err(1, "writing to \(s.wfile!): \(error.localizedDescription)")
+              err(1, "writing to \(s.wfile!): \(error)")
             }
           }
           p.removeFirst(wbuf.count)

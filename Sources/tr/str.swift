@@ -33,7 +33,6 @@
   SUCH DAMAGE.
  */
 
-import Foundation
 import CMigration
 
 // Define Character Set Size
