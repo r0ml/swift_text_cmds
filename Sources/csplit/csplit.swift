@@ -308,7 +308,7 @@ let filesToClean = Mutex<[String]>([])
 
     filesToClean.withLock { $0.append(currfile) }
     do {
-      let fp = try FileDescriptor.open(currfile, .readWrite, options: [.create])
+      let fp = try FileDescriptor.open(currfile, .readWrite, options: [.create], permissions: [.ownerReadWrite])
       try fp.seek(offset: 0, from: .start)
       nfiles += 1
       return fp
@@ -477,7 +477,7 @@ let filesToClean = Mutex<[String]>([])
 //        throw CmdErr(1, "tmpfile creation failed")
 //      }
       do {
-        ofp = try FileDescriptor.open(tempName, .readWrite, options: [.create])
+        ofp = try FileDescriptor.open(tempName, .readWrite, options: [.create], permissions: [.ownerReadWrite])
         try ofp.seek(offset: 0, from: .start)
       } catch {
         throw CmdErr(1, "tmpfile open failed: \(error)")

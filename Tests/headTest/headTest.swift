@@ -52,7 +52,7 @@ import ShellTesting
   @Test("Test head(1)'s -c option") func byte_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
     let (_, j, _) = try await ShellProcess(cmd, "-c", "50").run(i)
-    #expect( j!.count == 50)
+    #expect( j?.count == 50)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the beginning of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup") ) func sparse_file_text_at_beginning() async throws {

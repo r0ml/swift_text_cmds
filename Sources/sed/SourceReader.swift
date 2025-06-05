@@ -182,7 +182,7 @@ extension SedProcess {
         
           do {
             
-            outfile = try FileDescriptor.open(tmpfname!, .writeOnly, options: [.create])
+            outfile = try FileDescriptor.open(tmpfname!, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
           } catch {
             throw CmdErr(1, "opening for writing: \(stmpfname): \(error)")
           }

@@ -296,10 +296,12 @@ line
     try inh.write(contentsOf: "4\n5\n".data(using:.utf8)! )
 
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.2))
-    let k2 = String(data: await p.midCapture(), encoding: .utf8)!
-
     #expect(k == "1\n2\n3\n")
-    #expect(k2 == "4\n5\n")
+    if let k2 = String(data: await p.midCapture(), encoding: .utf8) {
+      #expect(k2 == "4\n5\n")
+    } else {
+      #expect(false)
+    }
     await p.interrupt()
     rm(inf)
   }

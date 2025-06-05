@@ -859,7 +859,7 @@ extension sed {
           s.wfile = String(wbuf)
           if !aflag {
             do {
-              s.wfd = try FileDescriptor.open(s.wfile!, .writeOnly, options: [.create])
+              s.wfd = try FileDescriptor.open(s.wfile!, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
             } catch {
               err(1, "writing to \(s.wfile!): \(error)")
             }

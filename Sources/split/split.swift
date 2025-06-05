@@ -416,7 +416,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
             continue
           }
         }
-          state.ofd = try FileDescriptor.open(state.fname + fpnt, .writeOnly, options: [.create])
+        state.ofd = try FileDescriptor.open(state.fname + fpnt, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
           break
       } catch {
         throw CmdErr(1, "writing to \(state.fname): \(error)")

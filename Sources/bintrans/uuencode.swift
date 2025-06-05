@@ -59,7 +59,7 @@ extension bintrans {
       do {
         
         // FIXME: does it work both ways?
-        let xoutfp = try FileDescriptor.open(outp, .writeOnly, options: [.create])
+        let xoutfp = try FileDescriptor.open(outp, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
         outfp = xoutfp
       } catch(let e) {
         throw CmdErr(1, "\(outp): Permission denied (\(e))")
