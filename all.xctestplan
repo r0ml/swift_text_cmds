@@ -174,7 +174,6 @@
       }
     },
     {
-      "enabled" : false,
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E76971E22CF62C9D00F3903F",

@@ -236,7 +236,7 @@ let filesToClean = Mutex<[String]>([])
         guard let p = try await get_line() else { break }
         // FIXME: handle encoding correctly
         let pp = p.utf8
-        withUnsafeBytes(of: pp) { try? ofp.write($0) }
+        try? ofp.write(Array(pp))
       }
       
       if !options.sflag {
@@ -308,7 +308,7 @@ let filesToClean = Mutex<[String]>([])
 
     filesToClean.withLock { $0.append(currfile) }
     do {
-      let fp = try FileDescriptor.open(currfile, .readWrite, options: [.create], permissions: [.ownerReadWrite])
+      let fp = try FileDescriptor.open(currfile, .readWrite, options: [.create, .truncate], permissions: [.ownerReadWrite])
       try fp.seek(offset: 0, from: .start)
       nfiles += 1
       return fp
@@ -324,7 +324,7 @@ let filesToClean = Mutex<[String]>([])
     
     while true {
       do {
-        guard let lbuf = try srcx.fgets(Int(LINE_MAX))   else {
+        guard let lbuf = try srcx.fgets(Int(LINE_MAX)) else {
           if isof {
             if let _overfile {
               // Truncate the previous file we overflowed into back to

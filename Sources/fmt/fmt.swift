@@ -202,7 +202,7 @@ import CMigration
           }
         case "l":
           if !v.isEmpty {
-            options.outputTabWidth = getNonNegative(v, errMess: "output tab width must be non-negative", fussyP: true)
+            options.outputTabWidth = try getNonNegative(v, errMess: "output tab width must be non-negative")
           } else {
             throw CmdErr(Int(EX_USAGE), "Error: -l requires an argument")
           }
@@ -216,13 +216,13 @@ import CMigration
           options.coalesceSpaces = true
         case "t":
           if !v.isEmpty {
-            options.tabWidth = getPositive(v, errMess: "tab width must be positive", fussyP: true)
+            options.tabWidth = try getPositive(v, errMess: "tab width must be positive")
           } else {
             throw CmdErr(Int(EX_USAGE), "Error: -t requires an argument")
           }
         case "w":
           if !v.isEmpty {
-            options.goalLength = getPositive(v, errMess: "width must be positive", fussyP: true)
+            options.goalLength = try getPositive(v, errMess: "width must be positive")
             options.maxLength = options.goalLength
           } else {
             throw CmdErr(Int(EX_USAGE), "Error: -w requires an argument")
@@ -230,7 +230,7 @@ import CMigration
         case "0"..."9":
           if options.goalLength == 0 {
             let numberString = String(k)
-            options.goalLength = getPositive(numberString, errMess: "width must be nonzero", fussyP: true)
+            options.goalLength = try getPositive(numberString, errMess: "width must be nonzero")
             options.maxLength = options.goalLength
           }
         case "h": fallthrough
@@ -243,14 +243,18 @@ import CMigration
     
     // Handle positional arguments: [goal [maximum]]
     if let firstArg = options.args.first, options.goalLength == 0 {
-      options.goalLength = getPositive(firstArg, errMess: "goal length must be positive", fussyP: false)
-      options.args.removeFirst()
-      if let secondArg = options.args.first {
-        options.maxLength = getPositive(secondArg, errMess: "max length must be positive", fussyP: false)
+      do {
+        options.goalLength = try getPositive(firstArg, errMess: "goal length must be positive")
         options.args.removeFirst()
-        if options.maxLength < options.goalLength {
-          throw CmdErr(Int(EX_USAGE), "Error: max length must be >= goal length")
+        if let secondArg = options.args.first {
+          options.maxLength = try getPositive(secondArg, errMess: "max length must be positive")
+          options.args.removeFirst()
         }
+      } catch {
+        
+      }
+      if options.maxLength < options.goalLength {
+        throw CmdErr(Int(EX_USAGE), "Error: max length must be >= goal length")
       }
     }
     
@@ -293,8 +297,8 @@ import CMigration
     } else {
       // Read from standard input
       do {
-      let standardInput = try FileDescriptor(forReading: "/dev/stdin")
-        try await processStream(stream: standardInput, name: "standard input", options)
+        let standardInput = try FileDescriptor(forReading: "/dev/stdin")
+        await processStream(stream: standardInput, name: "standard input", options)
       } catch {
         throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
       }
@@ -319,30 +323,20 @@ import CMigration
   }
   
   /// Safely converts a string to a positive integer. Exits with an error message if conversion fails.
-  func getPositive(_ s: String, errMess: String, fussyP: Bool) -> Int {
+  func getPositive(_ s: String, errMess: String) throws(CmdErr) -> Int {
     if let result = Int(s), result > 0 {
       return result
     } else {
-      if fussyP {
-        fputs("Error: \(errMess)\n", stderr)
-        exit(EX_USAGE)
-      } else {
-        return 0
-      }
+      throw CmdErr(1, errMess)
     }
   }
   
   /// Safely converts a string to a non-negative integer. Exits with an error message if conversion fails.
-  func getNonNegative(_ s: String, errMess: String, fussyP: Bool) -> Int {
+  func getNonNegative(_ s: String, errMess: String) throws(CmdErr) -> Int {
     if let result = Int(s), result >= 0 {
       return result
     } else {
-      if fussyP {
-        fputs("Error: \(errMess)\n", stderr)
-        exit(EX_USAGE)
-      } else {
-        return 0
-      }
+      throw CmdErr(1, errMess)
     }
   }
   
@@ -457,11 +451,12 @@ import CMigration
         let trimmedLine = String((line.drop { $0.isWhitespace }).reversed().drop(while: { $0.isWhitespace }).reversed())
         let lineWidth = trimmedLine.reduce(0) { $0 + wcwidth($1) }
         var padding = ""
-        var currentWidth = 0
-        while currentWidth < options.goalLength - lineWidth {
-          padding += " "
-          currentWidth += 1
-        }
+//        var currentWidth = 0
+        padding = String(repeating: " ", count: (options.goalLength + 1 - lineWidth)/2)
+//        while currentWidth < (options.goalLength - lineWidth)/2 {
+//          padding += " "
+//          currentWidth += 1
+//        }
         print("\(padding)\(trimmedLine)")
       }
       
@@ -585,12 +580,12 @@ import CMigration
       nErrors += 1
       return
     }
-    do {
-      try await processStream(stream: fileStream, name: name, options)
-    } catch {
-        fputs("Warning: Error reading file \(name)\n", stderr)
-        nErrors += 1
-    }
+//    do {
+      await processStream(stream: fileStream, name: name, options)
+//    } catch {
+//        fputs("Warning: Error reading file \(name)\n", stderr)
+//        nErrors += 1
+//    }
 
   }
 

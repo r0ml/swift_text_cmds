@@ -57,11 +57,19 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/zzz"
+            argument = "-k"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/cherry/"
+            argument = "-"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/xxx/"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "{10}"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
