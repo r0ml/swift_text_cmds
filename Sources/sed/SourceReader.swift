@@ -103,7 +103,7 @@ extension SedProcess {
               try posixRename(from: sti.fname, to: oldfname)
             } catch {
               if let tmpfname {
-                unlink(tmpfname)
+                unlink(tmpfname.string)
                 throw CmdErr(1, "renaming \(sti.fname) to \(oldfname) failed: \(error)")
               }
             }
@@ -116,15 +116,15 @@ extension SedProcess {
             do {
               try outfile.close()
             } catch {
-              unlink(tmpfname)
+              unlink(tmpfname.string)
               throw CmdErr(1, "closing \(outfname): \(error)")
             }
             
             do {
-              try posixRename(from: tmpfname.path, to: inp!.fname)
+              try posixRename(from: tmpfname.string, to: inp!.fname)
             } catch {
-              unlink(tmpfname)
-              throw CmdErr(1, "rename \(tmpfname) to \(inp!.fname): \(error)")
+              unlink(tmpfname.string)
+              throw CmdErr(1, "rename \(tmpfname.string) to \(inp!.fname): \(error)")
             }
             
           }
@@ -173,20 +173,20 @@ extension SedProcess {
         let pid = getpid()
         let stmpfname = ".!\(pid)!\(base)"
         tmpfname = dirbuf.appending(stmpfname)
-        unlink(tmpfname!)
+        unlink(tmpfname!.string)
         
         if outfile != FileDescriptor.standardOutput {
           try? outfile.close()
         }
-        outfname = tmpfname!.relativePath
+        outfname = tmpfname!.string
         
           do {
             
-            outfile = try FileDescriptor.open(tmpfname!.path, .writeOnly, options: [.create])
+            outfile = try FileDescriptor.open(tmpfname!, .writeOnly, options: [.create])
           } catch {
             throw CmdErr(1, "opening for writing: \(stmpfname): \(error)")
           }
-          outfname = tmpfname!.path
+          outfname = tmpfname!.string
 
         // fchown
         // fchmod

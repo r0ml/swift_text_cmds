@@ -139,15 +139,18 @@ import CMigration
       
       do {
         var lastch : UnicodeScalar? = nil
-        for try await ch in options.input.bytes.unicodeScalars {
-          if !delete.contains(ch) &&
-              (lastch != ch || !squeeze.contains(ch)) {
-            lastch = ch
-            print(ch, terminator: "")
+        for try await chx in options.input.characters {
+          for ch in chx.unicodeScalars {
+            
+            if !delete(ch) &&
+                (lastch != ch || !squeeze(ch)) {
+              lastch = ch
+              print(ch, terminator: "")
+            }
           }
         }
       } catch {
-        throw CmdErr(1, "read error: \(error.localizedDescription)")
+        throw CmdErr(1, "read error: \(error)")
       }
 
       
@@ -166,13 +169,15 @@ import CMigration
         let delete = try setup(options.string1, options)
         
         do {
-          for try await ch in options.input.bytes.unicodeScalars {
-            if !delete.contains(ch) {
-              print(ch, terminator: "")
+          for try await chx in options.input.characters {
+            for ch in chx.unicodeScalars {
+              if !delete(ch) {
+                print(ch, terminator: "")
+              }
             }
           }
         } catch {
-          throw CmdErr(1, "read error: \(error.localizedDescription)")
+          throw CmdErr(1, "read error: \(error)")
         }
         
       /*
@@ -186,14 +191,16 @@ import CMigration
         
         do {
           var lastch : UnicodeScalar? = nil
-          for try await ch in options.input.bytes.unicodeScalars {
-            if lastch != ch || !squeeze.contains(ch) {
-              lastch = ch
-              print(ch, terminator: "")
+          for try await chx in options.input.characters {
+            for ch in chx.unicodeScalars {
+              if lastch != ch || !squeeze(ch) {
+                lastch = ch
+                print(ch, terminator: "")
+              }
             }
           }
         } catch {
-          throw CmdErr(1, "read error: \(error.localizedDescription)")
+          throw CmdErr(1, "read error: \(error)")
         }
         
         /*
@@ -225,7 +232,7 @@ import CMigration
          * pairs.
          */
 
-        var squeeze = XCharacterSet()
+        var squeeze = { (_ : UnicodeScalar) in true }
         var map : [UnicodeScalar : UnicodeScalar] = [:]
         var defaultMap : UnicodeScalar?
         var carray = [UnicodeScalar]()
@@ -243,7 +250,7 @@ import CMigration
                 let ch = s1.lastch!.properties.uppercaseMapping.unicodeScalars.first!
                 map[s1.lastch!] = ch
                 if (options.sflag && ch.properties.isUppercase) {
-                  squeeze.insert(ch)
+                  squeeze = { $0 == ch || squeeze($0) }
                 }
                 
                 if try !s1.next() {
@@ -264,7 +271,7 @@ import CMigration
                 let ch = s1.lastch!.properties.lowercaseMapping.unicodeScalars.first!
                 map[s1.lastch!] = ch
                 if options.sflag && ch.properties.isLowercase {
-                  squeeze.insert(ch)
+                  squeeze = { $0 == ch || squeeze($0) }
                 }
                 if try !s1.next() {
                   break endloop;
@@ -280,7 +287,7 @@ import CMigration
             } else {
               map[s1.lastch!]=s2.lastch
               if options.sflag {
-                squeeze.insert(s2.lastch!)
+                squeeze = { $0 == s2.lastch! || squeeze($0) }
               }
             }
             let _ = try s2.next()
@@ -313,7 +320,7 @@ import CMigration
               if try s2.next() {
                 map[ucnt] = s2.lastch
                 if options.sflag {
-                  squeeze.insert(s2.lastch!)
+                  squeeze = { $0 == s2.lastch! || squeeze($0) }
                 }
               }
             } else {
@@ -352,7 +359,7 @@ import CMigration
              * so fill string2 again to not miss some.
              */
             if options.sflag {
-              squeeze.insert(s2.lastch!)
+              squeeze = { $0 == s2.lastch! || squeeze($0) }
             }
           }
         }
@@ -364,27 +371,31 @@ import CMigration
         do {
           if options.sflag {
             var lastch : UnicodeScalar? = nil
-            for try await ch in options.input.bytes.unicodeScalars {
-              let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ?
-              map[ch, default: defaultMap ?? ch] : ch
-              if lastch != ch2 || !squeeze.contains(ch) {
-                lastch = ch2
-                print(ch2, terminator: "")
+            for try await chx in options.input.characters {
+              for ch in chx.unicodeScalars {
+                let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ?
+                map[ch, default: defaultMap ?? ch] : ch
+                if lastch != ch2 || !squeeze(ch) {
+                  lastch = ch2
+                  print(ch2, terminator: "")
+                }
               }
             }
           }
           else {
-            for try await ch in options.input.bytes.unicodeScalars {
-              if let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch] : ch {
-                print(String(ch2), terminator: "")
-              } else {
-                print(String(ch), terminator: "")
+            for try await chx in options.input.characters {
+              for ch in chx.unicodeScalars {
+                if let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch] : ch {
+                  print(String(ch2), terminator: "")
+                } else {
+                  print(String(ch), terminator: "")
+                }
               }
             }
             
           }
         } catch {
-          throw CmdErr(1, "read error: \(error.localizedDescription)")
+          throw CmdErr(1, "read error: \(error)")
         }
         
     }
@@ -422,26 +433,20 @@ import CMigration
   // -----------------------------------------------------------------------------
   
   func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> XCharacterSet {
-    var cs = XCharacterSet()
+    var cs = { ( _ : UnicodeScalar) in true }
     let str = STR(arg)
     while try str.next() {
       switch str.state {
         case .normal, .set:
-          cs.insert(str.lastch!)
+          cs = { $0 == str.lastch! || cs($0) }
         case .cclass:
           if let c = str.cclass {
-            switch c {
-              case is CharacterSet:
-                cs.cs.formUnion(c as! CharacterSet)
-              case is XCharacterSet:
-                cs.formUnion(c as! XCharacterSet)
-              default:
-                fatalError("not possible")
-            }
+            cs = { cs($0) || c($0) }
           }
           str.state = .normal
         case .equiv:
-          cs.eqc.insert(str.equiv!)
+          cs = { diacriticInsensitiveEqual($0, str.equiv!) || cs($0) }
+//          cs.eqc.insert(str.equiv!)
         default:
           fatalError("unknown string class")
       }
@@ -451,8 +456,29 @@ import CMigration
      // cs.insert(charactersIn: ...type rune...)
     }
     if options.cflag || options.Cflag {
-      cs.invert()
+      cs = { !cs($0) }
     }
     return cs
   }
+}
+
+typealias XCharacterSet = (UnicodeScalar) -> Bool
+
+
+/// Returns whether two scalars are equal ignoring diacritics.
+public func diacriticInsensitiveEqual(_ lhs: UnicodeScalar, _ rhs: UnicodeScalar) -> Bool {
+    baseScalar(of: lhs) == baseScalar(of: rhs)
+}
+
+/// Returns the base UnicodeScalar with combining marks removed.
+/// Decomposes and returns the first non-combining scalar.
+private func baseScalar(of scalar: UnicodeScalar) -> UnicodeScalar {
+    let decomposed = String(scalar).unicodeScalars
+    return decomposed.first(where: { !$0.isCombiningMark }) ?? scalar
+}
+
+private extension UnicodeScalar {
+    var isCombiningMark: Bool {
+       properties.generalCategory == .nonspacingMark
+    }
 }

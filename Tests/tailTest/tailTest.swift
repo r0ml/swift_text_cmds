@@ -141,7 +141,7 @@ line
     
     // FIXME: how come it doesn't work if I pipe output to stdout
     let of = try tmpfile("outfile", Data())
-    let ofh = try FileDescriptor(forWritingTo: of)
+    let ofh = try FileHandle(forWritingTo: of)
     await p2.setOutput(ofh)
     let (_, _, _) = try await p2.run()
     let j = try String(contentsOf: of, encoding: .utf8)
@@ -150,7 +150,7 @@ line
     #expect( bb )
     
     let of2 = try tmpfile("outpipe", Data())
-    let ofh2 = try FileDescriptor(forWritingTo: of2)
+    let ofh2 = try FileHandle(forWritingTo: of2)
     let p3 = ShellProcess(ex, "-r")
     await p3.setOutput(ofh2)
     let (_, _, _) = try await p3.run(d)
@@ -195,7 +195,7 @@ line
     // FIXME: why didn't this work with pipe?
     let p = ShellProcess(ex, "-r")
     let of = try tmpfile("outfile", "")
-    let ofh = try FileDescriptor(forWritingTo: of)
+    let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
     let (r, _, _) = try await p.run( lines.joined() )
     #expect(r == 0)
@@ -261,7 +261,7 @@ line
     // FIXME: why didn't this work with pipe
     let p = ShellProcess(ex, "-rn2500")
     let of = try tmpfile("outfile", "")
-    let ofh = try FileDescriptor(forWritingTo: of)
+    let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
     let (r, _, _) = try await p.run(i)
     let j = try String(contentsOf: of, encoding: .utf8)
@@ -284,7 +284,7 @@ line
   
   @Test("Basic regression test for -f") func follow() async throws {
     let inf = try tmpfile("inFile",  "1\n2\n3\n")
-    let inh = try FileDescriptor(forWritingTo: inf)
+    let inh = try FileHandle(forWritingTo: inf)
 
     let p = ShellProcess(ex, "-F", inf.relativePath)
     try await p.theLaunch()
@@ -310,7 +310,7 @@ line
     let inf = try tmpfile("inFile", "1\n2\n3\n")
 
     Task.detached {
-      let fh = try FileDescriptor(forReadingFrom: inf)
+      let fh = try FileHandle(forReadingFrom: inf)
       try await p.run(fh)
       
       
@@ -321,7 +321,7 @@ line
     let m = await p.midCapture()
     let k = String(data: m, encoding: .utf8)!
     
-    let fh2 = try FileDescriptor(forWritingTo: inf)
+    let fh2 = try FileHandle(forWritingTo: inf)
     try fh2.seekToEnd()
     try fh2.write(contentsOf: "4\n5\n".data(using: .utf8)!)
     
@@ -487,7 +487,7 @@ line
     let sizeleft = Int(blksiz) - Int(cursize) - 1
     let f2 = String(repeating: "1", count: sizeleft) + "\n"
     
-    let infh = try FileDescriptor(forWritingTo: inf)
+    let infh = try FileHandle(forWritingTo: inf)
     infh.seekToEndOfFile()
     infh.write( f2.data(using: .utf8)!)
     
@@ -514,7 +514,7 @@ line
     let f2 = String(repeating: "a", count: linelen) + "\n" +
     String(repeating: "b", count: linelen) + "\n"
     
-    let infh = try FileDescriptor(forWritingTo: inf)
+    let infh = try FileHandle(forWritingTo: inf)
     try infh.seekToEnd()
     infh.write( f2.data(using: .utf8)!)
     

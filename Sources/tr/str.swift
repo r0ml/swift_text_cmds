@@ -50,7 +50,7 @@ class STR {
   var originalStr: String
   var lastch: UnicodeScalar? = nil // UnicodeScalar(0)
   var cnt: Int = 0
-  var cclass: (any Containable)?
+  var cclass: ((UnicodeScalar)->Bool)?
   var wctypex : wctype_t = 0
   var set: [UnicodeScalar] = []
   var equiv: UnicodeScalar?
@@ -433,19 +433,18 @@ class STR {
     }
   }
   
-  let classes : [String : any Containable] = [
-    "alnum" : CharacterSet.alphanumerics,
-    "alpha" : CharacterSet.letters,
-    "blank" : CharacterSet.whitespaces,
-    "cntrl" : CharacterSet.controlCharacters,
-    "digit" : CharacterSet.decimalDigits,
-    "graph" : XCharacterSet.graph,
-    "lower" : CharacterSet.lowercaseLetters,
-    "print" : XCharacterSet.print,
-    "punct" : CharacterSet.punctuationCharacters,
-    "space" : CharacterSet.whitespacesAndNewlines,
-    "upper" : CharacterSet.uppercaseLetters,
-    "xdigit" : CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
-    
+  let classes : [String : (UnicodeScalar) -> Bool ] = [
+    "alnum" : { Character($0).isLetter || Character($0).isNumber }, // CharacterSet.alphanumerics,
+    "alpha" : { Character($0).isLetter }, // CharacterSet.letters,
+    "blank" : { Character($0).isWhitespace }, // CharacterSet.whitespaces,
+    "cntrl" : { $0.properties.generalCategory == .control }, //  CharacterSet.controlCharacters,
+    "digit" : { Character($0).isWholeNumber }, // CharacterSet.decimalDigits,
+    "graph" : { $0.isGraphic },
+    "lower" : { Character($0).isLowercase }, // CharacterSet.lowercaseLetters,
+    "print" : { $0.isPrintable  },
+    "punct" : { Character($0).isPunctuation }, // CharacterSet.punctuationCharacters,
+    "space" : { Character($0).isWhitespace || Character($0).isNewline }, // CharacterSet.whitespacesAndNewlines,
+    "upper" : { Character($0).isUppercase }, // CharacterSet.uppercaseLetters,
+    "xdigit" : { Character($0).isHexDigit }, //  CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
   ]
 }

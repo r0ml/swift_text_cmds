@@ -59,7 +59,7 @@ class SedProcess {
   // here rather than in PeekableAsyncIterator because it continues across files
   var linenum : Int = 0
   var oldfname : String?
-  var tmpfname : String?
+  var tmpfname : FilePath?
   
   var nflag : Bool = false
   var filelist : [String]

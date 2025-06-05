@@ -1,15 +1,16 @@
 // Copyright (c) 1868 Charles Babbage
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2025
 
+/*
 public protocol Containable {
   func contains(_ c : Unicode.Scalar) -> Bool
   @discardableResult mutating func insert(_ c : Unicode.Scalar) -> (inserted: Bool, memberAfterInsert: UnicodeScalar)
   mutating func invert()
   mutating func formUnion(_ other: Self)
 }
+*/
 
-extension CharacterSet : Containable {}
-
+/*
 /** This is a CharacterSet, enhanced by also containing a list of "equivalence classes" -- i.e. characters which ignore diacritics ) */
 public struct XCharacterSet : Containable {
   var cs : CharacterSet = CharacterSet()
@@ -58,6 +59,8 @@ public struct XCharacterSet : Containable {
     return XCharacterSet(cats: Set(nk.union([.spaceSeparator])), inverted: true)
   }
 }
+ */
+
 
 fileprivate let nk = Set([Unicode.GeneralCategory.control, .format, .privateUse, .surrogate, .unassigned])
 

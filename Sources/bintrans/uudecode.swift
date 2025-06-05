@@ -191,7 +191,7 @@ extension bintrans {
           if (d.options.base64) {
             let (o, m) = base64_decode(buf, &leftover)
             if let o {
-              d.outHandle.write(o)
+              try d.outHandle.write(o)
               if !m {
                 break
               }
@@ -272,7 +272,7 @@ extension bintrans {
               state = .body
             }
           case .body:
-            let k = doDecodeBody(buf, d, &leftover)
+            let k = try doDecodeBody(buf, d, &leftover)
             if !k {
               state = .footer
             }
@@ -304,7 +304,7 @@ extension bintrans {
     }
     
     /* q[0] points to mode, q[1] points to filename */
-    var fn = String(q[1].trimmingCharacters(in: CharacterSet(charactersIn: "\r\n") ))
+    var fn = String(q[1].drop { $0.isNewline }.reversed().drop { $0.isNewline }.reversed() )
     var modestr = String(q[0])
     
     /* found valid header? */
@@ -428,11 +428,12 @@ extension bintrans {
         return 1
       }
       
-      do {
-        try FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: d.outFile)
+//      do {
+      let ee = chmod(d.outFile, mode)
+      if 0 != ee {
         //      if (0 != fchmod(d.outHandle.fileDescriptor, mode) && EPERM != errno) {
-      } catch(let e) {
-        warn("\(e)\(d.inFile): \(d.outFile)")
+//      } catch(let e) {
+        warn("\(Errno(rawValue: ee))\(d.inFile): \(d.outFile)")
         // FIXME: handle the error
         try? d.outHandle.close()
         return 1
@@ -441,11 +442,11 @@ extension bintrans {
     }
   }
 
-  func doDecodeBody(_ buf : String, _ d : Decoder, _ leftover : inout String) -> Bool {
+  func doDecodeBody(_ buf : String, _ d : Decoder, _ leftover : inout String) throws -> Bool {
     if (d.options.base64) {
       let (outp, more) = base64_decode(buf, &leftover)
       if let outp {
-        d.outHandle.write(outp)
+        try d.outHandle.write(outp)
         return more
       } else {
         return false
@@ -454,7 +455,7 @@ extension bintrans {
     else {
       if let outp = uu_decode(buf) {
         if outp.isEmpty { return false }
-        else { d.outHandle.write(outp) }
+        else { try d.outHandle.write(outp) }
         return true
       } else {
         OUT_OF_RANGE(d.inFile, d.outFile)
@@ -615,7 +616,7 @@ extension bintrans {
     return outp
   }
     
-  func base64_decode(_ inb : String, _ leftover : inout String) -> (Data?, Bool) {
+  func base64_decode(_ inb : String, _ leftover : inout String) -> ([UInt8]?, Bool) {
     
     //      ptrdiff_t count4;
     //      int n, count;

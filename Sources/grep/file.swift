@@ -322,19 +322,22 @@ class file {
 //#endif
 //#endif /* __APPLE__ */
         let fsiz = Int(st.st_size)
-        let bbuffer = mmap(nil, fsiz, PROT_READ, flags,
-                      fd.rawValue, 0);
-  
-        // FIXME: there is no way to determine if the data will be memory mapped or read in
-        // The work-around is to manually memory-map
-//        buffer = try! Data.init(contentsOf: url!, options: .mappedIfSafe)
-        if (bbuffer == MAP_FAILED) {
-          behave = .STDIO
-        }
-        else {
-          buffer = Data.init(bytesNoCopy: bbuffer!, count: fsiz, deallocator: .unmap)
+        
+        do {
+          let bbuffer = try mmapFileReadOnly(fd)
+          
+          // FIXME: there is no way to determine if the data will be memory mapped or read in
+          // The work-around is to manually memory-map
+          //        buffer = try! Data.init(contentsOf: url!, options: .mappedIfSafe)
+//          buffer = Data.init(bytesNoCopy: bbuffer!, count: fsiz, deallocator: .unmap)
           bufrange = 0..<fsiz
-          madvise(bbuffer, fsiz, MADV_SEQUENTIAL)
+          
+          // FIXME: put me back
+//          madvise(bbuffer, fsiz, MADV_SEQUENTIAL)
+
+          
+        } catch {
+          behave = .STDIO
         }
       }
     }
@@ -499,4 +502,33 @@ public extension Array where Element: Equatable {
 
         return nil
     }
+}
+
+
+/// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
+public func mmapFileReadOnly(_ fd: FileDescriptor) throws -> UnsafeRawBufferPointer {
+    // Get file size
+    var statBuf = stat()
+    let statResult = fstat(fd.rawValue, &statBuf)
+
+    if statResult != 0 {
+        try? fd.close()
+        throw Errno(rawValue: errno)
+    }
+
+    let size = Int(statBuf.st_size)
+    guard size > 0 else {
+        try? fd.close()
+        throw Errno.invalidArgument
+    }
+
+    // Map file into memory
+    let addr = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd.rawValue, 0)
+    try fd.close() // Safe to close after mmap
+
+    guard addr != MAP_FAILED else {
+        throw Errno(rawValue: errno)
+    }
+
+    return UnsafeRawBufferPointer(start: addr, count: size)
 }

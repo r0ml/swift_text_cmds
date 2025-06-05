@@ -45,6 +45,7 @@
   IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
  */
 
+import CMigration
 
 let Base64 =
 Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
@@ -119,7 +120,7 @@ extension bintrans {
    */
   
   func
-  apple_b64_ntop(_ src : inout Data) -> String {
+  apple_b64_ntop(_ src : inout [UInt8]) -> String {
     var target = ""
 //    size_t datalength = 0;
 //    u_char input[3];
@@ -127,7 +128,7 @@ extension bintrans {
 //    size_t i;
     
     while (2 < src.count) {
-      let input = Data(src.prefix(3))
+      let input = src.prefix(3)
       src.removeFirst(3)
       target.append( Base64[ Int(input[0] >> 2) ] )
       target.append( Base64[ Int(((input[0] & 0x03) << 4) + (input[1] >> 4))])
@@ -138,7 +139,7 @@ extension bintrans {
     /* Now we worry about padding. */
     if (0 != src.count) {
       /* Get what's left. */
-      var input = Data(src)
+      var input = src
       while input.count < 3 { input.append(0) }
       target.append( Base64[ Int(input[0] >> 2 ) ])
       target.append( Base64[ Int(((input[0] & 0x03) << 4) + (input[1] >> 4) ) ] )
@@ -161,7 +162,7 @@ extension bintrans {
   
   /* returns the converted data, and a boolean to indicate more
    date to come (i.e. false for "all done" */
-  func apple_b64_pton( _ srcx : String) -> (Data?, Bool) {
+  func apple_b64_pton( _ srcx : String) -> ([UInt8]?, Bool) {
 //    int tarindex, state, ch;
 //    u_char nextbyte;
 //    char *pos;
@@ -172,7 +173,7 @@ extension bintrans {
     var ch : Character
     var state = 0
     var src = Substring(srcx)
-    var target = Data()
+    var target = [UInt8]()
     
   //  while ((ch = *src++) != '\0') {
     while true {

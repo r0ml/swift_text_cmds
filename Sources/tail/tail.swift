@@ -257,21 +257,21 @@ func expand_number(_ input: String) throws -> UInt64 {
   let trimmed = input.drop { $0.isWhitespace || $0.isNewline }.uppercased()
     let regex = try! Regex("^([0-9]+)([BKMGTPE]?)$")
     
-    guard let match = regex.firstMatch(in: trimmed) else {
+    guard let match = try regex.firstMatch(in: trimmed) else {
         throw ExpandNumberError.invalidFormat
     }
     
-    let numberRange = Range(match.range(at: 1), in: trimmed)!
-    let numberString = String(trimmed[numberRange])
+  guard let numberString = match.output[1].substring else {
+    throw ExpandNumberError.invalidFormat
+  }
     
     guard let number = UInt64(numberString) else {
         throw ExpandNumberError.invalidFormat
     }
     
     var multiplier: UInt64 = 1
-    if match.range(at: 2).location != NSNotFound {
-        let suffixRange = Range(match.range(at: 2), in: trimmed)!
-      if let suffix = trimmed[suffixRange].first {
+  if let mr = match.output[2].range {
+      if let suffix = trimmed[mr].first {
         multiplier = suffixMultipliers[suffix] ?? 1
       } else {
           multiplier = 1

@@ -159,7 +159,7 @@ struct SPACE {
       // FIXME: "\r\n" is a single character!
       // not clear how to consistently reproduce legacy behavior
       self.append_newline = true
-      self.space = space.dropLast().appending("\r")
+      self.space = String(space.dropLast()) + "\r"
     } else {
       self.space = space
     }

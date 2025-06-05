@@ -184,13 +184,13 @@ import ShellTesting
     
     try await run(output: "foo bar\n", args: "-Z", "-we", "foo", inf)
     
-    try await run(withStdin: FileDescriptor(forReadingFrom: URL(fileURLWithPath: "/dev/null")), output: "foo bar\n", args: "-Z", "-wefoo", inf)
+    try await run(withStdin: FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null")), output: "foo bar\n", args: "-Z", "-wefoo", inf)
     rm(inf)
   }
   
   @Test("Checks for zgrep wrapper problems with -e PATTERN (PR 247126)") func zgrep_eflag() async throws {
     let inf = try tmpfile("test4", "foo bar\n")
-    let null = try FileDescriptor(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
+    let null = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
     try await run(withStdin: null, output: "foo bar\n", args: "-Z", "-e", "foo bar", inf)
     
     try await run(withStdin: null, output: "foo bar\n", args: "-Z", "--regexp=foo bar",  inf)
@@ -200,7 +200,7 @@ import ShellTesting
   @Test("Checks for zgrep wrapper problems with -f FILE (PR 247126)", arguments: [false, true]) func zgrep_fflag(_ lo : Bool) async throws {
     let inf = try tmpfile("test5", "foobar\n")
     let inf2 = try tmpfile("pattern", "foo\n")
-    let null = try FileDescriptor(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
+    let null = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
     try await run(withStdin: null, output: "foobar\n", args:
                     lo ? ["-Z","--file=\(inf2.path)", inf]
                   : ["-Z", "-f", inf2, inf])

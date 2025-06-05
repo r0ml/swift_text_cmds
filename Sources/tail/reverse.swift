@@ -91,16 +91,16 @@ extension tail {
    */
   func r_reg(_ fp : FileDescriptor, _ fn : String, _ options : CommandOptions) throws {
 
-    let k = try Data(contentsOf: URL(filePath: fn), options: .mappedIfSafe)
+    let k = try mmapFileReadOnly(at: FilePath(fn))
     
     var curoff = k.endIndex-1
     var off = options.off
     
     while curoff >= k.startIndex {
       if let t = k.lastIndex(of: 10, before: curoff) {
-        let l = k.subdata(in: t.advanced(by: 1)..<curoff)
+        let l = k[t.advanced(by: 1)..<curoff]
         // try FileDescriptor.standardOutput.write(contentsOf: l)
-        print( String(data: Data(l), encoding: .utf8)! )
+        print( String(decoding: l, as: UTF8.self) )
         curoff = t
         
         if (options.style == .RLINES) {
@@ -116,8 +116,8 @@ extension tail {
         
         
       } else {
-        let l = k.subdata(in: k.startIndex..<curoff)
-        print( String(data: Data(l), encoding: .utf8)! )
+        let l = k[k.startIndex..<curoff]
+        print( String(decoding: l, as: UTF8.self) )
         break
       }
     }
@@ -223,8 +223,8 @@ extension tail {
   }
 }
 
-extension Data {
-  func lastIndex(of byte: UInt8, before index: Data.Index? = nil) -> Int? {
+extension Array {
+  func lastIndex(of byte: Element, before index: Index? = nil) -> Int? where Element: Equatable {
       let si = (index ?? self.endIndex)
       
     guard si > self.startIndex, si <= self.endIndex else {
@@ -240,6 +240,23 @@ extension Data {
   }
 }
 
+extension UnsafeRawBufferPointer {
+  func lastIndex(of byte: UInt8, before index: Int? = nil) -> Int? {
+      let si = (index ?? self.endIndex)
+      
+    guard si > self.startIndex, si <= self.endIndex else {
+          return nil
+      }
+      
+      for i in stride(from: si-1, through: 0, by: -1) {
+          if self[i] == byte {
+              return i
+          }
+      }
+      return nil
+  }
+}
+
 extension FileDescriptor {
   public var isRegularFile : Bool {
     var sbp = stat()
@@ -248,4 +265,40 @@ extension FileDescriptor {
     }
     return (sbp.st_mode & S_IFMT) == S_IFREG
   }
+}
+
+
+
+
+/// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
+public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer {
+    // Open file
+    let fd = try FileDescriptor.open(path, .readOnly)
+
+    // Get file size
+    var statBuf = stat()
+    let statResult = path.string.withCString { cPath in
+        stat(cPath, &statBuf)
+    }
+
+    if statResult != 0 {
+        try? fd.close()
+        throw Errno(rawValue: errno)
+    }
+
+    let size = Int(statBuf.st_size)
+    guard size > 0 else {
+        try? fd.close()
+        throw Errno.invalidArgument
+    }
+
+    // Map file into memory
+    let addr = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd.rawValue, 0)
+    try fd.close() // Safe to close after mmap
+
+    guard addr != MAP_FAILED else {
+        throw Errno(rawValue: errno)
+    }
+
+    return UnsafeRawBufferPointer(start: addr, count: size)
 }
