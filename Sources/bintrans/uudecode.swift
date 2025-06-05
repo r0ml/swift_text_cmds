@@ -98,10 +98,12 @@ extension bintrans {
       options.base64 = true;
     }
     
-    let go = BSDGetopt("cimo:prs", args: CommandLine.arguments.dropFirst(bintflag ? 2 : 1))
+    let go = BSDGetopt("cimo:prsI:", args: CommandLine.arguments.dropFirst(bintflag ? 2 : 1))
     
     while let (k,v) = try go.getopt()  {
       switch k {
+        case "I":
+          options.inFile = v
         case "c":
           if (options.oflag || options.rflag) {
             throw CmdErr(1, decode_usage)
@@ -146,6 +148,15 @@ extension bintrans {
   
   func main_decode(_ options : CommandOptions) async throws(CmdErr) {
     var d = Decoder(options: options)
+
+    if let inf = options.inFile {
+      d.inFile = inf
+      do {
+        d.inHandle = try FileDescriptor(forReading: inf)
+      } catch(let e) {
+        throw CmdErr(1, "failed to open \(inf): \(e)")
+      }
+    }
     
     var rval : Int32 = 0
     if options.args.isEmpty {
@@ -422,9 +433,9 @@ extension bintrans {
         return 1
       }
       do {
-        d.outHandle = try FileDescriptor(forWriting: d.outFile)
+        d.outHandle = try FileDescriptor.open(d.outFile, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
       } catch(let e) {
-        warn("\(e): \(d.inFile): \(d.outFile)")
+        warn("failed to create outfile \(d.outFile): \(e) from \(d.inFile)")
         return 1
       }
       
@@ -554,6 +565,7 @@ extension bintrans {
          * `i' is used to avoid writing out all the characters
          * at the end of the file.
          */
+    if buf.isEmpty { return nil }
         var i = DEC(buf.first!)
         if i <= 0 {
           return [UInt8]()

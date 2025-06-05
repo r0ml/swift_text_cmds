@@ -125,9 +125,10 @@ o=
     try await run(withStdin: t, output: sampout+"\n", args: args)
   }
   
-  @Test("different ways of specifying input and output(3)", arguments:
+  @Test("different ways of specifying input and output(3)", .serialized,
+        arguments:
           ["-ooutfile", "-o outfile", "--output=outfile",],
-        ["-iinFile", "-i inFile", "--input=inFile"]
+        ["-iinFile", "-i inFile", "--input=inFile"],
   ) func in_out3(_ o : String, _ i : String) async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }

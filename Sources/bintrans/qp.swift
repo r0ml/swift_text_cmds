@@ -91,7 +91,7 @@ extension bintrans {
   }
                   
   func encode_quoted_printable(_ bodyx : String, _ fpo : FileDescriptor) {
-
+    
     var prev = "\0".first!
     var linelen = 0
     var body = Substring(bodyx)
@@ -149,7 +149,7 @@ extension bintrans {
     let codec = encode ? encode_quoted_printable : decode_quoted_printable
     
     do {
-      for try await line in fp.bytes.lines {
+      for try await line in fp.bytes.lines(true) {
         // (getline(&line, &linecap, fp) > 0)
         codec(line, fpo);
       }
