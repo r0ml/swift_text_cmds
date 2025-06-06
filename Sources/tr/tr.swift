@@ -163,7 +163,7 @@ import CMigration
        */
     } else if options.dflag {
         if options.string2 != nil {
-          throw CmdErr(1)
+          throw CmdErr(1, "missing second string")
         }
         
         let delete = try setup(options.string1, options)
@@ -433,19 +433,25 @@ import CMigration
   // -----------------------------------------------------------------------------
   
   func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> XCharacterSet {
-    var cs = { ( _ : UnicodeScalar) in true }
+    var cs = { ( _ : UnicodeScalar) in false }
     let str = STR(arg)
     while try str.next() {
       switch str.state {
         case .normal, .set:
-          cs = { $0 == str.lastch! || cs($0) }
+          let k = cs
+          let y = str.lastch!
+          cs = { ( z : UnicodeScalar) in
+            return z == y || k(z) }
         case .cclass:
           if let c = str.cclass {
-            cs = { cs($0) || c($0) }
+            let k = cs
+            cs = { k($0) || c($0) }
           }
           str.state = .normal
         case .equiv:
-          cs = { diacriticInsensitiveEqual($0, str.equiv!) || cs($0) }
+          let k = cs
+          let j = str.equiv!
+          cs = { diacriticInsensitiveEqual($0, j) || k($0) }
 //          cs.eqc.insert(str.equiv!)
         default:
           fatalError("unknown string class")
@@ -456,7 +462,8 @@ import CMigration
      // cs.insert(charactersIn: ...type rune...)
     }
     if options.cflag || options.Cflag {
-      cs = { !cs($0) }
+      let k = cs
+      cs = { !k($0) }
     }
     return cs
   }

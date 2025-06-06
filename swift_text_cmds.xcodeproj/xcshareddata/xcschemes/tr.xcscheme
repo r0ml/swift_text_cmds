@@ -69,11 +69,15 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/trTest/Resources/regress2.in"
-            isEnabled = "NO">
+            argument = "/Users/r0ml/AppleOpenSource/swift_text_cmds/Tests/trTest/Resources/regress.in"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/xxx"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "aceg"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -90,7 +94,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "[[:graph:]]"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
