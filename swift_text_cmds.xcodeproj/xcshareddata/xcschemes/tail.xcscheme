@@ -57,12 +57,12 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-r"
-            isEnabled = "NO">
+            argument = "-rc28"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2"
@@ -78,11 +78,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/write_log.txt"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/xxx"
-            isEnabled = "NO">
+            argument = "/Users/r0ml/Desktop/inFile"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

@@ -265,9 +265,18 @@ class file {
     
     /* Look for a newline in the remaining part of the buffer */
     let fileeold = [options.fileeol.asciiValue!]
-    let t = buffer.firstIndexKMP(of: fileeold, in: bufrange) ?? buffer.endIndex
-    let str = buffer[bufrange.startIndex..<t+fileeold.count]
-    bufrange = t+fileeold.count ..< bufrange.upperBound
+    let str : ArraySlice<UInt8>
+    if let tt = buffer.firstIndexKMP(of: fileeold, in: bufrange) {
+//      tx = Range(tt...(tt+fileeold.count-1))
+      str = buffer[bufrange.startIndex...tt]
+      bufrange = tt + fileeold.count ..< bufrange.upperBound
+    } else {
+      str = buffer[bufrange.startIndex...]
+      bufrange = bufrange.upperBound..<bufrange.upperBound
+//      tx = Range(buffer.endIndex...buffer.endIndex)
+    }
+//    let str = buffer[bufrange.startIndex..<tx.endIndex]
+//    bufrange = tx.endIndex ..< bufrange.upperBound
     
     if String(validating: str, as: UTF8.self) == nil {
       binary = true

@@ -436,14 +436,14 @@ class STR {
   let classes : [String : (UnicodeScalar) -> Bool ] = [
     "alnum" : { Character($0).isLetter || Character($0).isNumber }, // CharacterSet.alphanumerics,
     "alpha" : { Character($0).isLetter }, // CharacterSet.letters,
-    "blank" : { Character($0).isWhitespace }, // CharacterSet.whitespaces,
+    "blank" : { Character($0).isWhitespace && !Character($0).isNewline }, // CharacterSet.whitespaces,
     "cntrl" : { $0.properties.generalCategory == .control }, //  CharacterSet.controlCharacters,
     "digit" : { Character($0).isWholeNumber }, // CharacterSet.decimalDigits,
     "graph" : { $0.isGraphic },
     "lower" : { Character($0).isLowercase }, // CharacterSet.lowercaseLetters,
     "print" : { $0.isPrintable  },
     "punct" : { Character($0).isPunctuation }, // CharacterSet.punctuationCharacters,
-    "space" : { Character($0).isWhitespace || Character($0).isNewline }, // CharacterSet.whitespacesAndNewlines,
+    "space" : { Character($0).isWhitespace }, // CharacterSet.whitespacesAndNewlines,
     "upper" : { Character($0).isUppercase }, // CharacterSet.uppercaseLetters,
     "xdigit" : { Character($0).isHexDigit }, //  CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
   ]

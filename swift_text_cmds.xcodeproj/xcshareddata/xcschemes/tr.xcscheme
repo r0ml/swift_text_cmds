@@ -61,7 +61,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d"
+            argument = "-s"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -70,19 +70,19 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/AppleOpenSource/swift_text_cmds/Tests/trTest/Resources/regress.in"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/xxx"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "aceg"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&apos;\0-@&apos;"
-            isEnabled = "NO">
+            argument = "a-c"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "cba"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "QUACK"

@@ -232,7 +232,7 @@ import CMigration
          * pairs.
          */
 
-        var squeeze = { (_ : UnicodeScalar) in true }
+        var squeeze = { (_ : UnicodeScalar) in false }
         var map : [UnicodeScalar : UnicodeScalar] = [:]
         var defaultMap : UnicodeScalar?
         var carray = [UnicodeScalar]()
@@ -250,7 +250,8 @@ import CMigration
                 let ch = s1.lastch!.properties.uppercaseMapping.unicodeScalars.first!
                 map[s1.lastch!] = ch
                 if (options.sflag && ch.properties.isUppercase) {
-                  squeeze = { $0 == ch || squeeze($0) }
+                  let k = squeeze
+                  squeeze = { $0 == ch || k($0) }
                 }
                 
                 if try !s1.next() {
@@ -271,7 +272,8 @@ import CMigration
                 let ch = s1.lastch!.properties.lowercaseMapping.unicodeScalars.first!
                 map[s1.lastch!] = ch
                 if options.sflag && ch.properties.isLowercase {
-                  squeeze = { $0 == ch || squeeze($0) }
+                  let k = squeeze
+                  squeeze = { $0 == ch || k($0) }
                 }
                 if try !s1.next() {
                   break endloop;
@@ -287,7 +289,9 @@ import CMigration
             } else {
               map[s1.lastch!]=s2.lastch
               if options.sflag {
-                squeeze = { $0 == s2.lastch! || squeeze($0) }
+                let k = squeeze
+                let j = s2.lastch!
+                squeeze = { $0 == j || k($0) }
               }
             }
             let _ = try s2.next()
@@ -320,7 +324,9 @@ import CMigration
               if try s2.next() {
                 map[ucnt] = s2.lastch
                 if options.sflag {
-                  squeeze = { $0 == s2.lastch! || squeeze($0) }
+                  let k = squeeze
+                  let j = s2.lastch!
+                  squeeze = { $0 == j || k($0) }
                 }
               }
             } else {
@@ -359,7 +365,9 @@ import CMigration
              * so fill string2 again to not miss some.
              */
             if options.sflag {
-              squeeze = { $0 == s2.lastch! || squeeze($0) }
+              let k = squeeze
+              let j = s2.lastch!
+              squeeze = { $0 == j || k($0) }
             }
           }
         }

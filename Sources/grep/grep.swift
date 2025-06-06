@@ -685,7 +685,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     line = NULL;
  */
     do {
-      for try await var line in f.bytes.lines {
+      for try await var line in f.bytes.lines(true) {
         //    while ((rlen = getline(&line, &len, f)) != -1) {
         if line.isEmpty || line.first == "\0" { continue }
         if line.last == "\n" { line.removeLast() }
