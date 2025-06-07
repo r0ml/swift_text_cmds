@@ -312,9 +312,8 @@ class file {
       binary = true
     }
     
-    // FIXME: how to pick encoding?
-    let ss =
-    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: ISOLatin1.self) ??
+      let ss =
+    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: UTF8.self) ??
     String(validating: str, as: ISOLatin1.self)!
     pc.ln.dat = ss
     return ss

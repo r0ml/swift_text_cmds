@@ -46,7 +46,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   struct CommandOptions {
     var dpatterns : [epat] = []
     var fpatterns : [epat] = []
-    var patterns : [(String, regex_t)] = []
+    
+    var patterns : [String] = []
+    var regexes : [Regex<Substring>] = []
     
     var needpattern = true
     var lastc : String = ""
@@ -364,7 +366,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.grepbehave = .EXTENDED
         case "e", "regexp":
           for token in v.split(separator: "\n", omittingEmptySubsequences: false) {
-            add_pattern(String(token), &options)
+            options.patterns.append(String(token))
           }
           options.needpattern = false
         case "F", "fixed-strings":
@@ -545,7 +547,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
       /* Process patterns from command line */
     if (options.args.count != 0 && options.needpattern) {
       for token in options.args[0].split(separator: "\n", omittingEmptySubsequences: false) {
-        add_pattern(String(token), &options )
+        options.patterns.append(String(token))
       }
       options.args.removeFirst()
     }
@@ -591,15 +593,19 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
 //      {
 //    #endif
         /* Check if cheating is allowed (always is for fgrep). */
-      for i in 0..<options.patterns.count {
-        let c = regcomp(&options.patterns[i].1, options.patterns[i].0, options.cflags)
-          if (c != 0) {
-            
-            let RE_ERROR_BUF = 512
-            let re_error = calloc(1, RE_ERROR_BUF)
-            regerror(c, &options.patterns[i].1, re_error,
-                RE_ERROR_BUF);
-            throw CmdErr(2, String(cString: re_error!.assumingMemoryBound(to: CChar.self)))
+      for i in options.patterns {
+        do {
+          // FIXME: deal with the options.cflags
+          let r = try Regex<Substring>(i)
+          options.regexes.append(r)
+        } catch(let e) {
+//        let c = regcomp(&options.patterns[i].1, options.patterns[i].0, options.cflags)
+//          if (c != 0) {
+//            let RE_ERROR_BUF = 512
+//            let re_error = calloc(1, RE_ERROR_BUF)
+//            regerror(c, &options.patterns[i].1, re_error,
+//                RE_ERROR_BUF);
+            throw CmdErr(2, "\(e)")
           }
         }
       
@@ -649,7 +655,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   }
 
   // Adds a searching pattern to the internal array.
-  func add_pattern(_ pat : String, _ options : inout CommandOptions ) {
+/*  func add_pattern(_ pat : String, _ options : inout CommandOptions ) {
 
     // Check if we can do a shortcut
     if pat.isEmpty {
@@ -661,7 +667,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     while patx.last == "\n" { patx.removeLast() }
     options.patterns.append((patx, regex_t()))
   }
-
+*/
 
    // Reads searching patterns from a file and adds them with add_pattern().
   func read_patterns(_ fn : String, _ options : inout CommandOptions) async throws(CmdErr) {
@@ -689,7 +695,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
         //    while ((rlen = getline(&line, &len, f)) != -1) {
         if line.isEmpty || line.first == "\0" { continue }
         if line.last == "\n" { line.removeLast() }
-        add_pattern(line, &options)
+        options.patterns.append(line)
       }
     } catch {
       throw CmdErr(2, "read error: \(fn): \(error)")
@@ -704,7 +710,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     
     //  #ifdef __APPLE__
     if options.args.count == 0 && options.dirbehave != .RECURSE {
-      let matched = grepDoer.procfile("-", nil)
+      let matched = try grepDoer.procfile("-", nil)
       //      if (ferror(stdout) != 0 || fflush(stdout) != 0)
       //        err(2, "stdout");
       exit(matched ? 0 : 1);
@@ -715,14 +721,14 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     //  #endif
     var matched = false
     if (options.dirbehave == .RECURSE) {
-      matched = grepDoer.grep_tree(options.args);
+      matched = try grepDoer.grep_tree(options.args);
     }
     else {
       for aa in options.args {
         if ((options.finclude || options.fexclude) && !grepDoer.file_matching(aa)) {
           continue
         }
-        if (grepDoer.procfile(aa, nil)) {
+        if try (grepDoer.procfile(aa, nil)) {
           matched = true;
         }
       }

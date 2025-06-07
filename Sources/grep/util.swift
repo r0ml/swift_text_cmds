@@ -56,7 +56,7 @@ class grepDoer {
    * other useful bits
    */
   struct parsec {
-    var matches : Array<regmatch_t> = [] /* Matches made */
+    var matches : [Regex<Substring>.Match] =  [] /* Matches made */
     /* XXX TODO: This should be a chunk, not a line */
     var ln : str         /* Current line */
     var f : file         /* Underlying file */
@@ -152,7 +152,7 @@ class grepDoer {
    * Processes a directory when a recursive search is performed with
    * the -R option.  Each appropriate file is passed to procfile().
    */
-  func grep_tree(_ argv : [String]) -> Bool {
+  func grep_tree(_ argv : [String]) throws(CmdErr) -> Bool {
     //  bool ok;
     //  const char *wd[] = { ".", NULL };
     
@@ -244,9 +244,12 @@ class grepDoer {
             ok = ok && file_matching(String(cString: p.pointee.fts_path))
           }
           
-          if (ok && procfile(String(cString: p.pointee.fts_path),
-                             (fts_flags & FTS_NOSTAT) != 0 ? nil : p.pointee.fts_statp.pointee)) {
-            matched = true;
+          if ok {
+            
+            if try procfile(String(cString: p.pointee.fts_path),
+                            (fts_flags & FTS_NOSTAT) != 0 ? nil : p.pointee.fts_statp.pointee) {
+              matched = true;
+            }
           }
           break;
       }
@@ -259,7 +262,7 @@ class grepDoer {
     return (matched)
   }
   
-  func procmatch_match() {
+  func procmatch_match() throws(CmdErr) {
     
     if (myMprintc.doctx) {
       if (!first_match && (!myMprintc.same_file || myMprintc.last_outed > 0)) {
@@ -280,7 +283,7 @@ class grepDoer {
       while (myParsec.matches.count >= MAX_MATCHES) {
         /* Reset matchidx and try again */
         myParsec.matches = []
-        if (procline() == !options.vflag) {
+        if (try procline() == !options.vflag) {
           printline(":")
         }
         else {
@@ -325,7 +328,7 @@ class grepDoer {
    * indicating whether we should halt any further processing or not. 'true' to
    * continue processing, 'false' to halt.
    */
-  func procmatches(_ matched : Bool) -> Bool {
+  func procmatches(_ matched : Bool) throws(CmdErr) -> Bool {
     
     if (options.mflag && mcount <= 0) {
       /*
@@ -343,7 +346,7 @@ class grepDoer {
      */
     /* Deal with any -B context or context separators */
     if (matched) {
-      procmatch_match();
+      try procmatch_match();
       
       /* Count the matches if we have a match limit */
       if (options.mflag) {
@@ -364,7 +367,7 @@ class grepDoer {
    * Opens a file and processes it.  Each file is processed line-by-line
    * passing the lines to procline().
    */
-  func procfile( _ fnx : String, _ psbp : stat?) -> Bool {
+  func procfile( _ fnx : String, _ psbp : stat?) throws(CmdErr) -> Bool {
     
     //    struct parsec pc;
     /*    struct mprintc mc;
@@ -489,18 +492,18 @@ class grepDoer {
          * Short-circuit, already hit match count and now we're
          * just picking up any remaining pieces.
          */
-        if (!procmatches(false)) {
+        if try !procmatches(false) {
           break;
         }
         continue;
       }
-      let line_matched = procline() == !options.vflag;
+      let line_matched = try procline() == !options.vflag;
       if (line_matched) {
         lines += 1
       }
       
       /* Halt processing if we hit our match limit */
-      if (!procmatches(line_matched)) {
+      if try !procmatches(line_matched) {
         break;
       }
     }
@@ -647,7 +650,7 @@ class grepDoer {
    * matches.  The matching lines are passed to printline() to display the
    * appropriate output.
    */
-  func procline() -> Bool {
+  func procline() throws(CmdErr) -> Bool {
     /*
      regmatch_t pmatch, lastmatch, chkmatch;
      wchar_t wbegin, wend;
@@ -691,12 +694,12 @@ class grepDoer {
     var nstdone = false
     
     /* Initialize to avoid a false positive warning from GCC. */
-    var lastmatch = regmatch_t()
-    lastmatch.rm_so = 0
-    lastmatch.rm_eo = 0
+    var lastmatch : Regex<Substring>.Match?
+//    lastmatch.rm_so = 0
+//    lastmatch.rm_eo = 0
     var leflags = options.eflags
     
-    var r : Int32 = 0
+//    var r : Int32 = 0
     var retry : String.Index = myParsec.ln.dat.startIndex
 
     /* Loop to process the whole line */
@@ -708,10 +711,10 @@ class grepDoer {
         leflags |= REG_NOTBOL;
       }
 
-      var pmatch = regmatch_t()
+ //     var pmatch = regmatch_t()
 
       /* Loop to compare with all the patterns */
-      for var pati in options.patterns {
+      for pati in options.regexes {
         
         // FIXME: does this do anything?
         //          #ifdef __APPLE__
@@ -719,26 +722,32 @@ class grepDoer {
         if (myParsec.f.binary) {
           setlocale(LC_ALL, "C");
         }
-       
+        
         // #endif /* __APPLE__ */
-        pmatch.rm_so = Int64(myParsec.ln.dat.distance(from: myParsec.ln.dat.startIndex, to: st))
-        pmatch.rm_eo = Int64(myParsec.ln.dat.count)
+//        pmatch.rm_so = Int64(myParsec.ln.dat.distance(from: myParsec.ln.dat.startIndex, to: st))
+//        pmatch.rm_eo = Int64(myParsec.ln.dat.count)
         
         //          #ifdef WITH_INTERNAL_NOSPEC
-//        if (options.grepbehave == .FIXED) {
-//          r = litexec(pati, pc.ln.dat, 1, &pmatch);
-//        }
-//        else {
-          // #endif
+        //        if (options.grepbehave == .FIXED) {
+        //          r = litexec(pati, pc.ln.dat, 1, &pmatch);
+        //        }
+        //        else {
+        // #endif
         
-        if myParsec.f.binary {
-          r = encodeLatin1Lossy(myParsec.ln.dat).withUnsafeBytes { p in
-            regexec(&pati.1, p.baseAddress, 1, &pmatch, leflags)
-          }
+        var rr : Regex<Substring>.Match?
+        
+        do {
+          if myParsec.f.binary {
+            let ll = encodeLatin1Lossy(myParsec.ln.dat)
+            // FIXME: what about leflags?
+            rr = try pati.firstMatch(in: myParsec.ln.dat)
         } else {
-          r = regexec(&pati.1, myParsec.ln.dat, 1, &pmatch, leflags)
+          // FIXME: what about leflags
+          rr = try pati.firstMatch(in: myParsec.ln.dat)
         }
-
+      } catch(let e) {
+        throw CmdErr(2, "\(e)")
+      }
                 // FIXME: does this do anything?
         //          #ifdef __APPLE__
         /* rdar://problem/10462853: Treat binary files as binary. */
@@ -746,16 +755,23 @@ class grepDoer {
           setlocale(LC_ALL, "");
         }
         // #endif /* __APPLE__ */
-        if (r != 0) {
+        if (rr?.count == 0) {
           continue;
         }
         /* Check for full match */
-        if (options.xflag && (pmatch.rm_so != 0 ||
-                              pmatch.rm_eo != myParsec.ln.dat.count)) {
+        // FIXME: put me back
+        if options.xflag {
+          
+    // (pmatch.rm_so != 0 || pmatch.rm_eo != myParsec.ln.dat.count)) {
+          fatalError("not yet implemented")
           continue;
         }
+
+
         /* Check for whole word match */
         if (options.wflag) {
+          fatalError("not yet implemented")
+/*
           if pmatch.rm_so != 0 &&
               
               //                #ifdef __APPLE__
@@ -800,9 +816,10 @@ class grepDoer {
           if (r == REG_NOMATCH) {
             continue;
           }
+ */
         }
         lastmatched = true;
-        lastmatch = pmatch;
+        lastmatch = rr;
         
         if (myParsec.matches.count == 0) {
           matched = true;
@@ -816,6 +833,11 @@ class grepDoer {
          */
         if (myParsec.matches.count > startm) {
           let chkmatch = myParsec.matches.last!
+          
+          
+          fatalError("not yet implemented")
+          // FIXME: put me back
+          /*
           if (pmatch.rm_so < chkmatch.rm_so ||
               (pmatch.rm_so == chkmatch.rm_so &&
                (pmatch.rm_eo - pmatch.rm_so) >
@@ -840,40 +862,48 @@ class grepDoer {
             }
             // #endif
           }
+           */
         } else {
           /* Advance as normal if not */
-          myParsec.matches.append(pmatch)
-//          matchidx += 1
-          nst = myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
-          //            #ifdef __APPLE__
-          /*
-           * rdar://problem/86536080 - if our first match
-           * was 0-length, we wouldn't progress past that
-           * point.  Incrementing nst here ensures that if
-           * no other pattern matches, we'll restart the
-           * search at one past the 0-length match and
-           * either make progress or end the search.
-           */
-          if (pmatch.rm_so == pmatch.rm_eo) {
-            // I'm always using Unicode...
-/*            if (MB_CUR_MAX > 1) {
-              var wc : wchar_t
-
-              let advance = mbtowc(&wc,
-                               myParsec.ln.dat[nst],
-                               MB_CUR_MAX);
-              
-              nst += max(1, advance);
-            } else {
- */
-            if nst < myParsec.ln.dat.endIndex {
-              nst = myParsec.ln.dat.index(after: nst)
-            } else {
-              nstdone = true
+          if let rr { myParsec.matches.append(rr)
+            //          matchidx += 1
+            
+            // new start
+            nst = rr.range.upperBound
+            // myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
+            //            #ifdef __APPLE__
+            /*
+             * rdar://problem/86536080 - if our first match
+             * was 0-length, we wouldn't progress past that
+             * point.  Incrementing nst here ensures that if
+             * no other pattern matches, we'll restart the
+             * search at one past the 0-length match and
+             * either make progress or end the search.
+             */
+            if rr.output.isEmpty {
+              // I'm always using Unicode...
+              /*            if (MB_CUR_MAX > 1) {
+               var wc : wchar_t
+               
+               let advance = mbtowc(&wc,
+               myParsec.ln.dat[nst],
+               MB_CUR_MAX);
+               
+               nst += max(1, advance);
+               */
+               } else {
+              if nst < myParsec.ln.dat.endIndex {
+                nst = myParsec.ln.dat.index(after: nst)
+              } else {
+                nstdone = true
+              }
+              //            }
             }
-//            }
+            // #endif
+          } else {
+            fatalError("didn't match")
           }
-          // #endif
+          
         }
         /* avoid excessive matching - skip further patterns */
         if ((options.color == nil && !options.oflag) || options.qflag || options.lflag ||
@@ -1044,13 +1074,17 @@ class grepDoer {
       }
       for match in myParsec.matches {
         /* Don't output zero length matches */
-        if (match.rm_so == match.rm_eo) {
+        if match.output.isEmpty {
           continue;
         }
         /*
          * Metadata is printed on a per-line basis, so every
          * match gets file metadata with the -o flag.
          */
+        
+        fatalError("not yet implemented")
+        // FIXME: put me back
+        /*
         if (options.oflag) {
           myParsec.ln.boff = Int(match.rm_so);
           printline_metadata(myParsec.ln, sep);
@@ -1070,6 +1104,7 @@ class grepDoer {
         if (options.oflag) {
           print("\n", terminator: "");
         }
+         */
       }
       if (!options.oflag) {
         if (myParsec.ln.dat.count - a > 0) {
