@@ -158,3 +158,65 @@ public final class ByteBuffer: Collection {
         }
     }
 }
+
+
+// =========================================================
+
+
+
+public func sanitizeRegexNoSub(_ pattern: String) -> String {
+    var result = ""
+    var inCharClass = false
+    var escapeNext = false
+    var i = pattern.startIndex
+
+    while i < pattern.endIndex {
+        let c = pattern[i]
+
+        if escapeNext {
+            result.append("\\\(c)")
+            escapeNext = false
+            i = pattern.index(after: i)
+            continue
+        }
+
+        if c == "\\" {
+            escapeNext = true
+            i = pattern.index(after: i)
+            continue
+        }
+
+        if c == "[" {
+            inCharClass = true
+            result.append(c)
+            i = pattern.index(after: i)
+            continue
+        }
+
+        if c == "]", inCharClass {
+            inCharClass = false
+            result.append(c)
+            i = pattern.index(after: i)
+            continue
+        }
+
+        if c == "(", !inCharClass {
+            let next = pattern.index(after: i)
+            let hasQuestion = next < pattern.endIndex && pattern[next] == "?"
+            if hasQuestion {
+                // Already a non-capturing or special group
+                result.append("(")
+            } else {
+                // Replace with non-capturing
+                result.append("(?:")
+            }
+            i = pattern.index(after: i)
+            continue
+        }
+
+        result.append(c)
+        i = pattern.index(after: i)
+    }
+
+    return result
+}

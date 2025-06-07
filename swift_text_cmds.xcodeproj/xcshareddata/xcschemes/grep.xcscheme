@@ -57,6 +57,26 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
+            argument = "-Fo"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "bcd"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "cde"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-r"
             isEnabled = "NO">
          </CommandLineArgument>
@@ -102,7 +122,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-oe"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "B"
@@ -114,10 +134,34 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "[A-Z]"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_oflag_zerolen_apple_f.in"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-E"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-C1"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "(banana|monkey)"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-w"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "separated"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_input"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

@@ -56,7 +56,7 @@ class grepDoer {
    * other useful bits
    */
   struct parsec {
-    var matches : [Regex<Substring>.Match] =  [] /* Matches made */
+    var matches : [Regex<AnyRegexOutput>.Match] =  [] /* Matches made */
     /* XXX TODO: This should be a chunk, not a line */
     var ln : str         /* Current line */
     var f : file         /* Underlying file */
@@ -694,7 +694,7 @@ class grepDoer {
     var nstdone = false
     
     /* Initialize to avoid a false positive warning from GCC. */
-    var lastmatch : Regex<Substring>.Match?
+    var lastmatch : Regex<AnyRegexOutput>.Match?
 //    lastmatch.rm_so = 0
 //    lastmatch.rm_eo = 0
     var leflags = options.eflags
@@ -707,9 +707,7 @@ class grepDoer {
       var lastmatched = false;
       retry = myParsec.ln.dat.startIndex
       let startm = myParsec.matches.count;
-      if (st > myParsec.ln.dat.startIndex && myParsec.ln.dat[myParsec.ln.dat.index(before: st)] != options.fileeol) {
-        leflags |= REG_NOTBOL;
-      }
+//      if (st > myParsec.ln.dat.startIndex && myParsec.ln.dat[myParsec.ln.dat.index(before: st)] != options.fileeol) { leflags |= REG_NOTBOL; }
 
  //     var pmatch = regmatch_t()
 
@@ -734,16 +732,17 @@ class grepDoer {
         //        else {
         // #endif
         
-        var rr : Regex<Substring>.Match?
+        var pmatch : Regex<AnyRegexOutput>.Match?
         
         do {
           if myParsec.f.binary {
+            fatalError("should I be using a regex? -- the index st is not correct")
             let ll = encodeLatin1Lossy(myParsec.ln.dat)
             // FIXME: what about leflags?
-            rr = try pati.firstMatch(in: myParsec.ln.dat)
+            pmatch = try pati.firstMatch(in: myParsec.ln.dat[st...])
         } else {
           // FIXME: what about leflags
-          rr = try pati.firstMatch(in: myParsec.ln.dat)
+          pmatch = try pati.firstMatch(in: myParsec.ln.dat[st...])
         }
       } catch(let e) {
         throw CmdErr(2, "\(e)")
@@ -755,9 +754,12 @@ class grepDoer {
           setlocale(LC_ALL, "");
         }
         // #endif /* __APPLE__ */
-        if (rr?.count == 0) {
-          continue;
-        }
+//                if (pmatch == nil || pmatch?.count == 0) {
+//          continue;
+//        }
+        guard var pmatch, pmatch.count > 0 else { continue }
+        
+        
         /* Check for full match */
         // FIXME: put me back
         if options.xflag {
@@ -768,11 +770,12 @@ class grepDoer {
         }
 
 
+        let ppmatch = pmatch[options.wflag ? 1 : 0]
         /* Check for whole word match */
         if (options.wflag) {
-          fatalError("not yet implemented")
 /*
-          if pmatch.rm_so != 0 &&
+          
+          if pmatch.range.lowerBound != myParsec.ln.dat.startIndex &&
               
               //                #ifdef __APPLE__
               iswword(myParsec.ln.dat[ myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_so) - 1) ]) {
@@ -783,8 +786,8 @@ class grepDoer {
             // #endif /* __APPLE__ */
             r = REG_NOMATCH;
           }
-          else if pmatch.rm_eo !=
-                   Int64(myParsec.ln.dat.count) &&
+          else if pmatch.range.upperBound !=
+                    myParsec.ln.dat.endIndex &&
                    
                    iswword(myParsec.ln.dat[ myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))]) {
                    //                     #ifdef __APPLE__
@@ -819,7 +822,7 @@ class grepDoer {
  */
         }
         lastmatched = true;
-        lastmatch = rr;
+        lastmatch = pmatch;
         
         if (myParsec.matches.count == 0) {
           matched = true;
@@ -835,18 +838,16 @@ class grepDoer {
           let chkmatch = myParsec.matches.last!
           
           
-          fatalError("not yet implemented")
-          // FIXME: put me back
-          /*
-          if (pmatch.rm_so < chkmatch.rm_so ||
-              (pmatch.rm_so == chkmatch.rm_so &&
-               (pmatch.rm_eo - pmatch.rm_so) >
-               (chkmatch.rm_eo - chkmatch.rm_so))) {
+          if (pmatch.startIndex < chkmatch.startIndex ||
+              (pmatch.startIndex == chkmatch.startIndex &&
+               pmatch.endIndex > chkmatch.endIndex)) {
             myParsec.matches[myParsec.matches.count - 1] = pmatch;
-            nst = myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
+       //     nst = myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
+            nst = pmatch.range.upperBound
+            
             //              #ifdef __APPLE__
             /* rdar://problem/86536080 */
-            if (pmatch.rm_so == pmatch.rm_eo) {
+            if (pmatch.startIndex == pmatch.endIndex) {
 /*              if (MB_CUR_MAX > 1) {
                 wchar_t wc;
                 
@@ -862,14 +863,15 @@ class grepDoer {
             }
             // #endif
           }
-           */
+
+          
         } else {
           /* Advance as normal if not */
-          if let rr { myParsec.matches.append(rr)
+          myParsec.matches.append(pmatch)
             //          matchidx += 1
             
             // new start
-            nst = rr.range.upperBound
+            nst = pmatch.range.upperBound
             // myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
             //            #ifdef __APPLE__
             /*
@@ -880,7 +882,7 @@ class grepDoer {
              * search at one past the 0-length match and
              * either make progress or end the search.
              */
-            if rr.output.isEmpty {
+            if pmatch.output.isEmpty {
               // I'm always using Unicode...
               /*            if (MB_CUR_MAX > 1) {
                var wc : wchar_t
@@ -890,8 +892,8 @@ class grepDoer {
                MB_CUR_MAX);
                
                nst += max(1, advance);
-               */
                } else {
+               */
               if nst < myParsec.ln.dat.endIndex {
                 nst = myParsec.ln.dat.index(after: nst)
               } else {
@@ -900,10 +902,6 @@ class grepDoer {
               //            }
             }
             // #endif
-          } else {
-            fatalError("didn't match")
-          }
-          
         }
         /* avoid excessive matching - skip further patterns */
         if ((options.color == nil && !options.oflag) || options.qflag || options.lflag ||
@@ -1064,7 +1062,7 @@ class grepDoer {
     }
     
 //    let matchidx = myParsec.matchidx;
-    var a = 0
+    var a = myParsec.lnstart
     
     /* --color and -o */
     if ((options.oflag || options.color != nil) && myParsec.matches.count > 0) {
@@ -1082,33 +1080,30 @@ class grepDoer {
          * match gets file metadata with the -o flag.
          */
         
-        fatalError("not yet implemented")
-        // FIXME: put me back
-        /*
         if (options.oflag) {
-          myParsec.ln.boff = Int(match.rm_so);
+          myParsec.ln.boff = myParsec.ln.dat.distance(from: myParsec.ln.dat.startIndex, to: match.range.lowerBound) //   match.range.lowerBound
           printline_metadata(myParsec.ln, sep);
         } else {
-          let stp = myParsec.ln.dat.dropFirst(a).prefix(Int(match.rm_so) - a)
+          let stp = myParsec.ln.dat[a..<match.range.lowerBound]
           print(stp, terminator: "") //  match.rm_so - a, 1, stdout);
         }
         if let color = options.color {
           print("\u{1b}[\(color)m\u{1b}[K", terminator: "")
         }
-        let stp = myParsec.ln.dat.dropFirst(Int(match.rm_so)).prefix(Int(match.rm_eo)-Int(match.rm_so))
+        let stp = match.output
         print(stp, terminator: "");
         if (options.color != nil) {
           print("\u{1b}[m\u{1b}[K", terminator: "")
         }
-        a = Int(match.rm_eo);
+        a = match.range.upperBound
         if (options.oflag) {
           print("\n", terminator: "");
         }
-         */
+         
       }
       if (!options.oflag) {
-        if (myParsec.ln.dat.count - a > 0) {
-          print(myParsec.ln.dat.dropFirst(a), terminator: "")
+        if ( a < myParsec.ln.dat.endIndex) {
+          print(myParsec.ln.dat[a...], terminator: "")
         }
         print("\n", terminator: "");
       }
