@@ -98,7 +98,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--mmap"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-oe"
@@ -106,10 +106,18 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "B"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/inFile"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "[A-Z]"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_oflag_zerolen_apple_f.in"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

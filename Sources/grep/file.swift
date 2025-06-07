@@ -46,11 +46,27 @@ enum FILE {
   case LZMA
 }
 
+protocol MaybeMapped {
+  init()
+}
+
+struct NotMapped : MaybeMapped {
+  var buffer = [UInt8]()
+  init() {
+  }
+}
+
+struct Mapped : MaybeMapped {
+  init() {
+  }
+}
+
 class file {
   var fd : FileDescriptor
   var binary : Bool = false
   
   var buffer = [UInt8]()
+  var bbuffer : UnsafeRawBufferPointer?
   var bufrange : Range<Int> = 0..<0
   
 //  var inputFilter : InputFilter<Data>?
@@ -266,24 +282,39 @@ class file {
     /* Look for a newline in the remaining part of the buffer */
     let fileeold = [options.fileeol.asciiValue!]
     let str : ArraySlice<UInt8>
-    if let tt = buffer.firstIndexKMP(of: fileeold, in: bufrange) {
-//      tx = Range(tt...(tt+fileeold.count-1))
-      str = buffer[bufrange.startIndex...tt]
-      bufrange = tt + fileeold.count ..< bufrange.upperBound
-    } else {
-      str = buffer[bufrange.startIndex...]
+    
+    if let bbuffer {
+      if let tt = bbuffer.firstIndex(of: fileeold, in: bufrange) {
+        str = ArraySlice(bbuffer[bufrange.startIndex...tt])
+        bufrange = tt + fileeold.count ..< bufrange.upperBound
+      }
+     else {
+       str = ArraySlice( bbuffer[bufrange.startIndex...] )
       bufrange = bufrange.upperBound..<bufrange.upperBound
 //      tx = Range(buffer.endIndex...buffer.endIndex)
     }
-//    let str = buffer[bufrange.startIndex..<tx.endIndex]
-//    bufrange = tx.endIndex ..< bufrange.upperBound
+    } else {
+      
+      if let tt = buffer.firstIndexKMP(of: fileeold, in: bufrange) {
+        //      tx = Range(tt...(tt+fileeold.count-1))
+        str = buffer[bufrange.startIndex...tt]
+        bufrange = tt + fileeold.count ..< bufrange.upperBound
+      } else {
+        str = buffer[bufrange.startIndex...]
+        bufrange = bufrange.upperBound..<bufrange.upperBound
+        //      tx = Range(buffer.endIndex...buffer.endIndex)
+      }
+      //    let str = buffer[bufrange.startIndex..<tx.endIndex]
+      //    bufrange = tx.endIndex ..< bufrange.upperBound
+    }
     
     if String(validating: str, as: UTF8.self) == nil {
       binary = true
     }
     
+    // FIXME: how to pick encoding?
     let ss =
-    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: UTF8.self) ??
+    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: ISOLatin1.self) ??
     String(validating: str, as: ISOLatin1.self)!
     pc.ln.dat = ss
     return ss
@@ -333,7 +364,8 @@ class file {
         let fsiz = Int(st.st_size)
         
         do {
-          let bbuffer = try mmapFileReadOnly(fd)
+          
+          bbuffer = try mmapFileReadOnly(fd)
           
           // FIXME: there is no way to determine if the data will be memory mapped or read in
           // The work-around is to manually memory-map
@@ -464,6 +496,23 @@ class file {
 }
 
 
+public extension UnsafeRawBufferPointer {
+  func firstIndex(of: [UInt8], in searchRange: Range<Int>? = nil) -> Int? {
+    let start = searchRange?.lowerBound ?? 0
+    let end = Swift.min(searchRange?.upperBound ?? self.count, self.count)
+    guard 1 <= end - start else { return nil }
+    for i in start..<end {
+      for j in 0..<of.count {
+        if self[i+j] != of[j] {
+          break
+        }
+        return i
+      }
+    }
+    return nil
+  }
+}
+
 public extension Array where Element: Equatable {
     /// Searches for the first occurrence of the given subarray in the specified range using KMP.
     ///
@@ -512,6 +561,13 @@ public extension Array where Element: Equatable {
         return nil
     }
 }
+
+
+
+
+
+
+
 
 
 /// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
