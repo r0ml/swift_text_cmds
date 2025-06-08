@@ -44,7 +44,7 @@ import ShellTesting
   @Test("Checks handling of binary files") func binary() async throws {
     let tf = try tmpfile("test.file", "\0foobar")
     let expected = try fileContents("d_binary.out")
-    try await run(output: expected, args: "foobar", tf.relativePath)
+    try await run(output: expected, args: "foobar", tf)
     rm(tf)
   }
   
@@ -321,17 +321,15 @@ import ShellTesting
     }
   }
   
-  @Test("Check for proper handling of -w with an empty pattern (PR 105221)") func wflag_emptypat() async throws {
-    let test1 = try tmpfile("test1", "")
-    let test2 = try tmpfile("test2", "\n")
-    let test3 = try tmpfile("test3", "qaz")
-    let test4 = try tmpfile("test4", " qaz\n")
-    
-    try await run(status: 1, output: "", args: "-w", "-e", "", test1)
-    try await run(output: "\n", args: "-vw", "-e", "", test2)
-    try await run(status: 1, output: "", args: "-w", "-e", "", test3)
-    try await run(output: " qaz\n", args: "-vw", "-e", "", test4)
-    rm(test1, test2, test3, test4)
+  @Test("Check for proper handling of -w with an empty pattern (PR 105221)",
+        arguments: ["", "qaz"], [false, true]) func wflag_emptypat(_ fc : String, _ vflag : Bool) async throws {
+    let test = try tmpfile("test", fc + (vflag ? "\n" : ""))
+    if vflag {
+      try await run(output: fc + "\n", args: "-vw" , "-e", "", test)
+    } else {
+      try await run(status: 1, output: "", args: "-w", "-e", "", test)
+    }
+    rm(test)
   }
   
   @Test("Check for handling of an invalid empty pattern with -x") func xflag_emptypat() async throws {
@@ -421,7 +419,7 @@ import ShellTesting
     ("Foo\n", "F..", "Foobar(ed)"),
     ("Foobar\n", "F[a-z]*", "Foobar(ed)"),
     ("Fo\n", "F\\(o\\)", "Foobar(ed)"),
-    ("(ed)\n", "(ed)", "Fobbar(ed)"),
+    ("(ed)\n", "(ed)", "Foobar(ed)"),
     ("M{1}\n", "M{1}", "M{1}"),
     ("M\n", "M\\{1\\}", "M{1}"),
   ]) func grep_sanity(_ x : String, _ p : String, _ t : String) async throws {
@@ -443,17 +441,21 @@ import ShellTesting
     }
   }
   
-  @Test("Check for -n/-b producing per-line metadata output") func ocolor_metadata() async throws {
+  @Test("Check for -n/-b producing per-line metadata output", arguments: [
+    ("1:1:xx\n", "-bon", "xx$"),("2:4:yyyy\n", "-bn", "yy"), ("2:6:yy\n", "-bon", "yy$")
+  ]) func ocolor_metadata(_ outp : String, _ arg1 : String, _ arg2: String) async throws {
     let test1 = "xxx\nyyyy\nzzz\nfoobarbaz\n"
-    let check_expr = "^[^:]*[0-9][^:]*:[^:]+$"
-    
-    try await run(withStdin: test1, output: "1:1:xx\n", args: "-bon", "xx$")
-    try await run(withStdin: test1, output: "2:4:yyyy\n", args: "-bn", "yy")
-    try await run(withStdin: test1, output: "2:6:yy\n", args: "-bon", "yy$")
-    
+    try await run(withStdin: test1, output: outp, args: arg1, arg2)
+  }
+  
+  
+  @Test("Check for -n/-b producing per-line metadata output") func ocolor_metadata_2() async throws {
+    let test1 = "xxx\nyyyy\nzzz\nfoobarbaz\n"
     // these checks ensure that grep isn't producing bogus line numbering in the middle of a line
+    let check_expr = "^[^:]*[0-9][^:]*:[^:]+$"
     let (r, j, _) = try await ShellProcess(cmd, "-Eon", "x|y|z|f").run(test1)
     #expect(r == 0)
+    
     try await run(withStdin: j!, status: 1, args: "-Ev", check_expr)
 
     let (r2, j2, _) = try await ShellProcess(cmd, "-En", "x|y|z|f", "--color=always").run(test1)

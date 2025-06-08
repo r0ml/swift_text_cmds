@@ -736,7 +736,7 @@ class grepDoer {
         
         do {
           if myParsec.f.binary {
-            fatalError("should I be using a regex? -- the index st is not correct")
+//            fatalError("should I be using a regex? -- the index st is not correct")
             let ll = encodeLatin1Lossy(myParsec.ln.dat)
             // FIXME: what about leflags?
             pmatch = try pati.firstMatch(in: myParsec.ln.dat[st...])
@@ -763,16 +763,20 @@ class grepDoer {
         /* Check for full match */
         // FIXME: put me back
         if options.xflag {
-          
+          guard pmatch[options.wflag ? 1 : 0].range == myParsec.ln.dat.startIndex..<myParsec.ln.dat.endIndex else { continue}
     // (pmatch.rm_so != 0 || pmatch.rm_eo != myParsec.ln.dat.count)) {
-          fatalError("not yet implemented")
-          continue;
+//          fatalError("not yet implemented")
+//          continue;
         }
 
 
         let ppmatch = pmatch[options.wflag ? 1 : 0]
         /* Check for whole word match */
         if (options.wflag) {
+          // don't match a word (-w) if the match is empty
+          if ppmatch.substring == nil || ppmatch.substring!.isEmpty {
+            continue
+          }
 /*
           
           if pmatch.range.lowerBound != myParsec.ln.dat.startIndex &&
@@ -837,17 +841,17 @@ class grepDoer {
         if (myParsec.matches.count > startm) {
           let chkmatch = myParsec.matches.last!
           
-          
-          if (pmatch.startIndex < chkmatch.startIndex ||
-              (pmatch.startIndex == chkmatch.startIndex &&
-               pmatch.endIndex > chkmatch.endIndex)) {
+          // FIXME: for some reason, chkmatch.startIndex is *NOT* equal to chkmatch.range.lowerBound !!!
+          if (pmatch.range.lowerBound < chkmatch.range.lowerBound ||
+              (pmatch.range.lowerBound == chkmatch.range.lowerBound &&
+               pmatch.range.upperBound > chkmatch.range.upperBound)) {
             myParsec.matches[myParsec.matches.count - 1] = pmatch;
        //     nst = myParsec.ln.dat.index(myParsec.ln.dat.startIndex, offsetBy: Int(pmatch.rm_eo))
             nst = pmatch.range.upperBound
             
             //              #ifdef __APPLE__
             /* rdar://problem/86536080 */
-            if (pmatch.startIndex == pmatch.endIndex) {
+            if (pmatch.range.lowerBound == pmatch.range.upperBound) {
 /*              if (MB_CUR_MAX > 1) {
                 wchar_t wc;
                 
@@ -882,7 +886,7 @@ class grepDoer {
              * search at one past the 0-length match and
              * either make progress or end the search.
              */
-            if pmatch.output.isEmpty {
+          if pmatch.output[0].substring!.isEmpty {
               // I'm always using Unicode...
               /*            if (MB_CUR_MAX > 1) {
                var wc : wchar_t
@@ -1072,7 +1076,7 @@ class grepDoer {
       }
       for match in myParsec.matches {
         /* Don't output zero length matches */
-        if match.output.isEmpty {
+        if match.output[0].substring == nil || match.output[0].substring!.isEmpty {
           continue;
         }
         /*
@@ -1090,7 +1094,8 @@ class grepDoer {
         if let color = options.color {
           print("\u{1b}[\(color)m\u{1b}[K", terminator: "")
         }
-        let stp = match.output
+        
+        let stp = myParsec.ln.dat[match.output[options.wflag ? 1 : 0].range!]
         print(stp, terminator: "");
         if (options.color != nil) {
           print("\u{1b}[m\u{1b}[K", terminator: "")
@@ -1120,4 +1125,45 @@ public func encodeLatin1Lossy(_ string: String) -> [UInt8] {
     string.unicodeScalars.map { scalar in
         scalar.value <= 0xFF ? UInt8(scalar.value) : UInt8(ascii: "?")
     }
+}
+
+
+
+/// Converts a BRE pattern string to an ERE-compatible pattern string.
+func convertBREtoERE(_ bre: String) -> String {
+    var result = ""
+    var chars = Array(bre)
+    var i = 0
+
+    while i < chars.count {
+        let c = chars[i]
+
+        if c == "\\" && i + 1 < chars.count {
+            let next = chars[i + 1]
+            switch next {
+            case "(", ")", "{", "}", "+", "?", "|":
+                result.append(next) // Escaped group/quantifier → remove \
+                i += 2
+            case "\\":
+                result.append("\\") // Escaped backslash
+                i += 2
+            default:
+                result.append("\\")
+                result.append(next)
+                i += 2
+            }
+        } else {
+            switch c {
+            case // "(", ")", "{", "}":
+                "(", ")", "{", "}", "+", "?", "|":
+                result.append("\\") // Literal parens → escape them
+                result.append(c)
+            default:
+                result.append(c)
+            }
+            i += 1
+        }
+    }
+
+    return result
 }

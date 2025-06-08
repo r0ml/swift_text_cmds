@@ -112,7 +112,7 @@ foo
       linesout.append(j!)
     }
     
-    let p = ShellProcess(cmd, [expr]+inns.map { $0.relativePath} )
+    let p = ShellProcess(cmd, [expr]+inns.map { $0 } )
     let (r, lo, _) = try await p.run()
     #expect(r == 0)
     

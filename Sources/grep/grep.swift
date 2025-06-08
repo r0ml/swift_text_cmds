@@ -599,12 +599,20 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
 //          let ii = sanitizeRegexNoSub(i)
 //          let r = try Regex<Substring>(ii)
           var ii = i
-          if options.wflag {
-//            ii = #"(?<!\w)"+i+"(?!\w)"#
-            ii = #"(?:^|\W)("# + i + #")(?:\W|$)"#
+          if options.grepbehave == .BASIC {
+            ii = convertBREtoERE(ii)
           }
-          let r = try Regex<AnyRegexOutput>(ii)
-          options.regexes.append(r)
+          
+          if options.grepbehave == .FIXED {
+            options.regexes.append(Regex(verbatim: i).ignoresCase(options.iflag))
+          } else {
+            if options.wflag {
+              //            ii = #"(?<!\w)"+i+"(?!\w)"#
+              ii = #"(?:^|\W)("# + ii + #")(?:\W|$)"#
+            }
+            var r = try Regex<AnyRegexOutput>(ii).ignoresCase(options.iflag)
+            options.regexes.append(r)
+          }
         } catch(let e) {
 //        let c = regcomp(&options.patterns[i].1, options.patterns[i].0, options.cflags)
 //          if (c != 0) {

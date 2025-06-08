@@ -81,7 +81,7 @@ import ShellTesting
     // The -n option can't work on stdin, so I need a file input
     let i1 = FileManager.default.temporaryDirectory.appending(path: "foo", directoryHint: .notDirectory)
     try i.write(to: i1, atomically: true, encoding: .utf8)
-    let p = ShellProcess(ex, "-n", "3", i1.relativePath, "split-")
+    let p = ShellProcess(ex, "-n", "3", i1, "split-")
     
     let (r, _, _) = try await p.run(i)
     #expect( r == 0 )

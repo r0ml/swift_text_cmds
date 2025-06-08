@@ -687,7 +687,7 @@ p
   
   @Test("Substitution command (8.20)") func test_subst_820() async throws {
     let res = try fileContents("multi.8.20.out")
-    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1.relativePath)
+    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1)
     let (r, j, _) = try await p.run()
     #expect(r == 0)
     try await run(withStdin: j!, output: res, args: "-e", "s[\\[.[X\\[[")

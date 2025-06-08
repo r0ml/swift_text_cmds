@@ -57,19 +57,19 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-Fo"
+            argument = "-Eo"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e baz"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-e"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "bcd"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-e"
+            argument = "-e Baz"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -93,7 +93,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "."
+            argument = "-o"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -101,11 +101,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "^$"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "-Fxf"
+            argument = "M{1}"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -125,7 +121,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "B"
+            argument = "foobar"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -154,14 +150,34 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-w"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "separated"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_input"
+            argument = "-o"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "bc"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "ab"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_oflag_zerolen_d.in"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
