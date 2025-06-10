@@ -60,7 +60,8 @@ import CMigration
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     // Set the locale (as in the original C code).
-    setlocale(LC_ALL, "")
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_ALL, "")
     
     var options = CommandOptions()
     
@@ -316,7 +317,7 @@ import CMigration
 //          s2 = STR(options.string2!)
           s2.state = .normal
           for cnt in 0 ..< WINT_MAX {
-            if options.Cflag && 0 == iswrune(cnt) {
+            if options.Cflag && !iswrune(cnt) {
               continue
             }
             let ucnt = UnicodeScalar(UInt32(cnt))!
@@ -342,7 +343,7 @@ import CMigration
           for cnt in 0 ..< NCHARS_SB {
 //          for (p = carray, cnt = 0; cnt < NCHARS_SB; cnt++) {
             let ucnt = UnicodeScalar(UInt32(cnt))!
-            if map[ucnt] == nil && iswrune(Int32(cnt)) != 0 {
+            if map[ucnt] == nil && iswrune(Int32(cnt)) {
               carray.append(ucnt)
             }
             else {
@@ -381,7 +382,7 @@ import CMigration
             var lastch : UnicodeScalar? = nil
             for try await chx in options.input.characters {
               for ch in chx.unicodeScalars {
-                let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ?
+                let ch2 = !options.Cflag || iswrune(Int32(ch.value)) ?
                 map[ch, default: defaultMap ?? ch] : ch
                 if lastch != ch2 || !squeeze(ch) {
                   lastch = ch2
@@ -393,7 +394,7 @@ import CMigration
           else {
             for try await chx in options.input.characters {
               for ch in chx.unicodeScalars {
-                if let ch2 = !options.Cflag || iswrune(Int32(ch.value)) != 0 ? map[ch] : ch {
+                if let ch2 = !options.Cflag || iswrune(Int32(ch.value)) ? map[ch] : ch {
                   print(String(ch2), terminator: "")
                 } else {
                   print(String(ch), terminator: "")
@@ -496,4 +497,8 @@ private extension UnicodeScalar {
     var isCombiningMark: Bool {
        properties.generalCategory == .nonspacingMark
     }
+}
+
+func iswrune(_ c: Int32) -> Bool {
+  fatalError("not yet implemented")
 }

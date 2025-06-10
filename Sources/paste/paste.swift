@@ -52,9 +52,9 @@ import CMigration
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     
-    // Set locale for character conversion.
-    setlocale(LC_CTYPE, "")
-    
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_CTYPE, "")
+
     var options = CommandOptions()
     let supportedFlags = "d:s"
     let go = BSDGetopt(supportedFlags)

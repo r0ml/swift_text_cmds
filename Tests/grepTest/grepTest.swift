@@ -77,14 +77,16 @@ import ShellTesting
     rm(dir)
   }
   
-  @Test("Checks word-regexps") func word_regexps() async throws {
+  @Test("Checks word-regexps-1") func word_regexps1() async throws {
     let inf = try inFile("d_input")
     let expected = try fileContents("d_word_regexps.out")
     try await run(output: expected, args: "-w", "separated", inf)
-    
+  }
+
+  @Test("Checks word-regexps-2") func word_regexps2() async throws {
     try await run(withStdin: "xmatch pmatch\n", output: "pmatch\n", args: "-Eow", "(match )?pmatch")
   }
-  
+
   @Test("Checks handling of line beginnings and ends") func begin_end() async throws {
     let inf = try inFile("d_input")
     let expected = try fileContents("d_begin_end_a.out")

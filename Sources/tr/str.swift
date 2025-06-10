@@ -128,7 +128,7 @@ class STR {
         cnt -= 1
         return true
       case .cclass, .cclassUpper, .cclassLower:
-        let nw = nextwctype( cnt == 0 ? -1 : Int32(lastch!.value), wctypex)
+        let nw = nextwctype( cnt == 0 ? Int32(-1) : Int32(lastch!.value), wctypex)
         cnt += 1
         if nw == -1 {
           lastch = nil
@@ -447,4 +447,9 @@ class STR {
     "upper" : { Character($0).isUppercase }, // CharacterSet.uppercaseLetters,
     "xdigit" : { Character($0).isHexDigit }, //  CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
   ]
+}
+
+
+func nextwctype(_ n : Int32, _ c : UInt32) -> Int32 {
+  fatalError("not yet implemented -- nextwctype")
 }

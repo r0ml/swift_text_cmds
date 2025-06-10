@@ -1169,7 +1169,7 @@
 		E7C1B0552DD5319A00BF5CAB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				grep/DataSlice.swift,
+				grep/adjustments.swift,
 				grep/file.swift,
 				grep/grep.swift,
 				grep/util.swift,

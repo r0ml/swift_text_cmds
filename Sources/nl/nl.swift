@@ -59,8 +59,9 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
-    setlocale(LC_ALL, "")
-    
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_ALL, "")
+
     var options = CommandOptions()
     let supportedFlags = "pb:d:f:h:i:l:n:s:v:w:"
     let go = BSDGetopt(supportedFlags)

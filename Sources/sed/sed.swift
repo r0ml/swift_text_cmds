@@ -75,8 +75,9 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     var options = CommandOptions()
     let supportedFlags = "EHI:ae:f:i:lnru"
     let go = BSDGetopt(supportedFlags)
-    
-    setlocale(LC_ALL, "") // In Swift, you'd do something else or ignore.
+
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_ALL, "") // In Swift, you'd do something else or ignore.
     
     while let (k, v) = try go.getopt() {
       switch k {

@@ -46,21 +46,6 @@ enum FILE {
   case LZMA
 }
 
-protocol MaybeMapped {
-  init()
-}
-
-struct NotMapped : MaybeMapped {
-  var buffer = [UInt8]()
-  init() {
-  }
-}
-
-struct Mapped : MaybeMapped {
-  init() {
-  }
-}
-
 class file {
   var fd : FileDescriptor
   var binary : Bool = false
@@ -69,53 +54,17 @@ class file {
   var bbuffer : UnsafeRawBufferPointer?
   var bufrange : Range<Int> = 0..<0
   
-//  var inputFilter : InputFilter<Data>?
   var name : String
   
-  // var bufrem : Int = 0
-// var bufpos : Int = 0
-  
   var behave : FILE = .STDIO
-//  var lbflag = false
-  
+
   var MAXBUFSIZ : Int { (32 * 1024) }
   var LNBUFBUMP : Int { 80 }
   
   var gzbufdesc : gzFile?
-  /*
-  func createFilter() {
-    let inputFilter: InputFilter<Data>
-    do {
-        var index = 0
-        let bufferSize = compressedData.count
-        
-        inputFilter = try InputFilter(.decompress,
-                                      using: .lzfse) { (length: Int) -> Data? in
-            let rangeLength = min(length, bufferSize - index)
-          // FIXME: compressedData is read from source
-            let subdata = compressedData.subdata(in: index ..< index + rangeLength)
-            index += rangeLength
-            
-            return subdata
-        }
-    } catch {
-        fatalError("Error occurred creating input filter: \(error.localizedDescription).")
-    }
-  }
-  
-  func decompress() {
-    do {
-        while let page = try inputFilter.readData(ofLength: pageSize) {
-            decompressedData.append(page)
-        }
-    } catch {
-        fatalError("Error occurred during decoding: \(error.localizedDescription).")
-    }
-  }
-  */
   
   private func grep_refill() -> Bool {
-    //   ssize_t nr;
+    // FIXME: refillbehave needs to live across calls to grep_refill
     let refillbehave = behave
     
     if (refillbehave == .MMAP) {
@@ -140,10 +89,7 @@ class file {
     bufrange = 0..<0 // buffer.count
     
     switch (refillbehave) {
-        //   #ifdef __APPLE__
       case .GZIP:
-        
-//        do {
           let z = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: MAXBUFSIZ)
           let nr = gzread(gzbufdesc, z.baseAddress!, UInt32(MAXBUFSIZ));
           if nr > 0 {
@@ -156,17 +102,7 @@ class file {
             return false
           }
           return true
-        
- /*         if let b = try inputFilter?.readData(ofLength: MAXBUFSIZE) {
-            buffer.append(b)
-          }
-          bufrange = 0..<buffer.count
-          return true
-        } catch {
-          warn("read error \(name): \(error.localizedDescription)")
-          return false
-        }
-  */
+
       case .BZIP:
         fatalError("BZIP2 not implemented yet")
         /*
@@ -233,7 +169,6 @@ class file {
          
          return (0);
          */
-        //   #endif /* __APPLE__ */
       default:
         do {
           let b = try fd.readUpToCount(MAXBUFSIZ)
@@ -246,40 +181,21 @@ class file {
     }
   }
    
-  /*
-   static inline int
-   grep_lnbufgrow(size_t newlen)
-   {
-   
-   if (lnbuflen < newlen) {
-   lnbuf = grep_realloc(lnbuf, newlen);
-   lnbuflen = newlen;
-   }
-   
-   return (0);
-   }
-   */
-  
   func grep_fgetln(_ pc : inout grepDoer.parsec, _ options : grep.CommandOptions) -> String? {
-    /*   char *p;
-     size_t len;
-     size_t off;
-     ptrdiff_t diff;
-     */
     
-    /* Fill the buffer, if necessary */
+    // Fill the buffer, if necessary
     if (bufrange.count == 0 && !grep_refill() ) {
       pc.ln.dat = ""
       return nil
     }
     
     if (bufrange.count == 0) {
-      /* Return zero length to indicate EOF */
+      // Return zero length to indicate EOF
       pc.ln.dat = ""
       return ""
     }
     
-    /* Look for a newline in the remaining part of the buffer */
+    // Look for a newline in the remaining part of the buffer
     let fileeold = [options.fileeol.asciiValue!]
     let str : ArraySlice<UInt8>
     
@@ -288,50 +204,40 @@ class file {
         str = ArraySlice(bbuffer[bufrange.startIndex...tt])
         bufrange = tt + fileeold.count ..< bufrange.upperBound
       }
-     else {
-       str = ArraySlice( bbuffer[bufrange.startIndex...] )
-      bufrange = bufrange.upperBound..<bufrange.upperBound
-//      tx = Range(buffer.endIndex...buffer.endIndex)
-    }
+      else {
+        str = ArraySlice( bbuffer[bufrange.startIndex...] )
+        bufrange = bufrange.upperBound..<bufrange.upperBound
+      }
     } else {
       
-      if let tt = buffer.firstIndexKMP(of: fileeold, in: bufrange) {
+      if let tt = buffer.firstIndex(of: fileeold, in: bufrange) {
         //      tx = Range(tt...(tt+fileeold.count-1))
         str = buffer[bufrange.startIndex...tt]
         bufrange = tt + fileeold.count ..< bufrange.upperBound
       } else {
         str = buffer[bufrange.startIndex...]
         bufrange = bufrange.upperBound..<bufrange.upperBound
-        //      tx = Range(buffer.endIndex...buffer.endIndex)
       }
-      //    let str = buffer[bufrange.startIndex..<tx.endIndex]
-      //    bufrange = tx.endIndex ..< bufrange.upperBound
     }
     
     if String(validating: str, as: UTF8.self) == nil {
       binary = true
     }
     
-      let ss =
+    let ss =
     binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: UTF8.self) ??
     String(validating: str, as: ISOLatin1.self)!
     pc.ln.dat = ss
     return ss
-    
-      /* Fetch more to try and find EOL/EOF */
   }
   
   
-  /*
-   * Opens a file for processing.
-   */
+  /// Opens a file for processing.
   init?(_ path : String?, _ behav : FILE, _ fileeol : Character, _ binbehav : grep.BINFILE) {
     self.behave = behav
-    
- //   var url : URL?
+
     if let path {
       name = path
-//      url = URL(fileURLWithPath: path)
       do {
         fd = try FileDescriptor(forReading: path)
       } catch {
@@ -339,7 +245,8 @@ class file {
       }
     } else {
       name = "stdin"
-      /* Processing stdin implies --line-buffered. */
+      // Processing stdin implies --line-buffered.
+      // FIXME: is line buffering supported?
 //      options.lbflag = true
       fd = FileDescriptor.standardInput
     }
@@ -352,43 +259,18 @@ class file {
         behave = .STDIO
       }
       else {
-//        #ifdef __APPLE__
-        let flags = MAP_PRIVATE | MAP_NOCACHE
-//#else
-//        int flags = MAP_PRIVATE | MAP_NOCORE | MAP_NOSYNC;
-//        #ifdef MAP_PREFAULT_READ
-//        flags |= MAP_PREFAULT_READ;
-//#endif
-//#endif /* __APPLE__ */
         let fsiz = Int(st.st_size)
-        
         do {
-          
           bbuffer = try mmapFileReadOnly(fd)
-          
-          // FIXME: there is no way to determine if the data will be memory mapped or read in
-          // The work-around is to manually memory-map
-          //        buffer = try! Data.init(contentsOf: url!, options: .mappedIfSafe)
-//          buffer = Data.init(bytesNoCopy: bbuffer!, count: fsiz, deallocator: .unmap)
           bufrange = 0..<fsiz
-          
-          // FIXME: put me back
-//          madvise(bbuffer, fsiz, MADV_SEQUENTIAL)
-
-          
+          madvise(UnsafeMutableRawPointer(mutating: bbuffer!.baseAddress), fsiz, MADV_SEQUENTIAL)
         } catch {
           behave = .STDIO
         }
       }
     }
-    
-/*    if ((buffer == nil) || (bbuffer == MAP_FAILED)) {
-      buffer = UnsafeMutableRawPointer.allocate(byteCount: MAXBUFSIZ, alignment: 8)
-    }
-  */
-    
+
     switch (behave) {
-//        #ifdef __APPLE__
       case .GZIP:
         
         guard let gzbufdesc = gzdopen(fd.rawValue, "r") else { try? fd.close();
@@ -413,7 +295,7 @@ class file {
          */
         
       case .BZIP:
-        fatalError( "not yet implemented")
+        fatalError( "reading BZIP not yet implemented")
         /*
         if ((baaaaaazbufdesc = BZ2_bzdopen(f->fd, "r")) == NULL)
             goto error2;
@@ -421,7 +303,7 @@ class file {
          */
       case .XZ, .LZMA:
         
-      fatalError("not yet implemented")
+      fatalError("reading XZ or LZMA not yet implemented")
         /*
          {
         lzma_ret lzmaret;
@@ -441,49 +323,23 @@ class file {
         break;
       }
          */
-// #endif /* __APPLE__ */
       default:
         break;
     }
         
-    /* Fill read buffer, also catches errors early */
+    /// Fill read buffer, also catches errors early
     if !grep_refill() {
       try? fd.close()
       return nil
     }
-//    if (bufrem == 0 && grep_refill(f) != 0) {
-//      try? fd.close()
-//      return nil
-//    }
-    
-    /* Check for binary stuff, if necessary */
-//    #ifdef __APPLE__
 
-    // FIXME: put me back ?
-    if // binbehav != .TEXT &&
-      fileeol != "\0" &&
-        buffer.contains(0) {
-//        memchr(bufpos, "\0", bufrem) != NULL) {
-      
-      //        #else
-      //        if (binbehave != BINFILE_TEXT && fileeol != '\0' &&
-      //            memchr(bufpos, '\0', bufrem) != NULL)
-      //        #endif
+    /// Check for binary stuff, if necessary
+    if binbehav != .TEXT && fileeol != "\0" && buffer.contains(0) {
       self.binary = true
     }
-    
- //
-//  error2:
-//    close(f->fd);
-//  error1:
-//    free(f);
-//    return (NULL);
   }
-  
 
-   /*
-    * Closes a file.
-    */
+   /// Closes a file
   func grep_close() {
     /* Reset read buffer and line buffer */
     buffer = [UInt8]()
@@ -495,104 +351,3 @@ class file {
 }
 
 
-public extension UnsafeRawBufferPointer {
-  func firstIndex(of: [UInt8], in searchRange: Range<Int>? = nil) -> Int? {
-    let start = searchRange?.lowerBound ?? 0
-    let end = Swift.min(searchRange?.upperBound ?? self.count, self.count)
-    guard 1 <= end - start else { return nil }
-    for i in start..<end {
-      for j in 0..<of.count {
-        if self[i+j] != of[j] {
-          break
-        }
-        return i
-      }
-    }
-    return nil
-  }
-}
-
-public extension Array where Element: Equatable {
-    /// Searches for the first occurrence of the given subarray in the specified range using KMP.
-    ///
-    /// - Parameters:
-    ///   - sub: The subarray to search for.
-    ///   - searchRange: The index range in `self` where the search is performed.
-    /// - Returns: The starting index of the match, or `nil` if not found.
-    func firstIndexKMP(of sub: [Element], in searchRange: Range<Int>? = nil) -> Int? {
-        guard !sub.isEmpty else { return nil }
-
-        let start = searchRange?.lowerBound ?? 0
-      let end = Swift.min(searchRange?.upperBound ?? self.count, self.count)
-
-        guard sub.count <= end - start else { return nil }
-
-        // Build prefix table
-        var prefix = [Int](repeating: 0, count: sub.count)
-        var j = 0
-        for i in 1..<sub.count {
-            while j > 0 && sub[i] != sub[j] {
-                j = prefix[j - 1]
-            }
-            if sub[i] == sub[j] {
-                j += 1
-            }
-            prefix[i] = j
-        }
-
-        // KMP search within the specified range
-        var i = start
-        var k = 0
-        while i < end {
-            if self[i] == sub[k] {
-                i += 1
-                k += 1
-                if k == sub.count {
-                    return i - k
-                }
-            } else if k > 0 {
-                k = prefix[k - 1]
-            } else {
-                i += 1
-            }
-        }
-
-        return nil
-    }
-}
-
-
-
-
-
-
-
-
-
-/// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
-public func mmapFileReadOnly(_ fd: FileDescriptor) throws -> UnsafeRawBufferPointer {
-    // Get file size
-    var statBuf = stat()
-    let statResult = fstat(fd.rawValue, &statBuf)
-
-    if statResult != 0 {
-        try? fd.close()
-        throw Errno(rawValue: errno)
-    }
-
-    let size = Int(statBuf.st_size)
-    guard size > 0 else {
-        try? fd.close()
-        throw Errno.invalidArgument
-    }
-
-    // Map file into memory
-    let addr = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd.rawValue, 0)
-    try fd.close() // Safe to close after mmap
-
-    guard addr != MAP_FAILED else {
-        throw Errno(rawValue: errno)
-    }
-
-    return UnsafeRawBufferPointer(start: addr, count: size)
-}

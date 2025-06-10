@@ -71,8 +71,9 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    setlocale(LC_CTYPE, "")
-    
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_CTYPE, "")
+
     var rval : Int32 = 0
     
     if !options.args.isEmpty {

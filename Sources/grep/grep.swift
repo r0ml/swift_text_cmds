@@ -53,11 +53,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     var needpattern = true
     var lastc : String = ""
     var newarg = true
-    
-    var cflags : Int32 = REG_NOSUB | REG_NEWLINE
-    var eflags : Int32 = REG_STARTEND
+
     var matchall : Bool = false
-    
+
     var lbflag = false // line-buffered output
     
     var color : String?
@@ -98,18 +96,14 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     var args : [String] = CommandLine.arguments
   }
   
-  let VERSION = "2.6.0 FreeBSD"
-  
+  let VERSION = "1.0.0 Darwin"
+
   // from grep.h
   enum GREP {
     case FIXED
     case BASIC
     case EXTENDED
   }
-
-//  #if !defined(REG_NOSPEC) && !defined(REG_LITERAL)
-//  #define WITH_INTERNAL_NOSPEC
-//  #endif
 
   enum BINFILE {
     case BIN
@@ -140,14 +134,6 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     case INCL
   }
 
-
-
-/*  struct pat {
-    var pat : String
-    var len : Int
-  };
-*/
-  
   struct epat {
     var pat : String
     var mode : PAT
@@ -287,7 +273,6 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
       args = [CommandLine.arguments[0]]+aargs+CommandLine.arguments.dropFirst()
     }
     
-    
     let go = BSDGetopt_long(flags, long_options, Array(args.dropFirst()) )
     
     while let (k, v) = try go.getopt_long() {
@@ -386,7 +371,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.binbehave = .SKIP
         case "i", "y", "ignore-case":
           options.iflag =  true
-          options.cflags |= REG_ICASE
+//          options.cflags |= REG_ICASE
 //    #ifdef __APPLE__
         case "J", "bz2decompress":
           options.filebehave = .BZIP
@@ -416,7 +401,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.linkbehave = .EXPLICIT
         case "o", "only-matching":
           options.oflag = true
-          options.cflags &= ~REG_NOSUB
+//          options.cflags &= ~REG_NOSUB
           // FIXME: there is no way to invoke this
         case "p":
           options.linkbehave = .SKIP
@@ -449,10 +434,10 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.vflag = true
         case "w", "word-regexp":
           options.wflag = true
-          options.cflags &= ~REG_NOSUB;
+//          options.cflags &= ~REG_NOSUB;
         case "x", "line-regexp":
           options.xflag = true
-          options.cflags &= ~REG_NOSUB;
+//          options.cflags &= ~REG_NOSUB;
 //    #ifdef __APPLE__
         case "X", "xz":
           options.filebehave = .XZ
@@ -493,7 +478,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
                       vv !=  "no" {
             throw CmdErr(2, "unknown --color option: \(v)")
           }
-          options.cflags &= ~REG_NOSUB;
+//          options.cflags &= ~REG_NOSUB;
           break;
         case "label":
           options.label = v
@@ -555,9 +540,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     switch (options.grepbehave) {
       case .BASIC:
 //    #ifdef __APPLE__
-        options.cflags |= REG_ENHANCED;
+//        options.cflags |= REG_ENHANCED;
 //    #endif
-        break;
+        break
       case .FIXED:
         /*
          * regex(3) implementations that support fixed-string searches generally
@@ -569,17 +554,17 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
          * consideration when defining WITH_INTERNAL_NOSPEC.
          */
 //    #if defined(REG_NOSPEC)
-        options.cflags |= REG_NOSPEC;
+//        options.cflags |= REG_NOSPEC;
 //    #elif defined(REG_LITERAL)
 //        cflags |= REG_LITERAL;
 //    #endif
-//        break;
+         break;
       case .EXTENDED:
-        options.cflags |= REG_EXTENDED
+//        options.cflags |= REG_EXTENDED
 //    #ifdef __APPLE__
-        options.cflags |= REG_ENHANCED
+//        options.cflags |= REG_ENHANCED
 //    #endif
-//        break;
+        break;
       default:
         /* NOTREACHED */
         throw CmdErr(1)
@@ -608,9 +593,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           } else {
             if options.wflag {
               //            ii = #"(?<!\w)"+i+"(?!\w)"#
-              ii = #"(?:^|\W)("# + ii + #")(?:\W|$)"#
+//              ii = #"(?:^|\W)("# + ii + #")(?:\W|$)"#
+              ii = "\\b" + ii + "\\b"
             }
-            var r = try Regex<AnyRegexOutput>(ii).ignoresCase(options.iflag)
+            // Test case wants the word boundary to be `simple`
+            let r = try Regex<AnyRegexOutput>(ii).ignoresCase(options.iflag).wordBoundaryKind(.simple)
             options.regexes.append(r)
           }
         } catch(let e) {

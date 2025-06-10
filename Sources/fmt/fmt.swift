@@ -282,8 +282,9 @@ import CMigration
   var pendingSpaces: Int = 0                // Spaces to add before the next word
 
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
-    
-    setlocale(LC_CTYPE, "")
+
+    // FIXME: setlocale has disappeared!
+    // setlocale(LC_CTYPE, "")
     var goalLengthSet = false
     
     // Initialize the output buffer

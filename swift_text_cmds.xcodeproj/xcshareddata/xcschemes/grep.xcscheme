@@ -58,11 +58,11 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-Eo"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&quot;&quot;"
-            isEnabled = "YES">
+            argument = "(^|:)0*"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-e baz"
@@ -114,19 +114,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--mmap"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-oe"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "foobar"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/inFile"
-            isEnabled = "NO">
+            argument = "B"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "[A-Z]"
@@ -161,8 +157,12 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-e"
+            argument = "x"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/inFile"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "bc"
@@ -177,8 +177,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Library/Developer/Xcode/DerivedData/swift_text_cmds-axootrlqbvsgureebrwhlofvdqjs/Build/Products/Debug/grepTest.xctest/Contents/Resources/d_oflag_zerolen_d.in"
-            isEnabled = "YES">
+            argument = "/Users/r0ml/AppleOpenSource/swift_text_cmds/Tests/grepTest/Resources/d_oflag_zerolen_a.in"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
