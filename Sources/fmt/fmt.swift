@@ -389,7 +389,7 @@ import CMigration
   /// Outputs a single word or adds it to the buffer.
   func outputWord(indent0: Int, indent1: Int, word: String, spaces: Int, _ options : CommandOptions) {
     let indent = outputInParagraph ? indent1 : indent0
-    let width = word.reduce(0) { $0 + wcwidth($1) }
+    let width = word.wcwidth()
     let newX = x + pendingSpaces + width
     
     // Determine the number of spaces to add
@@ -450,7 +450,7 @@ import CMigration
     do {
       for try await line in stream.bytes.lines {
         let trimmedLine = String((line.drop { $0.isWhitespace }).reversed().drop(while: { $0.isWhitespace }).reversed())
-        let lineWidth = trimmedLine.reduce(0) { $0 + wcwidth($1) }
+        let lineWidth = trimmedLine.wcwidth()
         var padding = ""
 //        var currentWidth = 0
         padding = String(repeating: " ", count: (options.goalLength + 1 - lineWidth)/2)

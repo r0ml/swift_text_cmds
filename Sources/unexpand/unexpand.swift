@@ -179,9 +179,8 @@ import CMigration
           continue;
         } else if (ch != " " || dcol > limit) {
           FileDescriptor.standardOutput.write( String(ch) )
-          let cc = ch.unicodeScalars.first!.value
-          // FIXME: replace wcwidth with a Swifty equivalent
-          let width = Int(wcwidth(wchar_t(cc)))
+//          let cc = ch.unicodeScalars.first!.value
+          let width = ch.wcwidth // Int(wcwidth(wchar_t(cc)))
           if (width > 0) {
             ocol += width
             dcol += width

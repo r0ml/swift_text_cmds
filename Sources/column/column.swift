@@ -127,10 +127,7 @@ import CMigration
     exit((Int32(eval)))
   }
   
-//  func width(_ s : any StringProtocol) -> Int {
-//    s.unicodeScalars.reduce(0) { $0 + Int(wcwidth( Int32($1.value)) ) }
-//  }
-  
+ 
   func roundup( _ n : Int, _ m : Int) -> Int {
     return m * ( n + m - 1 ) / m  }
   

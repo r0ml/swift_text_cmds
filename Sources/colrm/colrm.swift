@@ -96,11 +96,8 @@ import CMigration
             case "\n":
               column = 0
             default:
-              let width =
-              ch.unicodeScalars.reduce(0, { $0 +  Darwin.wcwidth(Int32($1.value) ) } )
-              if width > 0 {
-                column += Int(width)
-              }
+              let width = ch.wcwidth
+              column += width
           }
           if options.start == 0 || column < options.start || (options.stop > 0 && column > options.stop) {
             return ch

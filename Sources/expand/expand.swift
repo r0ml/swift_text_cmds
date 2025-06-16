@@ -232,7 +232,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
             
           default:
             print(wc, terminator: "")
-            let width = wcwidth(wc)
+            let width = wc.wcwidth
             if width > 0 {
               column += width
             }

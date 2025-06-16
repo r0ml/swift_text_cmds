@@ -152,7 +152,7 @@ let DEFLINEWIDTH = 80
           column = (column + 8) & ~7
         default:
           // Using Unicode scalar width
-          let width = wcwidth(ch)
+          let width = ch.wcwidth
           if width > 0 {
             column += width
           }

@@ -731,8 +731,8 @@ class SedProcess {
           outfile.write("$\n")
           col = 0
  */
-        } else if iswprint(wc) {
-          let width = wcwidth(wc)
+        } else if wc.iswprint {
+          let width = wc.wcwidth
           if col + width >= termwidth {
             outfile.write("\\\n")
             col = 0
