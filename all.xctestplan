@@ -13,6 +13,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E70C05BE2D246FA500442F2D",

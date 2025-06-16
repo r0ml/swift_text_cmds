@@ -434,17 +434,12 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
           options.vflag = true
         case "w", "word-regexp":
           options.wflag = true
-//          options.cflags &= ~REG_NOSUB;
         case "x", "line-regexp":
           options.xflag = true
-//          options.cflags &= ~REG_NOSUB;
-//    #ifdef __APPLE__
         case "X", "xz":
           options.filebehave = .XZ
-//    #endif
         case "z", "null-data":
           options.fileeol = "\0"
-//    #ifdef __APPLE__
         case "Z":
           options.filebehave = .GZIP
 //    #endif
@@ -537,47 +532,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
       options.args.removeFirst()
     }
 
-    switch (options.grepbehave) {
-      case .BASIC:
-//    #ifdef __APPLE__
-//        options.cflags |= REG_ENHANCED;
-//    #endif
-        break
-      case .FIXED:
-        /*
-         * regex(3) implementations that support fixed-string searches generally
-         * define either REG_NOSPEC or REG_LITERAL. Set the appropriate flag
-         * here. If neither are defined, GREP_FIXED later implies that the
-         * internal literal matcher should be used. Other cflags that have
-         * the same interpretation as REG_NOSPEC and REG_LITERAL should be
-         * similarly added here, and grep.h should be amended to take this into
-         * consideration when defining WITH_INTERNAL_NOSPEC.
-         */
-//    #if defined(REG_NOSPEC)
-//        options.cflags |= REG_NOSPEC;
-//    #elif defined(REG_LITERAL)
-//        cflags |= REG_LITERAL;
-//    #endif
-         break;
-      case .EXTENDED:
-//        options.cflags |= REG_EXTENDED
-//    #ifdef __APPLE__
-//        options.cflags |= REG_ENHANCED
-//    #endif
-        break;
-      default:
-        /* NOTREACHED */
-        throw CmdErr(1)
-      }
-
-//    var r_pattern = Array(repeating: regex_t(), count: options.patterns.count)
-
-//    #ifdef WITH_INTERNAL_NOSPEC
-//    if options.grepbehave != .FIXED {
-//    #else
-//      {
-//    #endif
-        /* Check if cheating is allowed (always is for fgrep). */
+    /* Check if cheating is allowed (always is for fgrep). */
       for i in options.patterns {
         do {
           // FIXME: deal with the options.cflags
@@ -592,8 +547,6 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
             options.regexes.append(Regex(verbatim: i).ignoresCase(options.iflag))
           } else {
             if options.wflag {
-              //            ii = #"(?<!\w)"+i+"(?!\w)"#
-//              ii = #"(?:^|\W)("# + ii + #")(?:\W|$)"#
               ii = "\\b" + ii + "\\b"
             }
             // Test case wants the word boundary to be `simple`
@@ -601,16 +554,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
             options.regexes.append(r)
           }
         } catch(let e) {
-//        let c = regcomp(&options.patterns[i].1, options.patterns[i].0, options.cflags)
-//          if (c != 0) {
-//            let RE_ERROR_BUF = 512
-//            let re_error = calloc(1, RE_ERROR_BUF)
-//            regerror(c, &options.patterns[i].1, re_error,
-//                RE_ERROR_BUF);
             throw CmdErr(2, "\(e)")
           }
         }
-      
 
         if (options.lbflag) {
           setlinebuf(stdout)
@@ -620,19 +566,6 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
       options.hflag = true
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     return options
   }
   
@@ -655,21 +588,6 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   {
     options.dpatterns.append(epat(pat: pat, mode: mode) )
   }
-
-  // Adds a searching pattern to the internal array.
-/*  func add_pattern(_ pat : String, _ options : inout CommandOptions ) {
-
-    // Check if we can do a shortcut
-    if pat.isEmpty {
-      options.matchall = true;
-      return;
-    }
-
-    var patx = pat
-    while patx.last == "\n" { patx.removeLast() }
-    options.patterns.append((patx, regex_t()))
-  }
-*/
 
    // Reads searching patterns from a file and adds them with add_pattern().
   func read_patterns(_ fn : String, _ options : inout CommandOptions) async throws(CmdErr) {

@@ -88,12 +88,13 @@ import CMigration
     var nblank_lines = 0
     var noBackspaces = false
     var passUnknownSeqs = false
+    var inf = FileDescriptor.standardInput
     var args : [String] = CommandLine.arguments
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = "bfhl:px"
+    let supportedFlags = "bfhl:pxi:"
     let go = BSDGetopt(supportedFlags)
     
     while let (k, v) = try go.getopt() {
@@ -117,6 +118,12 @@ import CMigration
           options.passUnknownSeqs = true
         case "x":
           options.compressSpaces = false
+        case "i":
+          do {
+            options.inf = try FileDescriptor(forReading: v)
+          } catch(let e) {
+            throw CmdErr(1, "failed to open \(v): \(e)")
+          }
         case "?":
           fallthrough
         default:
@@ -130,8 +137,8 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+
     var cur_line = 0
     var cur_col = 0
     var cur_set: CSET = .normal
@@ -143,164 +150,168 @@ import CMigration
     var max_line = 0
     var extra_lines = 0
     var warned = false
-    
-    while true {
-      let chx = getwchar()
-      if chx == WEOF { break }
-      let ch = Character(UnicodeScalar(UInt32(chx))!)
 
-      if 0 == iswgraph(chx) {
-        switch ch {
-          case BS:
-            if cur_col == 0 {
-              continue
-            }
-            cur_col -= 1
-            continue
-          case CR:
-            cur_col = 0
-            continue
-          case ESC:
-            switch Character(UnicodeScalar(UInt32(getwchar()))!) {
-              case BEL, RLF:
-                cur_line -= 2
-              case BS, RHLF:
-                cur_line -= 1
-              case TAB, FHLF:
-                cur_line += 1
-                if cur_line > max_line { max_line = cur_line }
-              default:
+    var chfd = options.inf.characters.makeAsyncIterator()
+    do {
+      while let ch = try await chfd.next() {
+        let chx = Int32( ch.unicodeScalars.first!.value )
+        if 0 == iswgraph(chx) {
+          switch ch {
+            case BS:
+              if cur_col == 0 {
                 continue
+              }
+              cur_col -= 1
+              continue
+            case CR:
+              cur_col = 0
+              continue
+            case ESC:
+              if let chn = try await chfd.next() {
+                switch chn {
+                  case BEL, RLF:
+                    cur_line -= 2
+                  case BS, RHLF:
+                    cur_line -= 1
+                  case TAB, FHLF:
+                    cur_line += 1
+                    if cur_line > max_line { max_line = cur_line }
+                  default:
+                    continue
+                }
+              }
+              continue
+            case NL:
+              cur_line += 2
+              if cur_line > max_line {
+                max_line = cur_line
+              }
+              cur_col = 0
+              continue
+            case SPACE:
+              cur_col += 1
+              continue
+            case SI:
+              cur_set = .normal
+              continue
+            case SO:
+              cur_set = .alternate
+              continue
+            case TAB:
+              cur_col |= 7
+              cur_col += 1
+              continue
+            case VT:
+              cur_line -= 2
+              continue
+            default:
+              break
+          }
+          if ch.isWhitespace {
+            let width = wcwidth(chx)
+            if width > 0 {
+              cur_col += Int(width)
             }
             continue
-          case NL:
-            cur_line += 2
-            if cur_line > max_line {
-              max_line = cur_line
-            }
-            cur_col = 0
-            continue
-          case SPACE:
-            cur_col += 1
-            continue
-          case SI:
-            cur_set = .normal
-            continue
-          case SO:
-            cur_set = .alternate
-            continue
-          case TAB:
-            cur_col |= 7
-            cur_col += 1
-            continue
-          case VT:
-            cur_line -= 2
-            continue
-          default:
-            break
-        }
-        if ch.isWhitespace {
-          let width = wcwidth(chx)
-          if width > 0 {
-            cur_col += Int(width)
           }
-          continue
-        }
-        if !options.passUnknownSeqs {
-          continue
-        }
-      }
-      
-      /*
-      // Handle other cases here, like adding the character to the line
-      if cur_line != 0 {
-        flush_lines(lines, 1, options)
-      }
-    }
-    
-    // Final clean up and flushing
-    flush_lines(lines, cur_line, options)
-    */
-      /* Must stuff ch in a line - are we at the right one? */
-      if (cur_line + adjust != this_line) {
-
-        /* round up to next line */
-        adjust = (!options.fine && (cur_line & 1) == 1) ? 1 : 0
-
-        if (cur_line + adjust < this_line) {
-          while (cur_line + adjust < this_line &&
-                 this_line > lines.startIndex) {
-//            l -= 1
-            this_line-=1
+          if !options.passUnknownSeqs {
+            continue
           }
+        }
+
+        /*
+         // Handle other cases here, like adding the character to the line
+         if cur_line != 0 {
+         flush_lines(lines, 1, options)
+         }
+         }
+
+         // Final clean up and flushing
+         flush_lines(lines, cur_line, options)
+         */
+        /* Must stuff ch in a line - are we at the right one? */
+        if (cur_line + adjust != this_line) {
+
+          /* round up to next line */
+          adjust = (!options.fine && (cur_line & 1) == 1) ? 1 : 0
+
           if (cur_line + adjust < this_line) {
-            if (nflushd_lines == 0) {
-              /*
-               * Allow backup past first
-               * line if nothing has been
-               * flushed yet.
-               */
-              while (cur_line + adjust
-                  < this_line) {
-                let lnew = LINE()
-                lines.insert(lnew, at: 0)
-                extra_lines+=1
-//                  this_line-=1
-                cur_line += 1
+            while (cur_line + adjust < this_line &&
+                   this_line > lines.startIndex) {
+              //            l -= 1
+              this_line-=1
+            }
+            if (cur_line + adjust < this_line) {
+              if (nflushd_lines == 0) {
+                /*
+                 * Allow backup past first
+                 * line if nothing has been
+                 * flushed yet.
+                 */
+                while (cur_line + adjust
+                       < this_line) {
+                  let lnew = LINE()
+                  lines.insert(lnew, at: 0)
+                  extra_lines+=1
+                  //                  this_line-=1
+                  cur_line += 1
+                }
+              } else {
+                if !warned {
+                  warned = true
+                  let ff = cur_line < 0 ? "past first line" : "-- line already flushed"
+                  let msg = "warning: can't back up \(ff)"
+                  FileDescriptor.standardError.write("\(msg)\n")
+                }
+                cur_line = this_line - adjust;
               }
-            } else {
-              if !warned {
-                warned = true
-                let ff = cur_line < 0 ? "past first line" : "-- line already flushed"
-                let msg = "warning: can't back up \(ff)"
-                FileDescriptor.standardError.write("\(msg)\n")
+            }
+          } else {
+            /* may need to allocate here */
+            while (cur_line + adjust > this_line) {
+              //             if (l->l_next == NULL) {
+              if (this_line >= lines.endIndex - 1) {
+                lines.append(LINE())
               }
-              cur_line = this_line - adjust;
+              this_line += 1
             }
           }
-        } else {
-          /* may need to allocate here */
-          while (cur_line + adjust > this_line) {
-            //             if (l->l_next == NULL) {
-            if (this_line >= lines.endIndex - 1) {
-              lines.append(LINE())
+          if (this_line > nflushd_lines &&
+              this_line - nflushd_lines >=
+              options.max_bufd_lines + BUFFER_MARGIN) {
+            if extra_lines > 0 {
+              flush_lines(&lines, extra_lines, options)
+              extra_lines = 0
             }
-            this_line += 1
+            flush_lines(&lines, this_line - nflushd_lines -
+                        options.max_bufd_lines, options)
+            nflushd_lines = this_line - options.max_bufd_lines;
           }
         }
-        if (this_line > nflushd_lines &&
-            this_line - nflushd_lines >=
-            options.max_bufd_lines + BUFFER_MARGIN) {
-          if extra_lines > 0 {
-            flush_lines(&lines, extra_lines, options)
-            extra_lines = 0
-          }
-          flush_lines(&lines, this_line - nflushd_lines -
-                      options.max_bufd_lines, options)
-          nflushd_lines = this_line - options.max_bufd_lines;
-        }
-      }
- //     let l = lines.first!
- 
-      let c = CHAR(c_column: cur_col, c_set: cur_set, c_char: ch, c_width: Int(wcwidth(chx)))
-      lines[this_line].l_line.append(c)
+        //     let l = lines.first!
 
-      /*
-       * If things are put in out of order, they will need sorting
-       * when it is flushed.
-       */
-      if (cur_col < lines[this_line].l_max_col) {
-//        l->l_needs_sort = 1
-        lines[this_line].l_needs_sort = true
-      } else {
-//        l->l_max_col = cur_col
-        lines[this_line].l_max_col = cur_col
+        let c = CHAR(c_column: cur_col, c_set: cur_set, c_char: ch, c_width: Int(wcwidth(chx)))
+        lines[this_line].l_line.append(c)
+
+        /*
+         * If things are put in out of order, they will need sorting
+         * when it is flushed.
+         */
+        if (cur_col < lines[this_line].l_max_col) {
+          //        l->l_needs_sort = 1
+          lines[this_line].l_needs_sort = true
+        } else {
+          //        l->l_max_col = cur_col
+          lines[this_line].l_max_col = cur_col
+        }
+        if (c.c_width > 0) {
+          cur_col += c.c_width
+        }
       }
-      if (c.c_width > 0) {
-        cur_col += c.c_width
-      }
+    } catch(let e) {
+      throw CmdErr(1, "reading: \(e)")
     }
-    
+
 //    if (ferror(stdin)) {
 //      err(1, NULL)
 //    }

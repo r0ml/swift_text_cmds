@@ -13,7 +13,7 @@ import ShellTesting
   let cmd = "col"
   let suiteBundle = "text_cmds_colTest"
   
-  @Test("testing just newlines", arguments: ["nl", "nl2"]) func nl(_ arg : String) async throws {
+  @Test("testing just newlines", arguments: ["nl", "nl2", "nl3"]) func nl(_ arg : String) async throws {
     let i = try fileContents("\(arg).in")
     try await run(withStdin: i, output: arg == "nl3" ? "a\n\nb\n\n" : "a\nb\n" )
   }

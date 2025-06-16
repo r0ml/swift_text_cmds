@@ -57,12 +57,12 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-x"
-            isEnabled = "NO">
+            argument = "-i"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/colTest/Resources/rlf2.in"
-            isEnabled = "NO">
+            argument = "/Users/r0ml/AppleOpenSource/swift_text_cmds/Tests/colTest/Resources/nl.in"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

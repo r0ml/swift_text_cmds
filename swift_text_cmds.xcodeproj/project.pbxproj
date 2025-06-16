@@ -1511,6 +1511,13 @@
 				joinTest/joinTest.swift,
 				joinTest/Resources/regress.1.in,
 				joinTest/Resources/regress.2.in,
+				joinTest/Resources/regress.3.in,
+				joinTest/Resources/regress.3.out,
+				joinTest/Resources/regress.4.in,
+				joinTest/Resources/regress.4.out,
+				joinTest/Resources/regress.5.in,
+				joinTest/Resources/regress.5.out,
+				joinTest/Resources/regress.6.out,
 				joinTest/Resources/regress.out,
 			);
 			target = E76972382CF6358B00F3903F /* joinTest */;

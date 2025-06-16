@@ -506,7 +506,7 @@ line
     
     let inf = try tmpfile("blkbof.in", "")
     var buf : stat = stat()
-    let s = stat(inf, &buf)
+    let s = stat(inf.path, &buf)
     let blksiz = buf.st_blksize
     let cursize = buf.st_size
     

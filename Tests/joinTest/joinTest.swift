@@ -9,12 +9,44 @@ import ShellTesting
 struct joinTest : ShellTest {
   let cmd = "join"
   let suiteBundle = "text_cmds_joinTest"
-  
+
   @Test func only() async throws {
     let inp1 = try inFile("regress.1.in")
     let inp2 = try inFile("regress.2.in")
     let expected = try fileContents("regress.out")
     try await run( output: expected, args: "-t", ",", "-a1", "-a2", "-e", "(unknown)", "-o", "0,1.2,2.2", inp1, inp2)
   }
+
+  @Test func man1() async throws {
+    let inp1 = try inFile("regress.3.in")
+    let inp2 = try inFile("regress.4.in")
+    let expected = try fileContents("regress.3.out")
+    try await run( output: expected, args: "-t,", "-1", "2", inp1, inp2)
+  }
+
+  @Test func man2() async throws {
+    let inp1 = try inFile("regress.3.in")
+    let inp2 = try inFile("regress.4.in")
+    let expected = try fileContents("regress.4.out")
+    try await run( output: expected, args: "-e", "<<NULL>>", "-t,", "-1", "2", "-o", "1.1 2.2", inp1, inp2)
+  }
+
+  @Test func man3() async throws {
+    let inp1 = try inFile("regress.3.in")
+    let inp2 = try inFile("regress.4.in")
+    let expected = try fileContents("regress.5.out")
+    try await run( output: expected, args: "-v1", "-t,", "-1", "2", inp1, inp2)
+  }
+
+  @Test func man4() async throws {
+    let inp1 = try inFile("regress.3.in")
+    let inp2 = try inFile("regress.4.in")
+    let (_, o1, _) = try await ShellProcess(cmd, "-t,", "-1", "2", "-o", "1.2 2.2", inp1, inp2).run()
+    let inp3 = try inFile("regress.5.in")
+    let expected = try fileContents("regress.6.out")
+    let (_, o2, _) = try await ShellProcess("/usr/bin/sort", "-k2", "-t,").run(o1)
+    try await run( withStdin: o2, output: expected, args: "-t,", "-e", "<<NULL>>", "-1", "2", "-o", "1.1 2.2", "-", inp3)
+  }
+
 
 }

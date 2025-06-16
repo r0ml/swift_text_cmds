@@ -41,15 +41,18 @@ import CMigration
     var start = 0
     var stop = 0
     var args : [String] = CommandLine.arguments
+    var inFile : FilePath = "-"
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-    let supportedFlags = ""
+    let supportedFlags = "f:"
     let go = BSDGetopt(supportedFlags)
     
-    while let (k, _) = try go.getopt() {
+    while let (k, v) = try go.getopt() {
       switch k {
+        case "f":
+          options.inFile = FilePath(v)
         default: throw CmdErr(1)
       }
     }
@@ -80,9 +83,9 @@ import CMigration
   
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     let TAB = 8
-    
     do {
-      for try await buf in FileDescriptor.standardInput.bytes.lines {
+      var fd = options.inFile == "-" ? FileDescriptor.standardInput : try FileDescriptor(forReading: options.inFile.string)
+      for try await buf in fd.bytes.lines(true) {
         var column = 0
         let bx = buf.compactMap { ch in
           switch ch {
@@ -94,7 +97,7 @@ import CMigration
               column = 0
             default:
               let width =
-              ch.unicodeScalars.reduce(0, { $0 +  wcwidth(Int32($1.value) ) } )
+              ch.unicodeScalars.reduce(0, { $0 +  Darwin.wcwidth(Int32($1.value) ) } )
               if width > 0 {
                 column += Int(width)
               }
@@ -105,7 +108,7 @@ import CMigration
             return nil
           }
         }
-        FileDescriptor.standardOutput.write(String(bx))
+        print(String(bx), terminator: "")
       }
     } catch {
       throw CmdErr(1, "error reading input: \(error)")

@@ -139,7 +139,7 @@ o=
     rm(t, j)
   }
 
-  @Test("different ways of specifying input and output(4)", arguments:
+  @Test("different ways of specifying input and output(4)", .serialized, arguments:
           ["-ooutfile", "-o outfile", "--output=outfile",],
         ["", "-i-", "-i -", "--input=-"]
   ) func in_out4(_ o : String, _ i : String) async throws {
