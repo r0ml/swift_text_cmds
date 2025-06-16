@@ -304,8 +304,10 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
         if state.ofd == nil {
           try newfile(options, &state)
         }
-        
-        state.ofd?.write(line)
+
+        print(line, to: &state.ofd!)
+
+//        state.ofd?.write(line)
         
       }
     } catch let e as CmdErr {
