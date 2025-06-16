@@ -346,7 +346,7 @@ extension bintrans {
       if q.hasPrefix("~") {
         let j = q.split(separator: "/", maxSplits: 1)
         if j.count > 1 {
-          pw = getpwnam(String(j[0].dropFirst()))
+          pw = Darwin.getpwnam(String(j[0].dropFirst()))
           if let pw {
             let dd = String(cString: pw.pointee.pw_dir)
             fn = dd + "/" + String(j[1])
