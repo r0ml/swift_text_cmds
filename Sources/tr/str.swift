@@ -44,7 +44,7 @@ class STR {
   enum State {
     case eos, infinite, normal, range, sequence, cclass, cclassUpper, cclassLower, set, equiv
   }
-  
+
   var state: State = .normal
   var str : Substring
   var originalStr: String
@@ -55,22 +55,22 @@ class STR {
   var set: [UnicodeScalar] = []
   var equiv: UnicodeScalar?
   var is_octal = false
-  
+
   init(_ str: String) {
     self.originalStr = str
     self.str = Substring(str)
   }
-  
-  
+
+
   // Apple-Specific Collation Lookup Cache
-  
+
   var collationWeightCache = [Int](repeating: -1, count: NCHARS_SB)
   var isWeightCached = false
-  
+
   /// Retrieves the next character from a given STR object.
   func next() throws(CmdErr) -> Bool {
     is_octal = false
-    
+
     switch state {
       case .eos:
         return false
@@ -85,7 +85,7 @@ class STR {
           state = .eos
           return false
         }
-        
+
         let ch = str.removeFirst()
         switch ch {
           case "\\":
@@ -99,7 +99,7 @@ class STR {
             // FIXME: what if there is a second unicode scalar for this character?
             lastch = ch.unicodeScalars.first!
         }
-        
+
         // Handle Ranges
         if str.first == "-" {
           str.removeFirst()
@@ -128,18 +128,18 @@ class STR {
         cnt -= 1
         return true
       case .cclass, .cclassUpper, .cclassLower:
-        let nw = nextwctype( cnt == 0 ? Int32(-1) : Int32(lastch!.value), wctypex)
+        let nw = nextwctype( cnt == 0 ? UnicodeScalar(0) : lastch!)
         cnt += 1
-        if nw == -1 {
+        if nw == nil {
           lastch = nil
           cnt = 0
           state = .normal
           return try next()
         } else {
-          lastch = UnicodeScalar(UInt32(nw))!
+          lastch = nw! // UnicodeScalar(UInt32(nw!))!
           return true
         }
-        
+
         //        fatalError("next on cclass")
         /*
          let ch = nextwctype(wint_t(lastch.value), cclass!)
@@ -168,13 +168,13 @@ class STR {
         return try next()
     }
   }
-  
+
   /// Parses bracketed expressions in a pattern.
   func bracket() throws(CmdErr) -> Bool {
     guard !str.isEmpty else { return false }
-    
+
     let nextChar = str.first
-    
+
     switch nextChar {
       case ":": // [:class:]
         guard let p = str.firstIndex(of: "]") else { return false }
@@ -182,14 +182,14 @@ class STR {
           return gotoRepeat()
         }
         let nstr = str.suffix(from: p).dropFirst()
-        
+
         let k = str.prefix(upTo: p).dropFirst().dropLast()
         genclass( String(k) )
         str = nstr
         return true
-        
+
       case "=": // [=equiv=]
-        
+
         guard let p = str.dropFirst(3).firstIndex(of: "]")  else {
           return false
         }
@@ -206,7 +206,7 @@ class STR {
       default:
         return gotoRepeat()
     }
-    
+
     func gotoRepeat() -> Bool {
       guard let p = str.dropFirst(2).firstIndex(where: { "*]".contains($0) } ) else { return false }
       if str[p] != "*" || !str[p...].contains("]") {
@@ -216,10 +216,10 @@ class STR {
       genseq()
       return true
     }
-    
+
     //    return false
   }
-  
+
   /// Generates a character class.
   func genclass(_ className : String) {
     cclass = classes[className]
@@ -228,34 +228,34 @@ class STR {
     state = .cclass
     cnt = 0
   }
-  
-  
+
+
   /// Generates equivalent character set.
   func genequiv() throws(CmdErr) {
-//    throw CmdErr(1, "equivalence classes not implemented")
+    //    throw CmdErr(1, "equivalence classes not implemented")
     // the original relies on __collate_lookup_l which is an internal function in libc and not available to me.
     // does the following expression work to simulate the desired outcome:
     // "e".compare("é", options: [.diacriticInsensitive, .widthInsensitive]).rawValue
-    
+
     // if so, there is no way to do this in the current flow because there is no way to find the set of characters for which the "insensitive" compare yields true.
     // Either I have to run through all possible characters and generate such a list (which seems intensive)
     // or the flow which does the compare (and currently relies on a CharacterSet,
     // needs to change to use a "CharacterSetDescription" which implements different compare strategies for different members of the set.
-    
-     if str.first == "\\" {
-     equiv = backslash()
-     if (str.first != "=") {
-     throw CmdErr(1, "misplaced equivalence equals sign")
-     }
-     str = str.dropFirst(2)
-     } else {
-     equiv = str.first!.unicodeScalars.first!
-     if (str.dropFirst().first != "=") {
-     throw CmdErr(1, "misplaced equivalence equals sign")
-     }
-     str = str.dropFirst(2)
-     }
-     
+
+    if str.first == "\\" {
+      equiv = backslash()
+      if (str.first != "=") {
+        throw CmdErr(1, "misplaced equivalence equals sign")
+      }
+      str = str.dropFirst(2)
+    } else {
+      equiv = str.first!.unicodeScalars.first!
+      if (str.dropFirst().first != "=") {
+        throw CmdErr(1, "misplaced equivalence equals sign")
+      }
+      str = str.dropFirst(2)
+    }
+
     /*
      /*
       * Partially supporting multi-byte locales; only finds equivalent
@@ -266,7 +266,7 @@ class STR {
      var tsec : Int32
      var len : Int32
      __collate_lookup_l(equiv, &len, &tprim, &tsec, LC_GLOBAL_LOCALE);
-     
+
      if (tprim != -1) {
      for (p = 1, i = 1; i < NCHARS_SB; i++) {
      int cprim;
@@ -283,7 +283,7 @@ class STR {
      __collate_lookup_l((__darwin_wchar_t *)&i, &len, &cprim, &csec, LC_GLOBAL_LOCALE);
      collation_weight_cache[i] = cprim;
      }
-     
+
      /*
       * If a character does not exist in the collation
       * table, just skip it
@@ -291,7 +291,7 @@ class STR {
      if (cprim == -1) {
      continue;
      }
-     
+
      /*
       * Only compare primary weights to determine multi-byte
       * character equivalence
@@ -301,25 +301,25 @@ class STR {
      }
      }
      s->equiv[p] = OOBCH;
-     
+
      if (!is_weight_cached) {
      is_weight_cached = 1;
      }
      }
      */
-     cnt = 0;
-     state = .equiv
+    cnt = 0;
+    state = .equiv
   }
-  
+
   /// Generates a range of characters.
   func genrange() -> Bool {
     let was_octal = is_octal
     is_octal = false
     let savestart = str
     guard !str.isEmpty else { return false }
-    
+
     let stopval: UnicodeScalar
-    
+
     if str.first == "\\" {
       str.removeFirst()
       stopval = backslash()
@@ -327,7 +327,7 @@ class STR {
       // FIXME: what if multiple unicode scalars?
       stopval = str.removeFirst().unicodeScalars.first!
     }
-    
+
     if is_octal || was_octal || ___mb_cur_max() > 1 {
       if let lastch, stopval.value < lastch.value {
         // FIXME: what about savestart?
@@ -349,16 +349,16 @@ class STR {
     set = (lastch!.value...stopval.value).map { UnicodeScalar($0)! }
     return true
   }
-  
+
   func genseq() {
     var ep: String.Index?
-    
+
     if str.first == "\\" {
       lastch = backslash()
     } else {
       let firstIndex = str.startIndex
       let clen = str[firstIndex].utf16.count
-      
+
       if let scalar = str.unicodeScalars.first {
         lastch = scalar
         str.removeFirst(clen)
@@ -366,13 +366,13 @@ class STR {
         fatalError("Invalid character sequence")
       }
     }
-    
+
     guard str.first == "*" else {
       fatalError("misplaced sequence asterisk")
     }
-    
+
     str.removeFirst()
-    
+
     switch str.first {
       case "\\":
         lastch = backslash()
@@ -386,7 +386,7 @@ class STR {
             let numStr = String(str[..<numEndIndex])
             cnt = Int(numStr) ?? 0
             ep = numEndIndex
-            
+
             if ep != nil && str[ep!] == "]" {
               str = str[str.index(after: ep!)...]
             } else {
@@ -397,14 +397,14 @@ class STR {
           fatalError("illegal sequence count")
         }
     }
-    
+
     state = cnt > 0 ? .sequence : .infinite
   }
   /// Processes escape sequences in a string.
   func backslash() -> UnicodeScalar {
     var val = 0
     var count = 0
-    
+
     while let ch = str.first,
           let n = Array("01234567").firstIndex(of: ch) {
       val = val * 8 + n
@@ -412,14 +412,14 @@ class STR {
       str.removeFirst()
       if count == 3 { break }
     }
-    
+
     if count > 0 {
       is_octal = true
       return UnicodeScalar(val) ?? "?"
     } else {
       is_octal = false
     }
-    
+
     let ch = str.first
     switch ch  {
       case "n": str.removeFirst()
@@ -432,7 +432,7 @@ class STR {
         return (ch ?? "\0").unicodeScalars.first ?? "?"
     }
   }
-  
+
   let classes : [String : (UnicodeScalar) -> Bool ] = [
     "alnum" : { Character($0).isLetter || Character($0).isNumber }, // CharacterSet.alphanumerics,
     "alpha" : { Character($0).isLetter }, // CharacterSet.letters,
@@ -447,9 +447,20 @@ class STR {
     "upper" : { Character($0).isUppercase }, // CharacterSet.uppercaseLetters,
     "xdigit" : { Character($0).isHexDigit }, //  CharacterSet.init(charactersIn: "0123456789ABCDEFabcdef")
   ]
-}
 
-
-func nextwctype(_ n : Int32, _ c : UInt32) -> Int32 {
-  fatalError("not yet implemented -- nextwctype")
+  /// Return the next character after `ch` (as a Unicode scalar) that satisfies the given class, or nil if none found.
+  func nextwctype(_ ch: Unicode.Scalar) -> Unicode.Scalar? {
+    var value = ch.value + 1
+    if let t = cclass {
+      while value <= 0x10FFFF {
+        if let scalar = Unicode.Scalar(value) {
+          if t(scalar) {
+            return scalar
+          }
+        }
+        value += 1
+      }
+    }
+    return nil
+  }
 }
