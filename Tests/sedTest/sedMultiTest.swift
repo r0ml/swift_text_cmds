@@ -563,10 +563,13 @@ p
   
   @Test("Print and file routines (7.3)") func test_print_73() async throws {
     let res = try fileContents("multi.7.3.out")
+    let f = URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory)
+    rm(f)
     let (r, j, _) = try await ShellProcess(cmd, "-e", "3,12w lines4", flines1).run()
     #expect(r == 0)
-    let k = try String(contentsOf: URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory), encoding: .utf8)
+    let k = try String(contentsOf: f, encoding: .utf8)
     #expect(j! + k == res)
+    rm(f)
   }
   
   @Test("Print and file routines (7.4)") func test_print_74() async throws {

@@ -324,12 +324,12 @@ class PeekableAsyncIterator {
     self.fname = f
     let fh = try FileDescriptor(forReading: f)
     self.fh = fh
-    self.iter = fh.bytes.lines.makeAsyncIterator()
+    self.iter = fh.bytes.lines(true).makeAsyncIterator()
   }
   
   init(_ fh : FileDescriptor, _ f : String) {
     self.fh = fh
-    self.iter = fh.bytes.lines.makeAsyncIterator()
+    self.iter = fh.bytes.lines(true).makeAsyncIterator()
     self.fname = f
   }
   
@@ -356,7 +356,7 @@ class PeekableAsyncIterator {
 public func isRegularFile(_ path : FilePath) throws -> Bool {
     var statBuf = stat()
     let result = path.string.withCString { cPath in
-        stat(cPath, &statBuf)
+        lstat(cPath, &statBuf)
     }
 
     if result != 0 {

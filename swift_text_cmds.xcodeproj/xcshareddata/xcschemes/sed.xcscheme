@@ -57,8 +57,16 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-f"
-            isEnabled = "YES">
+            argument = "s/^/e1_/p"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;3,12w lines4&quot;"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "l"
@@ -81,24 +89,36 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Repositories/swift_text_cmds/Tests/sedTest/Resources/math.sed"
-            isEnabled = "YES">
+            argument = "/Users/r0ml/AppleOpenSource/swift_text_cmds/Tests/sedTest/Resources/multi.1.1"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/r0ml/Desktop/mmm"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = ""
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/zzz"
+            argument = "-n"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/r0ml/Desktop/xxx"
+            argument = "l"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-e"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;s,foo,bar,g&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/inFile"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/r0ml/Desktop/lines3"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
       <EnvironmentVariables>

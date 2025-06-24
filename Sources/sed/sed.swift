@@ -204,7 +204,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
 func openFileForWCommand(_ path: String) throws(CompileErr) -> FileDescriptor {
   // O_WRONLY|O_APPEND|O_CREAT|O_TRUNC in the original code => open for writing
   do {
-    let fd = try FileDescriptor.open(path, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
+    let fd = try FileDescriptor.open(path, .writeOnly, options: [.create, .append], permissions: [.ownerReadWrite])
 
     //    let fd = open(path, O_WRONLY | O_APPEND | O_CREAT | O_TRUNC, 0o666)
     //    if fd == -1 {

@@ -183,7 +183,7 @@ class SedProcess {
             fatalError("not possible")
           }
         case "a":
-          try appends.append(FileDescriptor(forReading: cp.t)) // s_appends(type: .AP_STRING, s: cp.t))
+          appends.append(cp.t) // s_appends(type: .AP_STRING, s: cp.t))
           
         case "b":
           if cp.t.isEmpty { throw Branch.to([]) }
@@ -328,8 +328,8 @@ class SedProcess {
           quit = true
           
         case "r":
-          appends.append(cp.t) // s_appends(type: .AP_FILE, s: cp.t))
-          
+          try? appends.append(FileDescriptor(forReading: cp.t)) // s_appends(type: .AP_FILE, s: cp.t))
+
         case "s":
           let j = try substitute(&PS, cp)
           sdone = sdone || j
