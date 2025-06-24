@@ -113,8 +113,8 @@ usage: cut -b list [-n] [file ...]
       options.fcn = c_cut // MB_CUR_MAX > 1 ? c_cut : b_cut;
     }
     else if (options.bflag) {
-//      options.fcn = nflag /* && MB_CUR_MAX > 1 */ ? b_n_cut : b_cut;
-      fatalError("not yet implemented: bflag")
+//      options.fcn = nflag /* && MB_CUR_MAX > 1 */ ? b_n_cut : b_cut
+      options.fcn = b_cut
     }
     
     return options
@@ -215,9 +215,9 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.lines {
-        let lastnl = linel.last == "\n"
-        let line = lastnl ? String(linel.dropLast()) : String(linel)
+      for try await linel in fh.bytes.lines(true) {
+        let ll = linel.last == "\n" // detect final \n in file
+        let line = linel.dropLast(ll ? 1 : 0)
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
 //          if i.1 {
 //            FileDescriptor.standardOutput.write(String(i.0))
@@ -241,10 +241,13 @@ usage: cut -b list [-n] [file ...]
         }
         // if lastnl {
 
-        if !k.isEmpty {
+        if ll || !k.isEmpty {
           print(String(k))
         }
-//          FileDescriptor.standardOutput.write("\n")
+
+
+
+        //          FileDescriptor.standardOutput.write("\n")
       // }
         /*
          if (ch != '\n') {
@@ -299,9 +302,7 @@ usage: cut -b list [-n] [file ...]
     
     
     do {
-      for try await linel in fh.bytes.lines {
-        let lastnl = linel.last == "\n"
-        let line = lastnl ? String(linel.dropLast()) : String(linel)
+      for try await line in fh.bytes.lines {
         var linef : [Substring]
         if line.contains(options.dchar) {
           let linex = line.split(separator: options.dchar, omittingEmptySubsequences: false)
@@ -421,9 +422,7 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await linel in fh.bytes.lines {
-        let lastnl = linel.last == "\n"
-        let line = lastnl ? String(linel.dropLast()) : String(linel)
+      for try await line in fh.bytes.lines(encoding: ISOLatin1.self) {
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
 //          if i.1 {
 //            FileDescriptor.standardOutput.write(String(i.0))
