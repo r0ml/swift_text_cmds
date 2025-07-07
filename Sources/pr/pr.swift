@@ -1,4 +1,3 @@
-
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
 // from a file with the following notice:
 
@@ -72,25 +71,29 @@ let LBUF     = 8192
 let HDBUF    = 512
 
 // structure for vertical columns. Used to balance cols on last page
-struct vcol {
-  var pt : String // col
+/*struct vcol {
+  var pt : Int // col (offset into buf)
   var cnt : Int   // char count
 }
-
+*/
 
 @main final class pr : ShellCommand {
 
-  var usage : String = "Not yet implemented"
-  
+  var usage : String = """
+usage: pr [+page] [-col] [-adFfmprt] [-e[ch][gap]] [-h header]
+          [-i[ch][gap]] [-l line] [-n[ch][width]] [-o offset]
+          [-L locale] [-s[ch]] [-w width] [-] [file ...]
+"""
+
   struct CommandOptions {
     var c = 0
-    var d_first = 0
+    var d_first = false
     var eflag = false
     var iflag = false
     var wflag = false
     var cflag = false
     var Lflag : String?
-    
+
     var pgnm = 0         // starging page number
     var clcnt = 0        // number of columns
     var colwd = 0        // column data width - multiple columns
@@ -114,16 +117,23 @@ struct vcol {
     var sflag = false  // -s option for multiple columns
     var nohead = false // do not write head and trailer
     var pgwd : Int = 0 // page width with multiple col output
-    
+    var addone = false // page length is odd with double space
+    var timefrmt : String? // time conversion string
+
     var args : [String] = CommandLine.arguments
+
+    var twice : Bool = false
+    var fname : String = ""
+    var errcnt : Int = 0
+    var hdrDate : String = ""
   }
-  
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "#adFfmrte?h:i?L:l:n?o:ps?w:"
-    let go = BSDGetopt(supportedFlags)
-    
-    while let (k, v) = try go.getopt() {
+    let go = Egetopt(supportedFlags)
+
+    while let (k, v) = try go.egetopt() {
       switch k {
         case "+":
           if let k = Int(v), k >= 1 {
@@ -132,8 +142,8 @@ struct vcol {
             throw CmdErr(1, "pr: +page number must be 1 or more")
           }
         case "-":
-          if let k = Int(v), k >= 1 {
-            options.clcnt = k
+          if let cc = Int(v), cc >= 1 {
+            options.clcnt = cc
           } else {
             throw CmdErr(1, "pr: -columns must be 1 or more")
           }
@@ -154,14 +164,14 @@ struct vcol {
               options.inchar = INCHAR
             }
           }
-           
+
           if !vv.isEmpty && vv.first!.isNumber {
             if let k = Int(vv), k >= 0 {
               options.ingap = k
             } else {
               throw CmdErr(1, "pr: -e gap must be 0 or more")
             }
-            
+
             if options.ingap == 0 {
               options.ingap = INGAP
             }
@@ -215,9 +225,9 @@ struct vcol {
         case "n":
           var vv = v
           if !v.isEmpty && !v.first!.isNumber {
-              options.nmchar = vv.removeFirst()
+            options.nmchar = vv.removeFirst()
           } else {
-             options.nmchar = NMCHAR
+            options.nmchar = NMCHAR
           }
           if !vv.isEmpty, let k = Int(vv) {
             if k >= 1 {
@@ -265,10 +275,106 @@ struct vcol {
       }
     }
     options.args = go.remaining
+
+    // default and sanity checks
+    if options.clcnt == 0 {
+      if options.merge {
+        options.clcnt = options.args.count
+        if options.clcnt < 1 {
+          options.clcnt = 1
+          options.merge = false
+        }
+      } else {
+        options.clcnt = 1
+      }
+    }
+    if options.across {
+      if options.clcnt == 1 {
+        throw CmdErr(1, "pr: -a flag requires multiple columns")
+      }
+      if options.merge {
+        throw CmdErr(1, "pr: -m cannot be used with -a")
+      }
+    }
+    if !options.wflag {
+      if options.sflag {
+        options.pgwd = SPGWD
+      } else {
+        options.pgwd = PGWD
+      }
+    }
+    if options.cflag || options.merge {
+      if !options.eflag {
+        options.inchar = INCHAR
+        options.ingap = INGAP
+      }
+      if !options.iflag {
+        options.ochar = OCHAR
+        options.ogap = OGAP
+      }
+    }
+    if options.cflag {
+      if options.merge {
+        throw CmdErr(1, "pr: -m cannot be used with multiple columns")
+      }
+      if options.nmwd != 0 {
+        options.colwd = (options.pgwd + 1 - (options.clcnt * (options.nmwd + 2)))/options.clcnt
+        options.pgwd = ((options.colwd + options.nmwd + 2) * options.clcnt) - 1
+      } else {
+        options.colwd = (options.pgwd + 1 - options.clcnt)/options.clcnt
+        options.pgwd = ((options.colwd + 1) * options.clcnt) - 1
+      }
+      if options.colwd < 1 {
+        throw CmdErr(1, "pr: page width is too small for \(options.clcnt) columns")
+      }
+    }
+    if options.lines == 0 {
+      options.lines = LINES
+    }
+
+    // make sure long enough for headers. if not disable
+    if options.lines <= HEADLEN + TAILLEN {
+      options.nohead = true
+    }
+    else if !options.nohead {
+      options.lines -= HEADLEN + TAILLEN
+    }
+
+    // adjust for double space on odd length pages
+    if options.dspace {
+      if options.lines == 1 {
+        options.dspace = false
+      } else {
+        if (options.lines & 1) != 0 {
+          options.addone = true
+        }
+        options.lines /= 2;
+      }
+    }
+
+    // FIXME: setlocale is gone -- so what does this do?
+    //    Darwin.setlocale(Darwin.LC_TIME, (options.Lflag != nil) ? options.Lflag : "");
+
+    options.d_first = nl_langinfo(D_MD_ORDER).pointee == "d".first!.asciiValue!
+    options.timefrmt = options.d_first ? TIMEFMTD : TIMEFMTM
+
+    if options.args.isEmpty {
+      // no file listed; default, use standard input
+      options.args.append("-")
+    }
     return options
   }
-  
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    throw CmdErr(1, usage)
+
+  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+    if options.merge {
+      try await mulfile(options)
+    } else if options.clcnt == 1 {
+      try await onecol(options)
+    } else if options.across {
+      try await horzcol(options)
+    } else {
+      try await vertcol(options)
+    }
   }
+
 }

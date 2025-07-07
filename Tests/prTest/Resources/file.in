@@ -1,0 +1,20 @@
+Line 1: Introduction to POSIX
+Line 2: The pr command formats text
+Line 3: You can paginate files
+Line 4: Print headers and footers
+Line 5: Multiple columns are supported
+Line 6: Custom page length can be set
+Line 7: Titles and spacing options exist
+Line 8: Tab  alignment  test  case
+Line 9: Double-spacing is also an option
+Line 10: This is line 10 of the file
+Line 11: More lines ensure pagination
+Line 12: The quick brown fox
+Line 13: Jumps over the lazy dog
+Line 14: Lorem ipsum dolor sit amet
+Line 15: Consectetur adipiscing elit
+Line 16: Sed do eiusmod tempor
+Line 17: Incididunt ut labore
+Line 18: Et dolore magna aliqua
+Line 19: Ut enim ad minim veniam
+Line 20: End of demo file

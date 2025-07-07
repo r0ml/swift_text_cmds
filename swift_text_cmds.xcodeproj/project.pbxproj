@@ -1214,7 +1214,13 @@
 		E7C1B05B2DD5319A00BF5CAB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				pr/egetopt.swift,
+				pr/horzcol.swift,
+				pr/mulfile.swift,
+				pr/onecol.swift,
 				pr/pr.swift,
+				pr/support.swift,
+				pr/vertcol.swift,
 			);
 			target = FC7A7D7414986A400086576A /* pr */;
 		};
@@ -1555,6 +1561,10 @@
 				prTest/Resources/across.out,
 				prTest/Resources/d_basic.in,
 				prTest/Resources/d_basic.out,
+				prTest/Resources/file.in,
+				prTest/Resources/file2.in,
+				prTest/Resources/file3.in,
+				prTest/Resources/longlines.in,
 				prTest/Resources/merge.out,
 				prTest/Resources/other.in,
 				prTest/Resources/threecol.out,
@@ -3609,6 +3619,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				E7DCB9B22E1B008400910074 /* PBXTargetDependency */,
 			);
 			name = pr;
 			productName = text_cmds;
@@ -3954,6 +3965,9 @@
 					};
 					FC7A7D4414986A310086576A = {
 						LastSwiftMigration = 1610;
+					};
+					FC7A7D7C14986A410086576A = {
+						LastSwiftMigration = 2600;
 					};
 					FC7A7D8C14986A450086576A = {
 						LastSwiftMigration = 1610;
@@ -4944,6 +4958,10 @@
 			isa = PBXTargetDependency;
 			target = FC7A7DAC14986A500086576A /* tr */;
 			targetProxy = E7B302CB2DF1385C0054A8EB /* PBXContainerItemProxy */;
+		};
+		E7DCB9B22E1B008400910074 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = E7DCB9B12E1B008400910074 /* CMigration */;
 		};
 		E7E33C4D2D30B4B100478AF2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -6248,6 +6266,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = "__FBSDID=__RCSID";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
@@ -6475,6 +6494,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				DEAD_CODE_STRIPPING = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
+				MERGEABLE_LIBRARY = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -6482,10 +6502,12 @@
 		E76970BF2CF54C4000F3903F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -8227,10 +8249,12 @@
 		FC7A7D8114986A410086576A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "-";
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -9296,6 +9320,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;
 			productName = ShellTesting;
+		};
+		E7DCB9B12E1B008400910074 /* CMigration */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */;
+			productName = CMigration;
 		};
 		E7E625092D13755D00E26DA9 /* xo */ = {
 			isa = XCSwiftPackageProductDependency;

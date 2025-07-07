@@ -241,6 +241,9 @@ usage: cut -b list [-n] [file ...]
         }
         // if lastnl {
 
+        //*** I think this logic (print an empty line unless it is the last line that doesn't end in a newline)
+        // is wrong -- but it matches the legacy behavior on some platforms with certain String encoding defaults
+        //***
         if ll || !k.isEmpty {
           print(String(k))
         }
