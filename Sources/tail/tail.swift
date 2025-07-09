@@ -141,16 +141,15 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
   
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
     if options.filePaths.count > 0 && options.fflag {
-      let files = try options.filePaths.map { (x : String) throws(CmdErr) in
-        do {
-          return try (FileDescriptor(forReading: x), x)
-        } catch {
-          // FIXME: in the original, it doesn't throw, it warns and continues
-          throw CmdErr(1, "\(x): \(error)")
+      var files = try options.filePaths.map { (x : String) throws(CmdErr) -> FileInfo in
+        let fi = FileInfo(x)
+        if !options.Fflag && fi.descriptor == nil {
+          throw CmdErr(1, "\(x): unable to open")
         }
+        return fi
       }
       do {
-        try await follow(files, options)
+        try await follow(&files, options)
       } catch {
         throw CmdErr(1, "\(error)")
       }
@@ -194,7 +193,8 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
         if (options.rflag) {
           try await reverse(FileDescriptor.standardInput, fn, options)
         } else if fflag {
-          try await follow([(FileDescriptor.standardInput, fn)], options)
+          var ff = [FileInfo()]
+          try await follow(&ff, options)
         } else {
           try await forward(FileDescriptor.standardInput, fn, options)
         }

@@ -40,14 +40,38 @@ extension tail {
 
   // Structure to hold file information
   struct FileInfo {
-    let fileName: String
-    var filePointer: UnsafeMutablePointer<FILE>?
-    var fileStats: stat
+    let name: String
+    var descriptor: FileDescriptor?
+    var inode: Int = 0
+    var dev_t : Int = 0
+    var nlink : Int = 0
+
+    init(_ nm : String) {
+      name = nm
+      descriptor = try? FileDescriptor(forReading: name)
+      if let descriptor {
+        var st = stat()
+        let n = fstat(descriptor.rawValue, &st)
+        if n != 0 {
+          try? descriptor.close()
+          self.descriptor = nil
+        }
+        inode = Int(st.st_ino)
+        dev_t = Int(st.st_dev)
+        nlink = Int(st.st_nlink)
+      }
+
+    }
+
+    init() {
+      name = "stdin"
+      descriptor = FileDescriptor.standardInput
+    }
   }
     
   // Reads and prints file content based on the given style and offset
-  func forward(_ fp : FileDescriptor, _ filename: String, _ options : CommandOptions) async throws {
-    
+  func forward(_ fp : FileDescriptor, _ filename : String, _ options : CommandOptions) async throws {
+
     
     var offset = options.off
     
@@ -221,13 +245,14 @@ extension tail {
     case ADD_EVENTS
   }
   
-  func set_events(_ files : [(FileDescriptor, String)], _ options : CommandOptions) throws(CmdErr) -> (Int32, [kevent]) {
+  func set_events(_ files : [FileInfo], _ options : CommandOptions) throws(CmdErr) -> (Int32, [kevent]) {
     var ts = timespec(tv_sec: 0, tv_nsec: 0)
 
     var evs : [kevent] = []
     
     action = Action.USE_KQUEUE
-    for (n, (fp, fn)) in files.enumerated() {
+    for (n, fi) in files.enumerated() {
+      guard let fp = fi.descriptor else { continue }
       var sf = statfs()
       if fstatfs(fp.rawValue, &sf) == 0 &&
           (sf.f_flags & UInt32(MNT_LOCAL)) == 0 {
@@ -263,18 +288,19 @@ extension tail {
   
   
   // Displays the file content and handles event-driven following (`-f` flag)
-  func follow(_ files: [(FileDescriptor, String)], _ options : CommandOptions) async throws {
-    
+  func follow(_ files: inout [FileInfo], _ options : CommandOptions) async throws {
+
     var active = false
     
-    for (fp, fn) in files {
+    for fi in files {
+      guard fi.descriptor != nil else { continue }
       active = true
       
       if options.vflag || (!options.qflag && files.count > 1) {
-        print("==> \(fn) <==")
+        print("==> \(fi.name) <==")
       }
       
-      try await forward(fp, fn, options)
+      try await forward(fi.descriptor!, fi.name, options)
     }
     
     if (!options.Fflag && !active) { return }
@@ -287,20 +313,73 @@ extension tail {
     var lastFile = files.last
     
     var (kq, keventList) = try set_events(files, options)
-    
+
     var ts = timespec(tv_sec: 1, tv_nsec: 0)
     
     var ev_change = false
     while true {
       ev_change = false
       if options.Fflag {
+
+// FIXME: here is where I open the file if it was missing
+        for (i, fi ) in files.enumerated() {
+          if fi.descriptor == nil {
+            let fo = FileInfo(fi.name)
+            if fo.descriptor != nil {
+              ev_change = true
+              files[i] = fo
+            }
+              continue
+            }
+          if fi.descriptor == FileDescriptor.standardInput {
+            continue
+          }
+
+          let ftmp = FileInfo(fi.name)
+
+          /*
+          // FIXME: check to see if the error was ENOENT
+           // FIXME: there are also checks here to see if the file
+           // is regular
+          let ftmp = try? FileDescriptor(forReading: nam)
+          var sb2 = stat()
+          if let ftmp, fstat(ftmp.rawValue, &sb2) == -1 {
+//            if (errno != ENOENT) {
+//              ierr(file->file_name);
+//            }
+              show(file)
+              if (file->fp != NULL) {
+                fclose(file->fp);
+                file->fp = NULL;
+              }
+              try? ftmp.close()
+
+              ev_change = true
+              continue
+            }
+*/
+          if ftmp.inode != fi.inode ||
+              ftmp.dev_t != fi.dev_t ||
+              ftmp.nlink == 0 {
+            if let fp = fi.descriptor {
+              try? await show(fp)
+            }
+                try? fi.descriptor?.close()
+                files[i] = ftmp
+                ev_change = true
+            } else {
+              try? ftmp.descriptor?.close()
+            }
+
+
+        }
       }
       
-      for (fp, fn) in files {
+      for fi in files {
         // here there is code which will detect when a file
         // gets created when it wasn't there at the beginning
         
-        
+        guard let fp = fi.descriptor else {continue}
         if try await !show(fp) {
           ev_change = true
         }
