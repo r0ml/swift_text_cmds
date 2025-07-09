@@ -83,10 +83,11 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
       .init("silent", .no_argument),
       .init("verbose", .no_argument),
     ]
-    
-    let go = BSDGetopt_long(supportedFlags, longOptions)
-    
-    while var (k, v) = try go.getopt_long() {
+
+    let argo = try obsolete(CommandLine.arguments.dropFirst())
+    let go = BSDGetopt_long(supportedFlags, longOptions, argo)
+
+    while let (k, v) = try go.getopt_long() {
       switch k {
         case "F":
           options.Fflag = true
@@ -156,9 +157,8 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     } else if options.filePaths.count > 0 {
       var first = true
       for fn in options.filePaths {
-        for x in options.filePaths {
           do {
-            let fp = try FileDescriptor(forReading: x)
+            let fp = try FileDescriptor(forReading: fn)
             if options.vflag || (!options.qflag && options.filePaths.count > 1) {
               if (!first) { print("") }
               print("==> \(fn) <==")
@@ -173,10 +173,9 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
             
           } catch {
             // FIXME: in the original, it doesn't throw, it warns and continues
-            throw CmdErr(1, "\(x): \(error)")
+            throw CmdErr(1, "\(fn): \(error)")
           }
           
-        }
       }
     } else {
       let fn = "stdin";
@@ -185,9 +184,9 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
        * Determine if input is a pipe.  4.4BSD will set the SOCKET
        * bit in the st_mode field for pipes.  Fix this then.
        */
-      if (lseek(FileDescriptor.standardInput.rawValue, 0, SEEK_CUR) == -1 &&
+      if (Darwin.lseek(FileDescriptor.standardInput.rawValue, 0, Darwin.SEEK_CUR) == -1 &&
           errno == ESPIPE) {
-        errno = 0;
+        Darwin.errno = 0;
         fflag = false    /* POSIX.2 requires this. */
       }
       

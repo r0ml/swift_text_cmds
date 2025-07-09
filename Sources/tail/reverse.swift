@@ -95,18 +95,37 @@ extension tail {
     
     var curoff = k.endIndex-1
     var off = options.off
-    
+
+// FIXME: for large falues of options.off, this could consumes a lot of memory
+    if options.style == .RBYTES {
+      let fp = k[k.endIndex.advanced(by: -min(Int(off), k.count))..<k.endIndex-1]
+      let m = fp.split(separator: 10, omittingEmptySubsequences: false).reversed()
+      for mm in m {
+        if let j = String(validating: mm, as: UTF8.self) {
+          print(j)
+        } else {
+          print(String(decoding: mm, as: ISOLatin1.self))
+        }
+
+      }
+      return
+    }
+
     while curoff >= k.startIndex {
+      // FIXME: when .RBYTES, shouldn't search all the way back to a newline
+      // if the available bytes are smaller than the line.
+
       if let t = k.lastIndex(of: 10, before: curoff) {
         let l = k[t.advanced(by: 1)..<curoff]
         // try FileDescriptor.standardOutput.write(contentsOf: l)
-        print( String(decoding: l, as: UTF8.self) )
-        curoff = t
-        
+
         if (options.style == .RLINES) {
           off-=1
         }
-        
+
+        print( String(decoding: l, as: UTF8.self) )
+        curoff = t
+
         if (off == 0 && options.style != .REVERSE) {
           /* Avoid printing anything below. */
           curoff = 0;
@@ -289,7 +308,8 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     let size = Int(statBuf.st_size)
     guard size > 0 else {
         try? fd.close()
-        throw Errno.invalidArgument
+      if size < 0 { throw Errno.invalidArgument }
+      return UnsafeRawBufferPointer(start: nil, count: 0)
     }
 
     // Map file into memory

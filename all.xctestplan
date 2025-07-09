@@ -9,7 +9,11 @@
     }
   ],
   "defaultOptions" : {
-    "testTimeoutsEnabled" : true
+    "addressSanitizer" : {
+      "enabled" : true
+    },
+    "testTimeoutsEnabled" : true,
+    "undefinedBehaviorSanitizerEnabled" : true
   },
   "testTargets" : [
     {

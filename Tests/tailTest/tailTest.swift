@@ -26,18 +26,19 @@
   OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
   SUCH DAMAGE.
  */
+
 import ShellTesting
 
-@Suite(.serialized) class tailTest {
+@Suite(.serialized) class tailTest : ShellTest {
+  let cmd = "tail"
+  let suiteBundle = "tailTest"
 
   let ex = "tail"
-  
+
   @Test("Reverse an empty file") func empty_r() async throws {
     let i = try tmpfile("inFile", Data() )
     defer { rm(i) }
-    let p = ShellProcess(ex, "-r", i)
-    let (_, j, _) = try await p.run()
-    #expect( j!.isEmpty )
+    try await run(output: "", args: "-r", i)
   }
   
   @Test("Reverse a file") func file_r() async throws {
@@ -49,10 +50,8 @@ This is the third line
 """
     let i = try tmpfile("inFile", d)
     defer { rm(i) }
-    let p = ShellProcess(ex, "-r", i)
-    let (_, j, _) = try await p.run()
-    #expect( j == d.split(separator: "\n").reversed().joined(separator: "\n").appending("\n") )
-    
+    let op = d.split(separator: "\n").reversed().joined(separator: "\n").appending("\n")
+    try await run(output: op, args: "-r", i)
   }
   
   @Test("Reverse the last two lines of a file") func file_rn2() async throws {
@@ -69,9 +68,7 @@ This is the second line
 
 """
     defer { rm(i) }
-    let p = ShellProcess(ex, "-rn2", i)
-    let (_, j, _) = try await p.run()
-    #expect( j == o )
+    try await run(output: o, args: "-rn2", i)
   }
   
   @Test("Reverse a pipe whose first character is a newline") func pipe_leading_newline_r() async throws {
@@ -91,13 +88,8 @@ This is the first line
 
 """
     defer { rm(i) }
-    let p = ShellProcess(ex, "-r", i)
-    let (_, j, _) = try await p.run()
-    #expect( j == o )
-    
-    let p2 = ShellProcess(ex, "-r")
-    let (_, j2, _) = try await p2.run(d)
-    #expect( j2 == o )
+    try await run(output: o, args: "-r", i)
+    try await run(withStdin: d, output: o, args: "-r")
   }
   
   @Test("Reverse a file and display the last 28 characters") func file_rc28() async throws {
@@ -115,14 +107,22 @@ line
 """
     defer { rm(i) }
 
-    let p = ShellProcess(ex, "-rc28", i)
-    let (_, j, _) = try await p.run()
-    #expect( j == o )
-    
-    let p2 = ShellProcess(ex, "-rc28")
-    let (_, j2, _) = try await p2.run(d)
-    #expect( j2 == o )
-    
+    try await run(output: o, args: "-rc28", i)
+  }
+
+  @Test("Reverse stdin and display the last 28 characters") func stdin_rc28() async throws {
+    let d = """
+This is the first line
+This is the second line
+This is the third line
+
+"""
+    let o = """
+This is the third line
+line
+
+"""
+    try await run(withStdin: d, output: o, args: "-rc28")
   }
   
   @Test("Reverse a long file") func longfile_r() async throws {
@@ -176,10 +176,7 @@ line
     let q = stride(from: 32767, through: 0, by: -1)
     let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
     
-    let p4 = ShellProcess(ex, "-r")
-    let (r, j, _) = try await p4.run(d)
-    #expect(r == 0)
-    #expect( j == o )
+    try await run(withStdin: d, output: o, args: "-r")
   }
   
   @Test("Reverse a long file with extremely long lines") func longfile_r_longlines() async throws {
@@ -212,13 +209,10 @@ line
      let inf = FileManager.default.temporaryDirectory.appendingPathComponent("inFile")
      try i.write(to: inf, atomically: true, encoding: .utf8)
      */
+
     // FIXME: doesnt work with pipe output -- would work with file
-    let p = ShellProcess(ex, "-rc135782")
-    let (r, j, _) = try await p.run(i)
-    #expect(r == 0)
     let o = ((stride(from: 8999, to: 0, by: -1).prefix(2121)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined() + "0000000000000000000000000000000006878\n"
-    print(j!.count, o.count)
-    #expect( j == o )
+    try await run(withStdin: i, output: o, args: "-rc135782")
   }
   
   @Test("Reverse a long file with extremely long lines and print the last 145,782 bytes") func longfile_rc145782_longlines() async throws {
@@ -239,17 +233,12 @@ line
         ((36000..<54000).map { String(format: "%07d", $0)}).joined(separator: " ") + "\n",
     ]
     
-    let p = ShellProcess(ex, "-rc145782")
-    let (r, j, _) = try await p.run(lines.joined() )
-    #expect(r == 0)
-    
-//    let ro = ((35778..<(35778+222)).map { k.string(from: NSNumber(value: $0) )!}).joined(separator: " ")+"\n"
     let ro = ((35778..<(35778+222)).map { String(format: "%07d", $0) }).joined(separator: " ")
-    
+    //    let ro = ((35778..<(35778+222)).map { k.string(from: NSNumber(value: $0) )!}).joined(separator: " ")+"\n"
+
     let o = lines[2] + "35777 " + ro + "\n"
-    
-    print(j!.count, o.count)
-    #expect( j == o )
+
+    try await run(withStdin: lines.joined(), output: o, args: "-rc145782")
   }
 
   @Test("Reverse a long file and print the last 2,500 lines") func longfile_rn2500() async throws {
@@ -395,82 +384,49 @@ line
     
     let f1 = ((1...11).map { String($0)+"\n" }).joined()
     let inf = try tmpfile("file1", f1)
-
+    defer { rm(inf) }
     let f2 = ((2...12).map { String($0)+"\n" }).joined()
     let inf2 = try tmpfile("file2", f2)
+    defer { rm(inf2) }
     
-    let p = ShellProcess(ex, "-q", inf, inf2)
-    let (r, j, _) = try await p.run()
-    #expect(r == 0)
-    #expect(j == String(f1.dropFirst(2)+f2.dropFirst(2)) )
-    
-    rm(inf)
-    rm(inf2)
+    let o = String(f1.dropFirst(2)+f2.dropFirst(2))
+
+    try await run(output: o, args: "-q", inf, inf2)
   }
 
   @Test("Test tail(1)'s verbose header feature") func verbose_header() async throws {
     
     let f1 = ((1...11).map { String($0)+"\n" }).joined()
     let inf = try tmpfile("file1", f1)
-
-    let p = ShellProcess(ex, "-v", inf)
-    let (r, j, _) = try await p.run()
-    #expect(r == 0)
-    #expect(j == "==> \(inf) <==\n"+f1.dropFirst(2) )
-    
-    rm(inf)
-
+    defer { rm(inf) }
+    let o = "==> \(inf.relativePath) <==\n"+f1.dropFirst(2)
+    try await run(output: o, args: "-v", inf)
   }
 
   @Test("Test tail(1)'s SI number feature") func si_number() async throws {
-    
-    
+
+
     let f1 = Array(repeating: "aaaaaaa\n", count: 129).joined()
     let inf = try tmpfile("file1", f1)
+    defer { rm(inf) }
+    let o = Array(repeating: "aaaaaaa\n", count: 128).joined()
+    try await run(output: o, args: "-c", "1k", inf)
 
-    let p = ShellProcess(ex, "-c", "1k", inf)
-    let (r, j, _) = try await p.run()
-    #expect(r == 0)
-    #expect(j == Array(repeating: "aaaaaaa\n", count: 128).joined() )
-    
     let f2 = ((1...1025).map { String($0)+"\n" }).joined()
     try f2.write(to: inf, atomically: true, encoding: .utf8)
-    
-    let p2 = ShellProcess(ex, "-n", "1k", inf)
-    let (r2, j2, _) = try await p2.run()
-    #expect(r2 == 0)
-    #expect(j2 == ((2...1025).map { String($0)+"\n" }).joined() )
-    
-    rm(inf)
+
+    let o2 = ((2...1025).map { String($0)+"\n" }).joined()
+    try await run(output: o2, args: "-n", "1k", inf)
   }
 
-  @Test("File does not end in newline") func no_lf_at_eof() async throws {
-    
+  @Test("File does not end in newline", arguments:
+          [1,2,3,4]) func no_lf_at_eof(_ n : Int) async throws {
+
     let f1 = "a\nb\nc"
     let inf = try tmpfile("inFile", f1)
-
-    let p1 = ShellProcess(ex, "-1", inf)
-    let (r1, j1, _) = try await p1.run()
-    #expect(r1 == 0)
-    #expect(j1 == "c")
-    
-    let p2 = ShellProcess(ex, "-2", inf)
-    let (r2, j2, _) = try await p2.run()
-    #expect(r2 == 0)
-    #expect(j2 == "b\nc")
-    
-    let p3 = ShellProcess(ex, "-3", inf)
-    let (r3, j3, _) = try await p3.run()
-    #expect(r3 == 0)
-    #expect(j3 == "a\nb\nc")
-    
-    let p4 = ShellProcess(ex, "-4", inf)
-    let (r4, j4, _) = try await p4.run()
-    #expect(r4 == 0)
-    #expect(j4 == "a\nb\nc")
-    
-    rm(inf)
-    
+    defer { rm(inf) }
+    let o = f1.split(separator: "\n", omittingEmptySubsequences: false)
+    try await run(output: o.dropFirst(max(3-n, 0)).joined(separator: "\n"), args: "-\(n)", inf)
   }
   
   // ====================================================
@@ -505,11 +461,12 @@ line
   @Test("Regression test for radr://13271328") func radr_13271328() async throws {
     
     let inf = try tmpfile("blkbof.in", "")
+    defer { rm(inf) }
     var buf : stat = stat()
-    let s = stat(inf.path, &buf)
+    let _ = stat(inf.path, &buf)
     let blksiz = buf.st_blksize
-    let cursize = buf.st_size
-    
+//    let cursize = buf.st_size
+
     let linelen = Int(blksiz) * 3 / 2
     
 
@@ -524,8 +481,6 @@ line
     let (r, j, _) = try await p.run()
     #expect(r == 0)
     #expect( (j!.count { $0 == "\n"}) == 1)
-    
-    rm(inf)
 
   }
 

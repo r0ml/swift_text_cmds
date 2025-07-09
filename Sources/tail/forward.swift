@@ -77,19 +77,16 @@ extension tail {
         }
         
       case .RBYTES:
-        fatalError("not yet implemented")
-/*        if try FileWrapper.init(url: URL(filePath: filename)).isRegularFile {
-          try fp.seekToEnd()
-          
-          if fileStats.st_size >= offset, fseeko(fp, -offset, SEEK_END) == -1 {
-            ierr(filename)
-            return
-          }
+        if fp.isRegularFile {
+          let _ = try fp.seek(offset: -offset, from: .end)
+
+          let k = try fp.readUpToCount(Int(offset))
+          try FileDescriptor.standardOutput.write(k)
         } else {
           // Read the last `offset` bytes using a wrap-around buffer
-          _ = bytes(fp: fp, filename: filename, offset: offset)
+          try bytes(fp, filename, offset)
         }
-        */
+
       case .RLINES:
 
         if fp.isRegularFile {
@@ -134,7 +131,7 @@ extension tail {
     guard size > 0 else { return }
     
     // FIXME: should it be LOCK_EX ?
-    if 0 != flock(fp.rawValue, LOCK_SH) {
+    if 0 != flock(fp.rawValue, Darwin.LOCK_SH) {
       throw CmdErr(1, "failed to lock file \(filename)")
     }
     
@@ -142,11 +139,15 @@ extension tail {
     let wanted = options.off
     var found: off_t = 0
     var offset : off_t = roundup(Int64(size) - 1, blksize)
-    
+
+    try fp.seek(offset: -1, from: .end)
+    let lastc = try fp.readUpToCount(1)
+
+    // find the `\n` at the right distance from the end.
     while offset > 0 {
       offset -= off_t(blksize)
       try fp.seek(offset: offset, from: .start)
-      
+
       let length = min(blksize, Int(size) - 1 - Int(offset))
       let buf = try fp.readUpToCount(length)
       guard buf.count > 0 else {
@@ -168,18 +169,26 @@ extension tail {
       }
     }
 
+    // seek to the right place to be, then read forward from there.
     try fp.seek(offset: offset, from: .start)
 
+    var i = 0
     for try await line in fp.bytes.lines /* dropFirst(Int(offset)). */ {
-      print(line)
+      i += 1
+      if (i >= found + (offset == 0 ? 1 : 0)) && lastc != [10] {
+        print(line, terminator: "")
+      } else {
+        print(line)
+      }
     }
 /*
     while let line =  fgets(buffer, Int(fileStats.st_blksize), fp) {
       print(String(cString: line), terminator: "")
     }
   */
-    
-    flock(fp.rawValue, LOCK_UN)
+
+    // Annotating `flock` with `Darwin` refers to the struct, not the fn
+    flock(fp.rawValue, Darwin.LOCK_UN)
   }
   
   

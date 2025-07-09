@@ -94,7 +94,6 @@
 		E73F997D2D45835000E89FF3 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E73F997C2D45835000E89FF3 /* CMigration */; };
 		E73F997F2D45835800E89FF3 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E73F997E2D45835800E89FF3 /* CMigration */; };
 		E73F99812D45835F00E89FF3 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E73F99802D45835F00E89FF3 /* CMigration */; };
-		E73F99832D45836900E89FF3 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E73F99822D45836900E89FF3 /* CMigration */; };
 		E73F99852D45848800E89FF3 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E73F99842D45848800E89FF3 /* CMigration */; };
 		E7C2936F2D417CB2007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2936E2D417CB2007721DE /* ShellTesting */; };
 		E7C293712D417CBB007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293702D417CBB007721DE /* ShellTesting */; };
@@ -722,15 +721,6 @@
 			name = "Copy Test Files";
 			runOnlyForDeploymentPostprocessing = 1;
 		};
-		E73DCD942D3CBF1D0053BB7C /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
 		FC7A7B37149865C80086576A /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1015,7 +1005,6 @@
 		E73639A32CFF5F3000D56A6B /* commTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = commTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73639B12CFF931300D56A6B /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		E73A010A2D2C883100BFE085 /* columnTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = columnTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E73DCD962D3CBF1D0053BB7C /* show */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = show; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73F986C2D44341900E89FF3 /* fmtTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = fmtTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73F98842D443DD000E89FF3 /* expandTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = expandTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E73F98A02D44995500E89FF3 /* lamTest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = lamTest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1262,6 +1251,7 @@
 			membershipExceptions = (
 				tail/forward.swift,
 				tail/misc.swift,
+				tail/obsolete.swift,
 				tail/read.swift,
 				tail/reverse.swift,
 				tail/tail.swift,
@@ -2108,14 +2098,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		E73DCD932D3CBF1D0053BB7C /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E73F99832D45836900E89FF3 /* CMigration in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		E73F98692D44341900E89FF3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -2642,7 +2624,6 @@
 				E70C04742D20886700442F2D /* unvisTest.xctest */,
 				E70C05BF2D246FA500442F2D /* bintransTest.xctest */,
 				E73A010A2D2C883100BFE085 /* columnTest.xctest */,
-				E73DCD962D3CBF1D0053BB7C /* show */,
 				E73F986C2D44341900E89FF3 /* fmtTest.xctest */,
 				E73F98842D443DD000E89FF3 /* expandTest.xctest */,
 				E73F98A02D44995500E89FF3 /* lamTest.xctest */,
@@ -2780,26 +2761,6 @@
 			productName = columnTest;
 			productReference = E73A010A2D2C883100BFE085 /* columnTest.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		E73DCD952D3CBF1D0053BB7C /* show */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E73DCD9A2D3CBF1D0053BB7C /* Build configuration list for PBXNativeTarget "show" */;
-			buildPhases = (
-				E73DCD922D3CBF1D0053BB7C /* Sources */,
-				E73DCD932D3CBF1D0053BB7C /* Frameworks */,
-				E73DCD942D3CBF1D0053BB7C /* CopyFiles */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = show;
-			packageProductDependencies = (
-				E73F99822D45836900E89FF3 /* CMigration */,
-			);
-			productName = show;
-			productReference = E73DCD962D3CBF1D0053BB7C /* show */;
-			productType = "com.apple.product-type.tool";
 		};
 		E73F986B2D44341900E89FF3 /* fmtTest */ = {
 			isa = PBXNativeTarget;
@@ -3861,7 +3822,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 2600;
 				ORGANIZATIONNAME = "Apple Inc.";
 				TargetAttributes = {
 					E70C04732D20886700442F2D = {
@@ -3877,9 +3838,6 @@
 						CreatedOnToolsVersion = 16.1;
 					};
 					E73A01092D2C883100BFE085 = {
-						CreatedOnToolsVersion = 16.2;
-					};
-					E73DCD952D3CBF1D0053BB7C = {
 						CreatedOnToolsVersion = 16.2;
 					};
 					E73F986B2D44341900E89FF3 = {
@@ -4057,7 +4015,6 @@
 				E7E6C4A22CFA6C3D000D0B42 /* visTest */,
 				FC7A7DDC14986A5C0086576A /* wc */,
 				E76971FE2CF62CAF00F3903F /* wcTest */,
-				E73DCD952D3CBF1D0053BB7C /* show */,
 			);
 		};
 /* End PBXProject section */
@@ -4408,13 +4365,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E73A01062D2C883100BFE085 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E73DCD922D3CBF1D0053BB7C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -5537,76 +5487,6 @@
 			};
 			name = Debug;
 		};
-		E73DCD9B2D3CBF1D0053BB7C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = MHEBPE6SV2;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		E73DCD9C2D3CBF1D0053BB7C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = MHEBPE6SV2;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
 		E73F98742D44341900E89FF3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -6279,6 +6159,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -8055,6 +7936,7 @@
 				INSTALL_PATH = /usr/bin;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "macosx iphoneos iphonesimulator";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 6.0;
@@ -8448,15 +8330,6 @@
 			buildConfigurations = (
 				E73A01122D2C883100BFE085 /* Release */,
 				E73A01132D2C883100BFE085 /* Debug */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		E73DCD9A2D3CBF1D0053BB7C /* Build configuration list for PBXNativeTarget "show" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E73DCD9B2D3CBF1D0053BB7C /* Release */,
-				E73DCD9C2D3CBF1D0053BB7C /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -9197,11 +9070,6 @@
 			productName = CMigration;
 		};
 		E73F99802D45835F00E89FF3 /* CMigration */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */;
-			productName = CMigration;
-		};
-		E73F99822D45836900E89FF3 /* CMigration */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */;
 			productName = CMigration;

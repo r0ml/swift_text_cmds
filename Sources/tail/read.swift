@@ -49,15 +49,37 @@ extension tail {
    * it is displayed from the character closest to the beginning of the input to
    * the end.
    */
-  func bytes(_ fp: FileDescriptor, _ filename: String, _ off : off_t) throws -> Int {
-
-    fatalError("not yet implemented")
+  func bytes(_ fp: FileDescriptor, _ filename: String, _ off : off_t) throws {
+//    fatalError("not yet implemented")
     /*
     var wrap = false
     var index = 0
     
     var buffer = Data()
-  
+*/
+    var prev = [UInt8]()
+    while true {
+      let k = try fp.readUpToCount(Int(off))
+      if k.count + prev.count < off {
+        prev = prev + k
+      } else {
+        prev = prev[(prev.count - (Int(off) - k.count))...] + k
+      }
+      if k.count == 0 { break }
+    }
+
+    // now prev has the last n bytes
+    var kk = Array(prev.split(separator: 10, omittingEmptySubsequences: false).reversed())
+    if kk.first?.isEmpty == true { kk.removeFirst() }
+    for j in kk {
+      if let m = String(validating: j, as: UTF8.self) {
+        print(m)
+      } else {
+        print(String(decoding: j, as: ISOLatin1.self))
+      }
+    }
+
+/*
     while true {
       guard let ch = try fp.read(upToCount: 1) else { break }
       

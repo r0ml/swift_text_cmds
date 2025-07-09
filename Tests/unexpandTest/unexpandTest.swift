@@ -19,5 +19,6 @@ import ShellTesting
     try await run(withStdin: input, output: op, args: "-c")
  */
     // FIXME: I have no tests
+    #expect(Bool(false), "I have no tests")
   }
 }
