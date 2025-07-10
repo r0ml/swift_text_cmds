@@ -184,7 +184,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     var opts = options
     
     do {
-      try await try_fileContents(&opts)
+      try await getfile(&opts)
     } catch {
       throw CmdErr(1, "reading input: \(error)")
     }
@@ -222,30 +222,18 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   }
   
 
-  // MARK: - Global Variables
-
-
-  // Buffer equivalent
-  var ibuf: [Character] = Array(repeating: "\0", count: LINE_MAX * 2)
-
-  /*
-  func INCR(ep: inout Int) {
-      ep += 1
-      if ep >= endelem.count {
-          endelem = getptrs(Array(elem[ep...]))
-      }
-  }
-   */
-
-  func try_fileContents(_ options : inout CommandOptions) async throws {
-    var multisep = !options.flags.contains(.ONEISEPONLY) ? 1 : 0
+  func getfile(_ options : inout CommandOptions) async throws {
+    // FIXME: add a test case to check this.
+    let multisep = !options.flags.contains(.ONEISEPONLY)
     let nullpad = options.flags.contains(.NULLPAD)
-      
+    
     
     var flines = FileDescriptor.standardInput.bytes.lines.makeAsyncIterator()
+    var curline : String = ""
     
     for _ in 0..<options.skip {
-      if let curline = try await flines.next() {
+      if let curline = try await get_line(false, &flines, curline, options: options) {
+        //   try await flines.next() {
         if options.flags.contains(.SKIPPRINT) {
           print(curline)
         }
@@ -253,66 +241,77 @@ let LINE_MAX: Int = 1024 // Adjust as needed
         return
       }
     }
-      
-    guard let firstLine = try await flines.next() else {
-      return
-    }
     
-    if options.flags.contains(.NOARGS) && firstLine.count < options.owidth {
+    // For my money, this construction is bad logic -- but an empty file -- rather
+    // than produce an empty file, runs the below loop one time with a "first line" of
+    // "".  The logic would be cleaner if it just produced an empty file for an in input
+    // of empty file -- but that's not how the original worked -- and so doing it what
+    // appears to be the right way will fail some tests.
+    
+    let firstline = try await get_line(false, &flines, "", options: options) // flines.next()
+    curline = firstline ?? ""
+    
+    if options.flags.contains(.NOARGS) && curline.count < options.owidth {
       options.flags.insert(.ONEPERLINE)
     }
-      
+    
     if options.flags.contains(.ONEPERLINE) {
       options.icols = 1
-      } else {
-        let m = firstLine.split(separator: options.isep, omittingEmptySubsequences: !options.flags.contains(.ONEISEPONLY) )          // Count columns on first line
-        options.icols = m.count
-      }
-      
-    while let curline = try await flines.next() {
-        if options.flags.contains(.ONEPERLINE) {
-          options.elem.append(curline)
-          if curline.count > options.maxlen {
-            options.maxlen = curline.count
-              }
-          options.irows += 1
-              continue
-          }
-          
-      let components = curline.split(separator: options.isep, omittingEmptySubsequences: !options.flags.contains(.ONEISEPONLY)).map { String($0) }
-          for component in components {
-            if component == String(options.isep) {
-              options.elem.append(options.blank)
-              } else {
-                options.elem.append(component)
-                if component.count > options.maxlen {
-                    options.maxlen = component.count
-                  }
-              }
-          }
+    } else {
+      let m = curline.split(separator: options.isep, omittingEmptySubsequences: multisep )          // Count columns on first line
+      options.icols = m.count
+    }
+    
+    // I need to go through this code once if firstline is nil -- but not try
+    // to get the next line.
+    repeat {
+      if options.flags.contains(.ONEPERLINE) {
+        options.elem.append(curline)
+        if curline.count > options.maxlen {
+          options.maxlen = curline.count
+        }
         options.irows += 1
-          
-          if nullpad {
-            while options.elem.count < options.irows * options.icols {
-              options.elem.append(options.blank)
-              }
-          }
+        continue
       }
       
+      if !curline.isEmpty {
+        let components = curline.split(separator: options.isep, omittingEmptySubsequences: multisep).map { String($0) }
+        for component in components {
+          if component == String(options.isep) {
+            options.elem.append(options.blank)
+          } else {
+            options.elem.append(component)
+            if component.count > options.maxlen {
+              options.maxlen = component.count
+            }
+          }
+        }
+      }
+      
+      options.irows += 1
+      
+      if nullpad {
+        while options.elem.count < options.irows * options.icols {
+          options.elem.append(options.blank)
+        }
+      }
+    } while try await gnl(firstline != nil, &flines, &curline, options: options)
+    
     options.nelem = options.elem.count
   }
 
-  /*
-  func get_line() -> Int {
-      guard let line = readLine() else {
-          return EOF
-      }
-      curline = line
-      curlen = line.count
-      return 0 // Indicate not EOF
+  // This function is needed to finesse the parsing of the while expression to match
+  // the behavior of the original C code.  Curline needs to be assigned and tested -- which
+  // cannot be done in the expression.  Also, if the first line was nil, the result must
+  // be false
+  func gnl(_ fln : Bool, _ flines : inout AsyncLineReader.AsyncIterator, _ curline : inout String, options: CommandOptions) async throws -> Bool {
+    if let cl = try await get_line(!fln, &flines, curline, options: options) { // flines.next() {
+      curline = cl
+      return true
+    }
+    return false
   }
-*/
-  
+
   func getlist(_ list: inout [Int16], _ p: String) throws(CmdErr) {
       let components = p.split(separator: ",")
       for component in components {
@@ -344,9 +343,29 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   }
    */
 
+
+  var putlength = false
+
+  // get line; maintain curline, curlen; manage storage
+  func get_line(_ fnl : Bool, _ fline : inout AsyncLineReader.AsyncIterator, _ prevline : String, options: CommandOptions) async throws -> String? {
+
+    if options.irows == 0 {
+      putlength = options.flags.contains(.DETAILSHAPE)
+    }
+    else if options.skip <= 0 {      // don't waste storage
+      if putlength {  // print length, recycle storage
+        print(" \(prevline.count) line \(options.irows)")
+      }
+    }
+
+    if fnl { return nil }
+    let curline = try await fline.next()
+    return curline
+  }
+
   func prepfile(_ opts : inout CommandOptions) {
     if opts.nelem == 0 {
-          exit(0)
+          return
       }
       
     opts.gutter += Int(Double(opts.maxlen) * Double(opts.propgutter) / 100.0)
