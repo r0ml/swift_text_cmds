@@ -29,8 +29,10 @@
 
 import ShellTesting
 
-@Suite(.serialized) class splitTest {
-  let ex = "split"
+@Suite(.serialized) class splitTest : ShellTest {
+  let cmd = "split"
+  let suiteBundle = "splitTest"
+
   let MAXBSIZE = 256 * 4096
   
   func deleteTempFiles(_ a : [String]) {
@@ -40,7 +42,7 @@ import ShellTesting
   }
   
   @Test func bytes1() async throws {
-    let p = ShellProcess(ex, "-b", "4", "-", "split-")
+    let p = ShellProcess(cmd, "-b", "4", "-", "split-")
     let (r, _, _) = try await p.run("aaaabb\ncccc\n")
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -60,7 +62,7 @@ import ShellTesting
       String(repeating: "c", count: 12),
       ]
     
-    let p2 = ShellProcess(ex, "-b", String(MAXBSIZE+12), "-", "split-")
+    let p2 = ShellProcess(cmd, "-b", String(MAXBSIZE+12), "-", "split-")
     let (r2, _, _) = try await p2.run( pieces.joined() )
     #expect( r2 == 0 )
     let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -81,7 +83,7 @@ import ShellTesting
     // The -n option can't work on stdin, so I need a file input
     let i1 = FileManager.default.temporaryDirectory.appending(path: "foo", directoryHint: .notDirectory)
     try i.write(to: i1, atomically: true, encoding: .utf8)
-    let p = ShellProcess(ex, "-n", "3", i1, "split-")
+    let p = ShellProcess(cmd, "-n", "3", i1, "split-")
     
     let (r, _, _) = try await p.run(i)
     #expect( r == 0 )
@@ -104,7 +106,7 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    let p = ShellProcess(ex, "-l", "1", "-", "split-")
+    let p = ShellProcess(cmd, "-l", "1", "-", "split-")
     let (r, _, _) = try await p.run( pieces.joined() )
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -124,7 +126,7 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    let p2 = ShellProcess(ex, "-l", "2", "-", "split-")
+    let p2 = ShellProcess(cmd, "-l", "2", "-", "split-")
     let (r2, _, _) = try await p2.run( pieces.joined() )
     #expect( r2 == 0 )
     let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -141,7 +143,7 @@ import ShellTesting
       String(repeating: "c", count: MAXBSIZE) + "\n",
       String(repeating: "d", count: 1024)+"\n"
     ]
-    let p = ShellProcess(ex, "-l", "1", "-", "split-")
+    let p = ShellProcess(cmd, "-l", "1", "-", "split-")
     let (r, _, _) = try await p.run( pieces.joined())
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -159,7 +161,7 @@ import ShellTesting
         "jumps over\n",
         "the lazy dog\n",
         ]
-    let p = ShellProcess(ex, "-d", "-l", "1", "-", "split-")
+    let p = ShellProcess(cmd, "-d", "-l", "1", "-", "split-")
     let (r, _, _) = try await p.run( pieces.joined() )
     #expect( r == 0 )
     for i in 0..<pieces.count {
@@ -174,7 +176,7 @@ import ShellTesting
 
   @Test func larger_suffix_length() async throws {
     let pieces = (0...11).map { String(repeating: "a", count: $0)+"\n" }
-    let p = ShellProcess(ex, "-a", "3", "-d", "-l", "1", "-", "split-")
+    let p = ShellProcess(cmd, "-a", "3", "-d", "-l", "1", "-", "split-")
     let (r, _, _) = try await p.run( pieces.joined() )
     #expect( r == 0 )
     
@@ -203,7 +205,7 @@ dog:
 
 """
     
-    let p = ShellProcess(ex, "-p", "^[^[:space:]]+:", "-", "split-")
+    let p = ShellProcess(cmd, "-p", "^[^[:space:]]+:", "-", "split-")
     let (r, _, _) = try await p.run(i1+i2)
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
@@ -216,7 +218,7 @@ dog:
   @Test func noautoextend() async throws {
     let m = 26*26
     let i = ((1...m).map { String($0)+"\n"}).joined()
-    let p = ShellProcess(ex, "-a2", "-l1")
+    let p = ShellProcess(cmd, "-a2", "-l1")
     let (r, _, _) = try await p.run(i)
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xzz"), encoding: .utf8   )
@@ -228,7 +230,7 @@ dog:
 
   @Test func continue_test() async throws {
     let i = "hello\n"
-    let p = ShellProcess(ex)
+    let p = ShellProcess(cmd)
     let (r, _, _) = try await p.run(i)
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xaa"), encoding: .utf8   )
@@ -237,7 +239,7 @@ dog:
     let o2f = FileManager.default.temporaryDirectory.appendingPathComponent("xab")
     #expect( !FileManager.default.fileExists(atPath: o2f.path) )
 
-    let p2 = ShellProcess(ex, "-c")
+    let p2 = ShellProcess(cmd, "-c")
     let (r2, _, _) = try await p2.run(i)
     #expect( r2 == 0)
     let o2 = try String(contentsOf: o2f, encoding: .utf8)
@@ -248,7 +250,7 @@ dog:
 
   @Test func undocumented_kludge() async throws {
     let i = ((1...5000).map { String($0)+"\n" }).joined()
-    let p = ShellProcess(ex, "-1000")
+    let p = ShellProcess(cmd, "-1000")
     let (r, _, _) = try await p.run(i)
     #expect( r == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xae"), encoding: .utf8   )
@@ -257,7 +259,7 @@ dog:
     
     deleteTempFiles(["xaa", "xab", "xac", "xad", "xae"])
     
-    let p2 = ShellProcess(ex, "-d1000")
+    let p2 = ShellProcess(cmd, "-d1000")
     let (r2, _, _) = try await p2.run(i)
     #expect( r2 == 0 )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("x04"), encoding: .utf8   )
@@ -268,9 +270,7 @@ dog:
   @Test(arguments: [
     (-5, -5), (-15, -5), (-5, -15), (-15, -15)
   ]) func duplicate_linecount(_ x : Int, _ y : Int) async throws {
-    let p = ShellProcess(ex, String(x), String(y), "/dev/null" )
-    let (r, _, _) = try await p.run()
-    #expect( r == 64 )
+    try await run(status: 64, args: String(x), String(y), "/dev/null")
   }
   
 }

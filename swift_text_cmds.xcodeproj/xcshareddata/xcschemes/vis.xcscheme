@@ -58,14 +58,18 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-w"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-t"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-o"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/tmp/pee"
+            argument = "/Users/r0ml/Desktop/inFile2"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

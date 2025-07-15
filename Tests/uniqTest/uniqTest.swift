@@ -10,18 +10,16 @@
 
 import ShellTesting
 
-@Suite() class uniqTest {
+@Suite() class uniqTest : ShellTest {
 
-  let ex = "uniq"
-  
+  let cmd = "uniq"
+  let suiteBundle = "uniqTest"
+
   @Test("basic test without options") func basic() async throws {
     let input = "a\na\nb\nb\na\na\n"
     let expected = "a\nb\na\n"
     
-    let p = ShellProcess(ex)
-    let (_, o, _) = try await p.run(input)
-    // basic test without options
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected)
   }
 
   @Test("basic test showing counts",
@@ -29,76 +27,57 @@ import ShellTesting
     // basic test showing counts
     let input = "a\na\nb\nb\nb\na\na\na\na\n"
     let expected = "   2 a\n   3 b\n   4 a\n"
-    let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: c)
   }
 
   @Test("print repeated lines only",
         arguments: ["-d", "--repeated"]) func repeated(_ c : String) async throws {
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\n"
-    let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: c)
   }
 
   @Test("count and print repeated lines only") func count_repeated() async throws {
     let input = "a\na\nb\nb\na\n"
     let expected = "   2 a\n   2 b\n"
-    let p = ShellProcess(ex, "--count", "--repeated")
-    let (_, o, _) = try await p.run(input)
-    #expect(o==expected)
+    try await run(withStdin: input, output: expected, args: "--count", "--repeated")
   }
 
   @Test("print every instance of repeated lines",
         arguments: ["-D", "--all-repeated"]) func all_repeated(_ c : String) async throws {
     let input = "a\na\nb\na\na\n"
     let expected = "a\na\na\na\n"
-    let p = ShellProcess(ex, c)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: c)
   }
 
   @Test("skip fields", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields(_ a : [String]) async throws {
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
-    let p = ShellProcess(ex, a)
-    let (_, o, e) = try await p.run(input)
-    print(e)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: a)
   }
 
   @Test("skip fields (with tabs)", arguments: [ ["-1"], ["-f", "1"], ["--skip-fields", "1"]] ) func skip_fields_tab(_ a : [String]) async throws {
-    let p = ShellProcess(ex, a)
     let input = "1\ta\n2\ta\n3\tb\n4\tb\n5\ta\n6\ta\n"
     let expected = "1\ta\n3\tb\n5\ta\n"
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: a)
   }
 
   @Test("ignore case", arguments: ["-i", "--ignore-case"]) func ignore_case(_ s : String) async throws {
     let input = "a\nA\nb\nB\na\nA\n"
     let expected = "a\nb\na\n"
-    let p = ShellProcess(ex, s)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: s)
   }
 
   @Test("skip chars", arguments: [["+2"], ["-s", "2"], ["--skip-chars", "2"]] ) func skip_chars(_ a : [String]) async throws {
     let input = "1 a\n2 a\n3 b\n4 b\n5 a\n6 a\n"
     let expected = "1 a\n3 b\n5 a\n"
-    let p = ShellProcess(ex, a)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: a)
   }
 
   @Test("print non-repeated lines only", arguments: ["-u", "--unique"]) func unique(_ s : String) async throws {
     let input = "a\na\nb\n"
     let expected = "b\n"
-    let p = ShellProcess(ex, s)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: s)
   }
 
   @Test("print non-repeated lines with count",
@@ -107,9 +86,7 @@ import ShellTesting
   func count_unique(_ a : [String]) async throws {
     let input = "a\na\nb\n"
     let expected = "   1 b\n"
-    let p = ShellProcess(ex, a)
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: a)
   }
 
 }

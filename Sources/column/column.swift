@@ -34,6 +34,7 @@
  */
 
 import CMigration
+import locale_h
 
 @main final class column : ShellCommand {
   
@@ -54,7 +55,7 @@ import CMigration
     let supportedFlags = "c:s:tx"
     let go = BSDGetopt(supportedFlags)
     
-    //   setlocale(LC_ALL, "")
+    setlocale(LC_ALL, "")
     // FIXME: setlocale has disappeared!
     // setlocale(LC_ALL, "en_US.UTF-8");
     

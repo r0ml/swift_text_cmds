@@ -56,9 +56,7 @@ import ShellTesting
     let input = "你好"
 //    let expected = "\\xE4\\xBD\\xA0\\xE5\\xA5\\xBD"
     let expected = "\\344\\275\\240\\345\\245\\275"
-    let p = ShellProcess(cmd, "-o")
-    let (_, o, _) = try await p.run(input)
-    #expect(o == expected)
+    try await run(withStdin: input, output: expected, args: "-o")
   }
 
   @Test func testMarkEndOfLine() async throws {

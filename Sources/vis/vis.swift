@@ -595,7 +595,7 @@ let MB_CUR_MAX = 4
     }
     
     /* See comment in istrsenvisx() output loop, below. */
-    let cx = String(c)
+    let cx = c.utf8
     var dst = ""
     for cj in cx {
       // FIXME: do_mbyte should maybe take the character and uff8 it
@@ -609,26 +609,26 @@ let MB_CUR_MAX = 4
   /*
    * Output single byte of multibyte character.
    */
-  func do_mbyte(_ c : Character, _ flags : visOptions, _ nextc : Character, _ iswextra : Bool)  -> String  {
+  func do_mbyte(_ c : UInt8, _ flags : visOptions, _ nextc : Character, _ iswextra : Bool)  -> String  {
     if flags.contains(.CSTYLE) {
       switch (c) {
-        case "\n":
+        case UInt8(ascii: "\n"):
           return "\\n"
-        case "\r":
+        case UInt8(ascii: "\r"):
           return "\\r"
-        case "\u{8}":
+        case 8:
           return "\\b"
-        case "\u{7}":
+        case 7:
           return "\\a"
-        case "\u{b}":
+        case 0x0b:
           return "\\v"
-        case "\t":
+        case UInt8(ascii: "\t"):
           return "\\t"
-        case "\u{c}":
+        case 0x0c:
           return "\\f"
-        case " ":
+        case UInt8(ascii: " "):
           return "\\s"
-        case "\0":
+        case 0:
           var dst = "\\0"
           if "01234567".contains(nextc) {
             dst.append("00")
@@ -636,17 +636,20 @@ let MB_CUR_MAX = 4
           return dst
           /* We cannot encode these characters in VIS_CSTYLE
            * because they special meaning */
-        case "n", "r", "b", "a", "v", "t", "f", "s",
-          "0", "M", "^", "$": /* vis(1) -l */
+        case UInt8(ascii: "n"), UInt8(ascii: "r"), UInt8(ascii: "b"),
+          UInt8(ascii: "a"), UInt8(ascii: "v"), UInt8(ascii: "t"),
+          UInt8(ascii: "f"), UInt8(ascii: "s"), UInt8(ascii: "0"),
+          UInt8(ascii: "M"), UInt8(ascii: "^"), UInt8(ascii: "$"): /* vis(1) -l */
           break;
         default:
-          if ISGRAPH(flags, c) {
-            return "\\\(c)"
+          let cc = Character(UnicodeScalar(c))
+          if ISGRAPH(flags, cc) {
+            return "\\\(cc)"
           }
       }
     }
     var dst = ""
-    var cc = c.unicodeScalars.first!.value
+    var cc = c
     if (iswextra || ((cc & 0x7f) == 0x20) || flags.contains(.OCTAL)) {
       dst.append("\\")
       dst.append( Character( UnicodeScalar( UInt8(((cc >> 6) & 0x3) + 0x30 ))))
@@ -673,7 +676,7 @@ let MB_CUR_MAX = 4
         }
       } else {
         dst.append("-")
-        dst.append(c)
+        dst.append(Character(UnicodeScalar(c)))
       }
     }
     return dst

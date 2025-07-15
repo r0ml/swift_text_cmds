@@ -58,13 +58,13 @@ import ShellTesting
   @Test("Test head(1)'s handling of a sparse file with text at the beginning of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup") ) func sparse_file_text_at_beginning() async throws {
     let (_, j, _) = try await ShellProcess(cmd).run()
       // Not yet implemented.
-    #expect(false)
+    #expect(Bool(false))
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the end of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup")) func spare_file_text_at_end() async throws {
     let (_, j, _) = try await ShellProcess(cmd).run()
       // Not yet implemented.
-    #expect(false)
+    #expect(Bool(false))
   }
 
   @Test("Test head(1)'s handling of a missing line count arg") func missing_line_count() async throws {
