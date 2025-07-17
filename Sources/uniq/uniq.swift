@@ -181,7 +181,8 @@ import CMigration
     } else {
       print(s)
     }
-    fflush(stdout)
+    // FIXME: Do I need this?
+//    fflush(stdout)
   }
   
   var tprev : String? = nil

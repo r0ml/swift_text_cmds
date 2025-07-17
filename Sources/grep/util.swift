@@ -33,6 +33,8 @@ import CMigration
   SUCH DAMAGE.
  */
 
+import Darwin
+
 class grepDoer {
 
   var file_err = false

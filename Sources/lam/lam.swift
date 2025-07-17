@@ -36,6 +36,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class lam : ShellCommand {
 
   var usage : String = """
@@ -253,7 +255,7 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
       do {
         c = try await ip.fp!.next()
       } catch {
-        throw CmdErr(Int(EX_IOERR), "\(ip.name): \(error)")
+        throw CmdErr(Int(Darwin.EX_IOERR), "\(ip.name): \(error)")
       }
 
       if c == nil {

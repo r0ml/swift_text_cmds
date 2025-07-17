@@ -35,6 +35,8 @@
 
 import CMigration
 
+import Darwin
+
 extension bintrans {
   func main_base64_encode(_ inp : String?, _ outp : String?,  _ w : String?, _ options : inout CommandOptions) throws(CmdErr) {
     options.raw = true
@@ -140,7 +142,7 @@ extension bintrans {
         } catch(let e) {
           throw CmdErr(1, "opening input file \(options.args[0]): \(e)")
         }
-        var sb = stat()
+        var sb = Darwin.stat()
         fstat(fh.rawValue, &sb)
 
         let RWX = S_IRWXU|S_IRWXG|S_IRWXO

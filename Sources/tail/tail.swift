@@ -38,6 +38,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class tail : ShellCommand {
   
   var usage : String = """
@@ -184,7 +186,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
        * bit in the st_mode field for pipes.  Fix this then.
        */
       if (Darwin.lseek(FileDescriptor.standardInput.rawValue, 0, Darwin.SEEK_CUR) == -1 &&
-          errno == ESPIPE) {
+          Darwin.errno == Darwin.ESPIPE) {
         Darwin.errno = 0;
         fflag = false    /* POSIX.2 requires this. */
       }

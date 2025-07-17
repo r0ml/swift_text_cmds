@@ -36,6 +36,8 @@
 import CMigration
 import locale_h
 
+import Darwin
+
 @main final class column : ShellCommand {
   
   var usage : String = "usage: column [-tx] [-c columns] [-s sep] [file ...]"
@@ -55,9 +57,7 @@ import locale_h
     let supportedFlags = "c:s:tx"
     let go = BSDGetopt(supportedFlags)
     
-    setlocale(LC_ALL, "")
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_ALL, "en_US.UTF-8");
+    setlocale(LC_ALL, "en_US.UTF-8")
     
     while let (k, v) = try go.getopt() {
       switch k {
@@ -110,7 +110,7 @@ import locale_h
     }
     let list = data.split(separator: "\n").map { l in l.trimmingPrefix(while:  {c in c.isWhitespace} ) }
     if list.count == 0 {
-      exit(Int32(eval))
+      Darwin.exit(Int32(eval))
     }
     
     if options.tflag {
@@ -125,7 +125,7 @@ import locale_h
       columnate(list: list, termwidth: options.termwidth, options.xflag)
 //      }
     }
-    exit((Int32(eval)))
+    Darwin.exit((Int32(eval)))
   }
   
  

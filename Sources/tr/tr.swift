@@ -35,6 +35,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class tr : ShellCommand {
   
   var usage : String = """
@@ -301,7 +303,7 @@ import CMigration
         }
         
         
-        if options.cflag || (options.Cflag && ___mb_cur_max() > 1 )  {
+        if options.cflag || (options.Cflag && Darwin.___mb_cur_max() > 1 )  {
           /*
            * This is somewhat tricky: since the character set is
            * potentially huge, we need to avoid allocating a map
@@ -316,7 +318,7 @@ import CMigration
           s2.str = Substring(s2.originalStr)
 //          s2 = STR(options.string2!)
           s2.state = .normal
-          for cnt in 0 ..< WINT_MAX {
+          for cnt in 0 ..< Darwin.WINT_MAX {
             if options.Cflag && !iswrune(cnt) {
               continue
             }

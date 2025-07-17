@@ -43,6 +43,9 @@
 
 import CMigration
 
+import locale_h
+import Darwin
+
 /*
  * parameter defaults
  */

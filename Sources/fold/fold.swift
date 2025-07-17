@@ -39,6 +39,8 @@
 
 import CMigration
 
+import stdlib_h
+
 // Constants
 let DEFLINEWIDTH = 80
 
@@ -126,7 +128,7 @@ let DEFLINEWIDTH = 80
       }
     }
     
-    exit(rval)
+    stdlib_h.exit(rval)
   }
   
   // ==========================================================

@@ -3,6 +3,9 @@
 
 import CMigration
 
+import errno_h
+import Darwin
+
 public func encodeLatin1Lossy(_ string: String) -> [UInt8] {
     string.unicodeScalars.map { scalar in
         scalar.value <= 0xFF ? UInt8(scalar.value) : UInt8(ascii: "?")
@@ -51,8 +54,8 @@ public func convertBREtoERE(_ bre: String) -> String {
 /// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
 public func mmapFileReadOnly(_ fd: FileDescriptor) throws -> UnsafeRawBufferPointer {
     // Get file size
-    var statBuf = stat()
-    let statResult = fstat(fd.rawValue, &statBuf)
+  var statBuf = Darwin.stat()
+  let statResult = Darwin.fstat(fd.rawValue, &statBuf)
 
     if statResult != 0 {
         try? fd.close()

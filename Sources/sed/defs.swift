@@ -42,13 +42,15 @@
 
 import CMigration
 
+import Darwin
+
 /**
  * Matches `enum e_atype` in defs.h
  * The way to siimulate a union in Swift is to use an enum with cases that
  * have associated data
  */
 enum s_addr {
-    case AT_RE(regex_t?, String?)    // Line that matches RE
+  case AT_RE(Darwin.regex_t?, String?)    // Line that matches RE
     case AT_LINE(UInt)     // Specific line
     case AT_RELLINE(UInt)  // Relative line
     case AT_LAST           // Last line

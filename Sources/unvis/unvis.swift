@@ -34,6 +34,8 @@
 
 import CMigration
 
+import Darwin
+
 // copied from vis.swift
 struct visOptions : OptionSet {
   var rawValue : Int = 0
@@ -420,7 +422,7 @@ struct visOptions : OptionSet {
             astate = (0, .S_GROUND)
             return .NOCHAR
           default:
-            if 0 != isgraph(Int32(cc.value) ) {
+            if 0 != Darwin.isgraph(Int32(cc.value) ) {
               cp = c
               astate = (0, .S_GROUND)
               return .VALID

@@ -36,6 +36,10 @@ SUCH DAMAGE.
 
 import CMigration
 
+import inttypes_h
+
+import Darwin
+
 extension tail {
 
   // Structure to hold file information

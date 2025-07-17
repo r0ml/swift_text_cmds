@@ -35,6 +35,8 @@
 
 import CMigration
 
+import Darwin
+
 // Define Character Set Size
 let NCHARS_SB = 256
 let OOBCH = -1  // Out-Of-Bounds Character Placeholder
@@ -51,7 +53,7 @@ class STR {
   var lastch: UnicodeScalar? = nil // UnicodeScalar(0)
   var cnt: Int = 0
   var cclass: ((UnicodeScalar)->Bool)?
-  var wctypex : wctype_t = 0
+  var wctypex : Darwin.wctype_t = 0
   var set: [UnicodeScalar] = []
   var equiv: UnicodeScalar?
   var is_octal = false
@@ -223,7 +225,7 @@ class STR {
   /// Generates a character class.
   func genclass(_ className : String) {
     cclass = classes[className]
-    wctypex = wctype(className)
+    wctypex = Darwin.wctype(className)
     //    cclass = CharacterSet(charactersIn: className)
     state = .cclass
     cnt = 0
@@ -328,7 +330,7 @@ class STR {
       stopval = str.removeFirst().unicodeScalars.first!
     }
 
-    if is_octal || was_octal || ___mb_cur_max() > 1 {
+    if is_octal || was_octal || Darwin.___mb_cur_max() > 1 {
       if let lastch, stopval.value < lastch.value {
         // FIXME: what about savestart?
         str = savestart

@@ -33,6 +33,8 @@
 
 
 import CMigration
+import stdlib_h
+import limits_h
 
 @main final class grep : ShellCommand {
 
@@ -230,7 +232,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
      * exhibit. In this way we can have all the functionalities in one
      * binary without the need of scripting and using ugly hacks.
      */
-    var pn : any StringProtocol = String(cString: getprogname())
+    var pn : any StringProtocol = String(cString: stdlib_h.getprogname())
 
     // #ifdef __APPLE__
     if pn.hasPrefix("bz") {

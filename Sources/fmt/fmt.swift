@@ -149,6 +149,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class fmt : ShellCommand {
   
   var usage : String =  """
@@ -198,13 +200,13 @@ import CMigration
           if !v.isEmpty {
             options.sentenceEnders = Array(v)
           } else {
-            throw CmdErr(Int(EX_USAGE), "Error: -d requires an argument")
+            throw CmdErr(Int(Darwin.EX_USAGE), "Error: -d requires an argument")
           }
         case "l":
           if !v.isEmpty {
             options.outputTabWidth = try getNonNegative(v, errMess: "output tab width must be non-negative")
           } else {
-            throw CmdErr(Int(EX_USAGE), "Error: -l requires an argument")
+            throw CmdErr(Int(Darwin.EX_USAGE), "Error: -l requires an argument")
           }
         case "m":
           options.grokMailHeaders = true
@@ -301,12 +303,12 @@ import CMigration
         let standardInput = try FileDescriptor(forReading: "/dev/stdin")
         await processStream(stream: standardInput, name: "standard input", options)
       } catch {
-        throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
+        throw CmdErr(Int(Darwin.EX_NOINPUT), "Error: Could not open standard input")
       }
     }
     
     // Exit with appropriate status
-    exit(nErrors > 0 ? EX_NOINPUT : 0)
+    exit(nErrors > 0 ? Darwin.EX_NOINPUT : 0)
   }
   
   
@@ -462,7 +464,7 @@ import CMigration
       }
       
     } catch {
-        fputs("Error reading \(name)\n", stderr)
+      Darwin.fputs("Error reading \(name)\n", Darwin.stderr)
         nErrors += 1
     }
   }
@@ -577,7 +579,7 @@ import CMigration
     do {
       fileStream = try FileDescriptor(forReading: name)
     } catch {
-      fputs("Warning: Could not open file \(name)\n", stderr)
+      Darwin.fputs("Warning: Could not open file \(name)\n", stderr)
       nErrors += 1
       return
     }
@@ -663,7 +665,7 @@ import CMigration
       // Finish the last paragraph
       newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
     } catch {
-      fputs("Warning: Error reading \(name)\n", stderr)
+      Darwin.fputs("Warning: Error reading \(name)\n", Darwin.stderr)
       nErrors += 1
     }
   }

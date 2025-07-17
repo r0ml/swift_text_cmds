@@ -51,7 +51,14 @@
 
 import CMigration
 import Synchronization
+
+import signal_h
 import locale_h
+import time_h
+import limits_h
+
+import Darwin // for gettimeofday and uuid_generate
+
 
 let doclean = Mutex(false)
 let filesToClean = Mutex<[String]>([])
@@ -132,7 +139,7 @@ let filesToClean = Mutex<[String]>([])
 
     // Check that the output file name (prefix + suffix) won’t be too long.
     //    let PATH_MAX = 1024
-    if options.prefix.count + options.sufflen >= PATH_MAX {
+    if options.prefix.count + options.sufflen >= limits_h.PATH_MAX {
       throw CmdErr(1, "name too long")
     }
 
@@ -533,8 +540,8 @@ let filesToClean = Mutex<[String]>([])
 func handlesig(signal: Int32) {
   // On non–Apple systems we could simply _exit(2), but here we do cleanup and re–raise.
   // Reset to default handler and re–raise:
-  Darwin.signal(signal, SIG_DFL)
-  Darwin.raise(signal)
+  signal_h.signal(signal, SIG_DFL)
+  raise(signal)
 }
 
 /// Remove any partial output files created.
@@ -565,7 +572,7 @@ private extension String {
 public func globallyUniqueString() -> String {
   // Generate UUID
   var uuid: [UInt8] = Array(repeating: 0, count: 16)
-  uuid_generate(&uuid)
+  Darwin.uuid_generate(&uuid)
 
   let uuidHex = uuid.map { byte in
     String(byte, radix: 16, uppercase: true).leftPad(toLength: 2, withPad: "0")
@@ -574,8 +581,8 @@ public func globallyUniqueString() -> String {
   let uuidFormatted = "\(uuidHex.prefix(8))-\(uuidHex.dropFirst(8).prefix(4))-\(uuidHex.dropFirst(12).prefix(4))-\(uuidHex.dropFirst(16).prefix(4))-\(uuidHex.dropFirst(20).prefix(12))"
 
   // Use gettimeofday for microsecond timestamp
-  var tv = timeval()
-  gettimeofday(&tv, nil)
+  var tv = time_h.timeval()
+  Darwin.gettimeofday(&tv, nil)
   let microseconds = UInt64(tv.tv_sec) * 1_000_000 + UInt64(tv.tv_usec)
 
   // Get PID

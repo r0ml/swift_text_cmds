@@ -33,6 +33,8 @@
 
 import CMigration
 import zlib
+import Darwin
+
 // import Compression
 
 let MAXBUFSIZE = 32 * 1024
@@ -252,8 +254,8 @@ class file {
     }
     
     if (behave == FILE.MMAP) {
-      var st = stat()
-      let fse = fstat(fd.rawValue, &st)
+      var st = Darwin.stat()
+      let fse = Darwin.fstat(fd.rawValue, &st)
       if fse == -1 || st.st_size > OFF_MAX ||
           !S_ISREG(st.st_mode) {
         behave = .STDIO

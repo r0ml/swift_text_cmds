@@ -36,6 +36,8 @@ SUCH DAMAGE.
 
 import CMigration
 
+import Darwin
+
 extension tail {
   
   /*
@@ -79,9 +81,9 @@ extension tail {
   }
   
   struct mapinfo {
-    var mapoff: off_t
-    var maxoff : off_t
-    var maplen : size_t
+    var mapoff: Darwin.off_t
+    var maxoff : Darwin.off_t
+    var maplen : Darwin.size_t
     var start : UnsafePointer<UInt8>?
     var fd : Int32
   };
@@ -295,7 +297,7 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     let fd = try FileDescriptor.open(path, .readOnly)
 
     // Get file size
-    var statBuf = stat()
+  var statBuf = Darwin.stat()
     let statResult = path.string.withCString { cPath in
         stat(cPath, &statBuf)
     }
@@ -313,11 +315,11 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     }
 
     // Map file into memory
-    let addr = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd.rawValue, 0)
+  let addr = Darwin.mmap(nil, size, Darwin.PROT_READ, Darwin.MAP_PRIVATE, fd.rawValue, 0)
     try fd.close() // Safe to close after mmap
 
-    guard addr != MAP_FAILED else {
-        throw Errno(rawValue: errno)
+  guard addr != Darwin.MAP_FAILED else {
+    throw Errno(rawValue: Darwin.errno)
     }
 
     return UnsafeRawBufferPointer(start: addr, count: size)

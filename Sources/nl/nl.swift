@@ -33,10 +33,10 @@
   POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 import CMigration
 
-/// <#Description#>
+import Darwin
+
 @main final class nl : ShellCommand {
   
   var usage : String = """
@@ -203,7 +203,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   
   struct numbering_property {
     var type: numbering_type         // numbering type
-    var expr: regex_t?               // for type == number_regex
+    var expr: Darwin.regex_t?               // for type == number_regex
   }
   
   // Line numbering formats
@@ -278,7 +278,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
           case .number_none:
             donumber = false
           case .number_regex:
-            donumber = regexec(&numbering_properties[section]!.expr!, buffer, 0, nil, 0) == 0
+            donumber = Darwin.regexec(&numbering_properties[section]!.expr!, buffer, 0, nil, 0) == 0
         }
         
         if donumber {
@@ -317,10 +317,10 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
             numbering_properties[section]?.type = .number_regex
           }
           
-          var expr = regex_t()
+          var expr = Darwin.regex_t()
           let astr = String(argstr.dropFirst())
           let error = astr.withCString {
-            regcomp(&expr, $0, REG_NEWLINE|REG_NOSUB)
+            regcomp(&expr, $0, Darwin.REG_NEWLINE|Darwin.REG_NOSUB)
           }
           if error != 0 {
             let t = regerror(error, expr)

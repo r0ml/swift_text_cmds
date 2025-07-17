@@ -49,7 +49,7 @@ extension tail {
    * it is displayed from the character closest to the beginning of the input to
    * the end.
    */
-  func bytes(_ fp: FileDescriptor, _ filename: String, _ off : off_t) throws {
+  func bytes(_ fp: FileDescriptor, _ filename: String, _ off : Int64) throws {
 //    fatalError("not yet implemented")
     /*
     var wrap = false

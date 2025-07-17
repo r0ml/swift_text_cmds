@@ -34,8 +34,9 @@
 
 import CMigration
 import libxo
-import Darwin
 import Synchronization
+
+import stdlib_h
 
 @main final class wc : ShellCommand {
 
@@ -126,9 +127,9 @@ import Synchronization
     
     xo_close_container("wc")
     if xo_finish() < 0 {
-      throw CmdErr( Int(EXIT_FAILURE), "stdout")
+      throw CmdErr( Int(stdlib_h.EXIT_FAILURE), "stdout")
     }
-    exit(errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE)
+    exit(errors == 0 ? stdlib_h.EXIT_SUCCESS : stdlib_h.EXIT_FAILURE)
   }
   
   func show_cnt(options : CommandOptions, file : String, linect : UInt, wordct : UInt, charct : UInt, llct : UInt) {

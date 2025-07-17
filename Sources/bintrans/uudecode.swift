@@ -35,6 +35,43 @@
 
 import CMigration
 
+import stdlib_h
+import stdio_h
+import errno_h
+import Darwin
+
+/*
+import stdlib_h
+import stdio_h
+import errno_h
+import time_h
+import locale_h
+import limits_h
+import stdarg_h
+import stddef_h
+import fenv_h
+import math_h
+import ctype_h
+import float_h
+import wchar_h
+import assert_h
+import iso646_h
+import setjmp_h
+import stdint_h
+import string_h
+import tgmath_h
+import unwind_h
+import wctype_h
+import complex_h
+import stdbool_h
+import inttypes_h
+import stdalign_h
+import stdatomic_h
+import stdnoreturn_h
+import signal_h
+*/
+
+
 struct Decoder {
   var inFile : String = "stdin"
   var outFile : String = "stdout"
@@ -88,7 +125,7 @@ extension bintrans {
     var d = Decoder.init(inFile: inFile, outFile: outFile, inHandle: infp, outHandle: outfp, options: options)
     
     let res = try await decode(&d)
-    exit(Int32(res))
+    stdlib_h.exit(Int32(res))
   }
   
   func parseOptions_decode(_ options : inout CommandOptions, _ bintflag : Bool) throws(CmdErr) {
@@ -177,7 +214,7 @@ extension bintrans {
       }
     }
     
-    exit( Int32(rval) )
+    stdlib_h.exit( Int32(rval) )
   }
   
   func decode(_ d : inout Decoder ) async throws(CmdErr) -> Int32 {
@@ -232,11 +269,11 @@ extension bintrans {
       while d.options.cflag || first {
         first = false
         var v = try await decode2(&d)
-        if first && v == EOF {
+        if first && v == stdlib_h.EOF {
           warn("\(d.inFile): missing or bad \"begin\" line")
           return 1
         }
-        if v == EOF {
+        if v == stdlib_h.EOF {
           break
         }
         r |= v
@@ -326,12 +363,12 @@ extension bintrans {
     
    //  if isEOF { return EOF }
     
-    guard let handle = setmode(modestr) else {
+    guard let handle = stdlib_h.setmode(modestr) else {
       warnx("\(modestr): unable to parse file mode")
       return 1
     }
-    let mode = getmode(handle, 0)
-    
+    let mode = stdlib_h.getmode(handle, 0)
+
     // POSIX says "/dev/stdout" is a 'magic cookie' not a special file.
     if fn == "/dev/stdout" {
       d.outHandle = FileDescriptor.standardOutput
@@ -346,7 +383,7 @@ extension bintrans {
       if q.hasPrefix("~") {
         let j = q.split(separator: "/", maxSplits: 1)
         if j.count > 1 {
-          pw = Darwin.getpwnam(String(j[0].dropFirst()))
+          pw = getpwnam(String(j[0].dropFirst()))
           if let pw {
             let dd = String(cString: pw.pointee.pw_dir)
             fn = dd + "/" + String(j[1])
@@ -381,19 +418,19 @@ extension bintrans {
       return 2
     }
     else {
-      var flags = O_WRONLY | O_CREAT | O_EXCL
-      var st = stat()
-      if (lstat(d.outFile, &st) == 0) {
+      var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_EXCL
+      var st = Darwin.stat()
+      if (Darwin.lstat(d.outFile, &st) == 0) {
         if d.options.iflag && !S_ISFIFO(st.st_mode) {
-          warnc(EEXIST, "\(d.inFile): \(d.outFile)")
+          warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")
           return 0
         }
-        switch st.st_mode & S_IFMT {
-          case S_IFREG:
-            flags |= O_NOFOLLOW | O_TRUNC
-            flags &= ~O_EXCL
-            
-          case S_IFLNK:
+        switch st.st_mode & Darwin.S_IFMT {
+          case Darwin.S_IFREG:
+            flags |= Darwin.O_NOFOLLOW | Darwin.O_TRUNC
+            flags &= ~Darwin.O_EXCL
+
+          case Darwin.S_IFLNK:
             /* avoid symlink attacks */
             
             /*
@@ -401,18 +438,18 @@ extension bintrans {
              * following symlink.
              */
             if (true /* unix2003compat */) {
-              flags |= O_TRUNC
-              flags &= ~O_EXCL
+              flags |= Darwin.O_TRUNC
+              flags &= ~Darwin.O_EXCL
               break
             }
             
-            if (unlink(d.outFile) == 0 || errno == ENOENT) {
+            if (unlink(d.outFile) == 0 || errno == errno_h.ENOENT) {
               break
             }
             warn("\(d.inFile): unlink \(d.outFile)")
             return 1
-          case S_IFDIR:
-            warnc(EISDIR, "\(d.inFile): \(d.outFile)")
+          case Darwin.S_IFDIR:
+            warnc(errno_h.EISDIR, "\(d.inFile): \(d.outFile)")
             return 1
             
           case S_IFIFO:
@@ -425,10 +462,10 @@ extension bintrans {
               flags &= ~O_EXCL
               break;
             }
-            warnc(EEXIST, "\(d.inFile): \(d.outFile)")
+            warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")
             return 1
         }
-      } else if errno != ENOENT {
+      } else if errno != errno_h.ENOENT {
         warn("\(d.inFile): \(d.outFile)")
         return 1
       }
@@ -440,7 +477,7 @@ extension bintrans {
       }
       
 //      do {
-      let ee = chmod(d.outFile, mode)
+      let ee = Darwin.chmod(d.outFile, mode)
       if 0 != ee {
         //      if (0 != fchmod(d.outHandle.fileDescriptor, mode) && EPERM != errno) {
 //      } catch(let e) {
@@ -693,6 +730,6 @@ usage: uudecode [-cimprs] [file ...]
     
   }
 
-func S_ISFIFO(_ m : mode_t) -> Bool {
-  return (((m) & S_IFMT) == S_IFIFO)     /* fifo or socket */
+func S_ISFIFO(_ m : Darwin.mode_t) -> Bool {
+  return (((m) & Darwin.S_IFMT) == Darwin.S_IFIFO)     /* fifo or socket */
 }

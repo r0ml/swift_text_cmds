@@ -35,11 +35,13 @@
 
 import CMigration
 
+import Darwin
+
 @main final class cat : ShellCommand {
 
   struct Flag : OptionSet {
     let rawValue: Int
-    
+
     static let bflag = Flag(rawValue: 1 << 0) // 00001
     static let eflag = Flag(rawValue: 1 << 1) // 00010
     static let lflag = Flag(rawValue: 1 << 2) // 00100
@@ -48,72 +50,60 @@ import CMigration
     static let tflag = Flag(rawValue: 1 << 5) // 10000
     static let vflag = Flag(rawValue: 1 << 6) // 10000
   }
-  
+
   struct CommandOptions {
     var flags : Flag = []
     var args : [String] = []
   }
-  
+
   var rval = 0
   var filename: String = ""
-  
-    // Constants
+
+  // Constants
   let PHYSPAGES_THRESHOLD = 32 * 1024
   let BUFSIZE_MAX = 2 * 1024 * 1024
-  let BUFSIZE_SMALL = Int(MAXPHYS)
-  
-  // Usage function
+  let BUFSIZE_SMALL = Int(Darwin.MAXPHYS)
+
   var usage : String = "usage: cat [-belnstuv] [file ...]"
-  
-  // Main function
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
-      let supportedFlags = "belnstuv"
-      let go = BSDGetopt(supportedFlags)
+    let supportedFlags = "belnstuv"
+    let go = BSDGetopt(supportedFlags)
 
-      while let (k, _) = try go.getopt() {
-        switch k {
-            case "b":
-            options.flags.insert(.bflag)
-            options.flags.insert(.nflag)
-            case "e":
-            options.flags.insert(.eflag)
-            options.flags.insert(.vflag)
-            case "l":
-            options.flags.insert(.lflag)
-            case "n":
-            options.flags.insert(.nflag)
-            case "s":
-            options.flags.insert(.sflag)
-            case "t":
-            options.flags.insert(.tflag)
-            options.flags.insert(.vflag)
-            case "u":
-              setbuf(stdout, nil) // Disable output buffering
-            case "v":
-            options.flags.insert(.vflag)
-            default:
-              throw CmdErr(1)
-          }
-        }
-/*
-    } else {
-        // Handle files
-        scanFiles(files: Array(iterator), cooked: bflag || eflag || nflag || sflag || tflag || vflag)
+    while let (k, _) = try go.getopt() {
+      switch k {
+        case "b":
+          options.flags.insert(.bflag)
+          options.flags.insert(.nflag)
+        case "e":
+          options.flags.insert(.eflag)
+          options.flags.insert(.vflag)
+        case "l":
+          options.flags.insert(.lflag)
+        case "n":
+          options.flags.insert(.nflag)
+        case "s":
+          options.flags.insert(.sflag)
+        case "t":
+          options.flags.insert(.tflag)
+          options.flags.insert(.vflag)
+        case "u":
+          setbuf(Darwin.stdout, nil) // Disable output buffering
+        case "v":
+          options.flags.insert(.vflag)
+        default:
+          throw CmdErr(1)
       }
     }
- */
     options.args = go.remaining
     return options
   }
-  
-  // Scan files
-  
+
   func runCommand(_ options : CommandOptions) async throws(CmdErr) {
 
     let cooked = !options.flags.intersection([.bflag, .eflag, .nflag, .sflag, .tflag, .vflag]).isEmpty
-    
-    //  func scanFiles(files: [String], cooked: Bool) {
+
     for path in options.args {
       if path == "-" {
         filename = "stdin"
@@ -132,90 +122,87 @@ import CMigration
         do {
           let fh = try FileDescriptor(forReading: path)
           defer { try? fh.close() }
-            if cooked {
-              cookCat(fh, options)
-            } else {
-              try rawCat(fh)
-            }
-            
-          } catch(let e ) {
-          perror(path)
+          if cooked {
+            cookCat(fh, options)
+          } else {
+            try rawCat(fh)
+          }
+
+        } catch(let e ) {
+          Darwin.perror(path)
           rval = 1
         }
       }
     }
   }
-  
-  func cookCat(_ fileHandle: FileDescriptor, _ options : CommandOptions) {
-      var line = 0
-      var gobble = false
-      var prev: Character = "\n"
-      
-      let stdout = FileDescriptor.standardOutput
-    var stderr = FileDescriptor.standardError
-    
-      // Helper to write to stdout
-      func writeToStdout(_ text: String) {
-        print(text, terminator: "") // writes as utf8?
-      }
 
-      // Read and process file line by line
-      var buffer = [UInt8]()
-      while let data = try? fileHandle.readUpToCount(1), !data.isEmpty {
-        buffer.append(contentsOf: data)
-        guard var current = String(decoding: data, as: ISOLatin1.self).first else { continue }
-          
-          if prev == "\n" {
-            if options.flags.contains(.sflag) {
-                  if current == "\n" {
-                      if gobble { continue }
-                      gobble = true
-                  } else {
-                      gobble = false
-                  }
-              }
-              
-            if options.flags.contains(.nflag) {
-              if !options.flags.contains(.bflag) || current != "\n" {
-                      writeToStdout(cFormat("%6d\t", line + 1))
-                      line += 1
-              } else if options.flags.contains(.eflag) {
-                      writeToStdout("      \t")
-                  }
-              }
-          }
-
-          if current == "\n" {
-            if options.flags.contains(.eflag) { writeToStdout("$") }
-          } else if current == "\t" {
-            if options.flags.contains(.tflag) {
-                  writeToStdout("^I")
-                  continue
-              }
-          } else if options.flags.contains(.vflag) {
-            if (!current.isASCII) && !current.isPrintable {
-              writeToStdout("M-")
-              current = Character(UnicodeScalar(data[0] & 0x7f))
-            }
-            if let c = current.asciiValue {
-              if c < 32 {
-                writeToStdout("^")
-                let ctrlChar = Character(Unicode.Scalar(current.asciiValue! | 0x40))
-                writeToStdout(String(ctrlChar))
-              } else if c == 127 {
-                writeToStdout("?")
-              } else {
-                writeToStdout(String(current))
-              }
-            }
-            prev = current
-            continue
-          }
-          writeToStdout(String(current))
-          prev = current
-      }
+  // Helper to write to stdout
+  func writeToStdout(_ text: String) {
+    print(text, terminator: "") // writes as utf8?
   }
-  
+
+  func cookCat(_ fileHandle: FileDescriptor, _ options : CommandOptions) {
+    var line = 0
+    var gobble = false
+    var prev: Character = "\n"
+
+    // Read and process file line by line
+    var buffer = [UInt8]()
+    while let data = try? fileHandle.readUpToCount(1), !data.isEmpty {
+      buffer.append(contentsOf: data)
+      guard var current = String(decoding: data, as: ISOLatin1.self).first else { continue }
+
+      if prev == "\n" {
+        if options.flags.contains(.sflag) {
+          if current == "\n" {
+            if gobble { continue }
+            gobble = true
+          } else {
+            gobble = false
+          }
+        }
+
+        if options.flags.contains(.nflag) {
+          if !options.flags.contains(.bflag) || current != "\n" {
+            writeToStdout(cFormat("%6d\t", line + 1))
+            line += 1
+          } else if options.flags.contains(.eflag) {
+            writeToStdout("      \t")
+          }
+        }
+      }
+
+      if current == "\n" {
+        if options.flags.contains(.eflag) { writeToStdout("$") }
+      } else if current == "\t" {
+        if options.flags.contains(.tflag) {
+          writeToStdout("^I")
+          continue
+        }
+      } else if options.flags.contains(.vflag) {
+        if (!current.isASCII) && !current.isPrintable {
+          writeToStdout("M-")
+          current = Character(UnicodeScalar(data[0] & 0x7f))
+        }
+        if let c = current.asciiValue {
+          if c < 32 {
+            writeToStdout("^")
+            let ctrlChar = Character(Unicode.Scalar(current.asciiValue! | 0x40))
+            writeToStdout(String(ctrlChar))
+          } else if c == 127 {
+            writeToStdout("?")
+          } else {
+            writeToStdout(String(current))
+          }
+        }
+        prev = current
+        continue
+      }
+      writeToStdout(String(current))
+      prev = current
+    }
+  }
+
   // Raw cat (direct file copy)
   func rawCat(_ fd : FileDescriptor) throws {
     let ofd = FileDescriptor.standardOutput
@@ -225,8 +212,7 @@ import CMigration
       do {
         try ofd.write(bytes)
       } catch {
-        perror("stdout")
-        exit(1)
+        throw CmdErr(1, "stdout")
       }
     }
   }

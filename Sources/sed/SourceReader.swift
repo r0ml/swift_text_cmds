@@ -3,6 +3,11 @@
 
 import CMigration
 
+import stdlib_h
+
+import Darwin
+
+
 extension SedProcess {
 
   /*
@@ -95,15 +100,15 @@ extension SedProcess {
         // if there was a backup file, remove it
         if let oldfname {
           // make sure the backup name is available
-          unlink(oldfname)
-          
+          stdlib_h.unlink(oldfname)
+
           // FIXME: should oldfname be a URL?
-          if 0 != link(oldfname, sti.fname) {
+          if 0 != stdlib_h.link(oldfname, sti.fname) {
             do {
               try posixRename(from: sti.fname, to: oldfname)
             } catch {
               if let tmpfname {
-                unlink(tmpfname.string)
+                stdlib_h.unlink(tmpfname.string)
                 throw CmdErr(1, "renaming \(sti.fname) to \(oldfname) failed: \(error)")
               }
             }
@@ -116,14 +121,14 @@ extension SedProcess {
             do {
               try outfile.close()
             } catch {
-              unlink(tmpfname.string)
+              stdlib_h.unlink(tmpfname.string)
               throw CmdErr(1, "closing \(outfname): \(error)")
             }
             
             do {
               try posixRename(from: tmpfname.string, to: inp!.fname)
             } catch {
-              unlink(tmpfname.string)
+              stdlib_h.unlink(tmpfname.string)
               throw CmdErr(1, "rename \(tmpfname.string) to \(inp!.fname): \(error)")
             }
             
@@ -170,7 +175,7 @@ extension SedProcess {
         let dirbuf = FilePath(fnam).removingLastComponent()
 //        let dirbuf = URL(filePath: fnam).absoluteURL.deletingLastPathComponent()
         let base = FilePath(fnam).lastComponent!
-        let pid = getpid()
+        let pid = stdlib_h.getpid()
         let stmpfname = ".!\(pid)!\(base)"
         tmpfname = dirbuf.appending(stmpfname)
         unlink(tmpfname!.string)
@@ -354,7 +359,7 @@ class PeekableAsyncIterator {
 // ========================
 
 public func isRegularFile(_ path : FilePath) throws -> Bool {
-    var statBuf = stat()
+  var statBuf = Darwin.stat()
     let result = path.string.withCString { cPath in
         lstat(cPath, &statBuf)
     }
@@ -363,5 +368,5 @@ public func isRegularFile(_ path : FilePath) throws -> Bool {
         throw Errno(rawValue: errno)
     }
 
-    return (statBuf.st_mode & S_IFMT) == S_IFREG
+  return (statBuf.st_mode & Darwin.S_IFMT) == Darwin.S_IFREG
 }

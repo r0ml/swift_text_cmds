@@ -42,6 +42,13 @@
 
 import CMigration 
 
+import errno_h
+import locale_h
+import time_h
+import stdlib_h
+
+import Darwin
+
 let FORMFEED = "\u{0c}"
 
 extension pr {
@@ -76,11 +83,11 @@ extension pr {
           return inf
         }
 
-        var tv_sec = Darwin.time(nil)
+        var tv_sec = time_h.time(nil)
         if tv_sec == -1 {
           options.errcnt += 1
           var er = FileDescriptor.standardError
-          let se = String(cString: Darwin.strerror(errno))
+          let se = String(cString: stdlib_h.strerror(errno))
           print("pr: cannot get time of day, \(se)", to: &er)
           return nil
         }
@@ -117,18 +124,18 @@ extension pr {
             if tv_sec == -1 {
               options.errcnt += 1
               var er = FileDescriptor.standardError
-              let se = String(cString: Darwin.strerror(errno))
+              let se = String(cString: stdlib_h.strerror(errno))
               print("pr: cannot get time of day, \(se)", to: &er)
               try? inf.close()
               return nil
             }
             timeptr = localtime(&tv_sec);
           } else {
-            if (fstat(inf.rawValue, &statbuf) < 0) {
+            if (Darwin.fstat(inf.rawValue, &statbuf) < 0) {
               options.errcnt += 1
               try? inf.close()
               var err = FileDescriptor.standardError
-              let se = String(cString: Darwin.strerror(errno))
+              let se = String(cString: stdlib_h.strerror(errno))
               print("pr: cannot stat \(filename), \(se)", to: &err)
               return nil
             }
@@ -146,7 +153,7 @@ extension pr {
      */
     if let timeptr {
       var buf = Array(repeating: CChar(0), count: HDBUF)
-      let n = Darwin.strftime(&buf, HDBUF, options.timefrmt, timeptr)
+      let n = time_h.strftime(&buf, HDBUF, options.timefrmt, timeptr)
       if n <= 0 {
         options.errcnt += 1
         if inf != FileDescriptor.standardInput {
@@ -192,9 +199,9 @@ extension pr {
    * carriage return on /dev/tty.
    */
   func ttypause(_ pagecnt : Int, options: CommandOptions) async {
-    if (options.pauseall || (options.pausefst && pagecnt == 1)) && Darwin.isatty(STDOUT_FILENO) != 0 {
+    if (options.pauseall || (options.pausefst && pagecnt == 1)) && stdlib_h.isatty(STDOUT_FILENO) != 0 {
       if let ttyfp = try? FileDescriptor(forReading: "/dev/tty") {
-        Darwin.putc(7, stderr)
+        stdlib_h.putc(7, stderr)
         var k = ttyfp.bytes.lines.makeAsyncIterator()
         let _ = try? await k.next()
         try? ttyfp.close()

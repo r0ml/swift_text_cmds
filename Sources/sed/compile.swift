@@ -38,6 +38,10 @@
 
 import CMigration
 
+import ctype_h
+
+import Darwin
+
 // Constants/defines used by compile.c
 let LHSZ = 128
 let LHMASK = LHSZ - 1

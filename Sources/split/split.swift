@@ -35,6 +35,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class split : ShellCommand {
 
   let DEFLINE: Int = 1000 // Default number of lines per file
@@ -60,7 +62,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     var autosfx: Bool = false   // Whether to auto-extend the suffix length
     var pflag: Bool = false
     var dflag: Bool = false
-    var rgx : regex_t = regex_t()
+    var rgx : Darwin.regex_t = Darwin.regex_t()
 //    var regexPattern: NSRegularExpression?
     var args : [String] = CommandLine.arguments
   }
@@ -282,11 +284,11 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     do {
       for try await line in options.ifd.bytes.lines {
         if options.pflag {
-          var pmatch = regmatch_t()
+          var pmatch = Darwin.regmatch_t()
           pmatch.rm_so = 0
-          pmatch.rm_eo = regoff_t(line.count)
-          
-          if (regexec(&rgx, line, 0, &pmatch, REG_STARTEND) == 0) {
+          pmatch.rm_eo = Darwin.regoff_t(line.count)
+
+          if (Darwin.regexec(&rgx, line, 0, &pmatch, REG_STARTEND) == 0) {
             try newfile(options, &state)
           }
           //        if let regex = regexPattern, regex.firstMatch(in: line, range: NSRange(location: 0, length: line.utf16.count)) != nil {
@@ -354,7 +356,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   /// Open a new output file
   func newfile(_ options : CommandOptions, _ state : inout splitState) throws(CmdErr) {
     var maxfiles = 1
-    var flags = O_WRONLY | O_CREAT | O_TRUNC
+    var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_TRUNC
     var patt = "0123456789"
     
     if let ofd = state.ofd {
@@ -442,13 +444,13 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
 }
 
 public func fileSize(at path: FilePath) throws -> Int {
-    var statBuf = stat()
+  var statBuf = Darwin.stat()
     let result = path.string.withCString { cPath in
         stat(cPath, &statBuf)
     }
 
     if result != 0 {
-        throw Errno(rawValue: errno)
+      throw Errno(rawValue: Darwin.errno)
     }
 
     return Int(statBuf.st_size)

@@ -50,15 +50,18 @@ extension tail {
     fatalError("Error: stdout")
   }
   */
-  
+
+  /*
   /// Structure representing memory-mapped file info
   struct MapInfo {
     var fd: Int32
     var start: UnsafeMutableRawPointer?
-    var mapOffset: off_t
-    var mapLength: off_t
-    var maxOffset: off_t
+    // FIXME: are these always Int64 (originally off_t)
+    var mapOffset: Int64
+    var mapLength: Int64
+    var maxOffset: Int64
   }
+  */
   
   /// Prints `len` bytes from a file starting at `startOffset`, possibly adjusting the memory map.
 /*  func mapprint(mip: inout MapInfo, startOffset: off_t, length: off_t) -> Int {

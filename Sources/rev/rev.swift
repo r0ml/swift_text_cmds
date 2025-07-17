@@ -35,6 +35,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class rev : ShellCommand {
 
   var usage : String = "usage: rev [file ...]"
@@ -66,8 +68,7 @@ import CMigration
           print(String(line.reversed()))
         }
       } catch {
-        warn("read failure on stdin: \(error)")
-        exit(1)
+        throw CmdErr(1, "read failure on stdin: \(error)")
       }
     }
     for f in options.args {
@@ -82,6 +83,8 @@ import CMigration
         rval = 1
       }
     }
-    exit(Int32(rval) )
+    if rval == 0 { return }
+
+    Darwin.exit(Int32(rval) )
   }
 }

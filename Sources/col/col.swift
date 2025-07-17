@@ -79,8 +79,7 @@ import CMigration
     var l_needs_sort: Bool = false
     var l_max_col: Int = 0
   }
-  
-  
+
   struct CommandOptions {
     var compressSpaces = true
     var fine = false
@@ -107,7 +106,7 @@ import CMigration
           options.compressSpaces = true
         case "l": // buffered line count
           if let n = Int(v) {
-            if n < 1 || n > (Int(INT_MAX) - BUFFER_MARGIN) / 2 {
+            if n < 1 || n > (Int.max - BUFFER_MARGIN) / 2 {
               throw CmdErr(1, "bad -l argument (out of range): \(v)")
             }
             options.max_bufd_lines = n
@@ -142,7 +141,6 @@ import CMigration
     var cur_line = 0
     var cur_col = 0
     var cur_set: CSET = .normal
-//    var l = 0
     var lines: ArraySlice<LINE> = [LINE()]
     var this_line = 0
     var adjust = 0
@@ -231,28 +229,21 @@ import CMigration
         /* Must stuff ch in a line - are we at the right one? */
         if (cur_line + adjust != this_line) {
 
-          /* round up to next line */
+          // round up to next line
           adjust = (!options.fine && (cur_line & 1) == 1) ? 1 : 0
 
           if (cur_line + adjust < this_line) {
             while (cur_line + adjust < this_line &&
                    this_line > lines.startIndex) {
-              //            l -= 1
               this_line-=1
             }
             if (cur_line + adjust < this_line) {
               if (nflushd_lines == 0) {
-                /*
-                 * Allow backup past first
-                 * line if nothing has been
-                 * flushed yet.
-                 */
-                while (cur_line + adjust
-                       < this_line) {
+                // Allow backup past first line if nothing has been flushed yet.
+                while (cur_line + adjust < this_line) {
                   let lnew = LINE()
                   lines.insert(lnew, at: 0)
                   extra_lines+=1
-                  //                  this_line-=1
                   cur_line += 1
                 }
               } else {
@@ -266,9 +257,8 @@ import CMigration
               }
             }
           } else {
-            /* may need to allocate here */
+            // may need to allocate here
             while (cur_line + adjust > this_line) {
-              //             if (l->l_next == NULL) {
               if (this_line >= lines.endIndex - 1) {
                 lines.append(LINE())
               }
@@ -276,31 +266,23 @@ import CMigration
             }
           }
           if (this_line > nflushd_lines &&
-              this_line - nflushd_lines >=
-              options.max_bufd_lines + BUFFER_MARGIN) {
+              this_line - nflushd_lines >= options.max_bufd_lines + BUFFER_MARGIN) {
             if extra_lines > 0 {
               flush_lines(&lines, extra_lines, options)
               extra_lines = 0
             }
-            flush_lines(&lines, this_line - nflushd_lines -
-                        options.max_bufd_lines, options)
+            flush_lines(&lines, this_line - nflushd_lines - options.max_bufd_lines, options)
             nflushd_lines = this_line - options.max_bufd_lines;
           }
         }
-        //     let l = lines.first!
 
         let c = CHAR(c_column: cur_col, c_set: cur_set, c_char: ch, c_width: ch.wcwidth)
         lines[this_line].l_line.append(c)
 
-        /*
-         * If things are put in out of order, they will need sorting
-         * when it is flushed.
-         */
+        // If things are put in out of order, they will need sorting when it is flushed.
         if (cur_col < lines[this_line].l_max_col) {
-          //        l->l_needs_sort = 1
           lines[this_line].l_needs_sort = true
         } else {
-          //        l->l_max_col = cur_col
           lines[this_line].l_max_col = cur_col
         }
         if (c.c_width > 0) {
@@ -311,10 +293,6 @@ import CMigration
       throw CmdErr(1, "reading: \(e)")
     }
 
-//    if (ferror(stdin)) {
-//      err(1, NULL)
-//    }
-    
     if extra_lines > 0 {
       /*
        * Extra lines only exist if no lines have been flushed
@@ -322,7 +300,6 @@ import CMigration
        * after we flush the extra lines.
        */
       flush_lines(&lines, extra_lines, options);
-//      l = lines;
       this_line = 0 // or startIndex?
     }
 
@@ -334,17 +311,17 @@ import CMigration
     this_line = lines.endIndex - 1
     flush_lines(&lines, this_line - nflushd_lines + 1, options);
 
-    /* make sure we leave things in a sane state */
+    // make sure we leave things in a sane state
     if last_set != .normal {
       PUTC(SI)
     }
 
-    /* flush out the last few blank lines */
+    // flush out the last few blank lines
     if max_line >= this_line {
       nblank_lines = max_line - this_line + (max_line & 1)
     }
     if nblank_lines == 0 {
-      /* end with a newline even if the source doesn't */
+      // end with a newline even if the source doesn't
       nblank_lines = 2
     }
     flush_blanks(options)
@@ -404,12 +381,10 @@ import CMigration
     nblank_lines = 0
   }
   
-  /*
+  /**
    * Write a line to stdout taking care of space to tab conversion (-h flag)
    * and character set shifts.
    */
-  
-  
   func flush_line(_ line: LINE, _ options : CommandOptions) {
     var chars = line.l_line
     var last_col = 0

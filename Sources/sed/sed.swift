@@ -40,6 +40,9 @@
 
 import CMigration
 
+import stdlib_h
+import Darwin
+
 // We replicate the Apple usage of PATH_MAX or fallback
 let PATH_MAX: Int32 = 1024
 

@@ -39,6 +39,8 @@
 
 import CMigration
 
+import Darwin
+
 @main final class paste : ShellCommand {
   
   var usage : String = "usage: paste [-s] [-d delimiters] file ..."
@@ -173,7 +175,7 @@ import CMigration
         do {
           line = try await head[i].lineit?.next()
         } catch {
-          throw CmdErr(Int(EX_IOERR), "Error reading \(lp.name); \(error)")
+          throw CmdErr(Int(Darwin.EX_IOERR), "Error reading \(lp.name); \(error)")
         }
 
         if line == nil {

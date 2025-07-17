@@ -1,4 +1,3 @@
-
 // Modernized by Robert "r0ml" Lefkowitz <code@liberally.net> in 2024
 // from a file with the following notice:
 
@@ -35,8 +34,9 @@
 
 
 import CMigration
+import locale_h
+import stdlib_h
 
-// MARK: - Constants and Global Variables
 
 let SILLY: Int = Int.max // Represents a value that should never be a genuine line length
 let MAX_TABSTOPS = 100    // Maximum number of tab stops
@@ -71,8 +71,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_CTYPE, "")
+    setlocale(LC_CTYPE, "")
 
     var rval : Int32 = 0
     
@@ -103,11 +102,9 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
         rval = 1
       }
     }
-    exit(rval)
+    stdlib_h.exit(rval)
   }
   
-  
-  // MARK: - Helper Functions
   
   /// Parses the tab stops from a given string.
   /// - Parameter cp: A string containing comma or space-separated tab stop numbers.
@@ -129,28 +126,25 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
       }
       
       if numberString.isEmpty {
-        fputs("Error: bad tab stop spec\n", stderr)
-        exit(EXIT_FAILURE)
+        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
       }
       
       if let number = Int(numberString), number > 0 {
         if options.nstops > 0 && number <= options.tabstops[options.nstops - 1] {
-          fputs("Error: bad tab stop spec\n", stderr)
-          exit(EXIT_FAILURE)
+          throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
         }
         if options.nstops >= MAX_TABSTOPS {
-          fputs("Error: too many tab stops\n", stderr)
-          exit(EXIT_FAILURE)
+          throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: too many tab stops")
         }
         options.tabstops[options.nstops] = number
         options.nstops += 1
       } else {
-        throw CmdErr(Int(EXIT_FAILURE), "Error: bad tab stop spec")
+        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
       }
       
       // After a number, expect a comma or whitespace or end of string
       if currentIndex < cp.endIndex && cp[currentIndex] != "," && !cp[currentIndex].isWhitespace {
-        throw CmdErr(Int(EXIT_FAILURE), "Error: bad tab stop spec")
+        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
       }
     }
   }
@@ -242,3 +236,4 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   }
   
 }
+

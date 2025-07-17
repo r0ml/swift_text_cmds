@@ -31,7 +31,8 @@
  */
 
 import CMigration
-// import System
+
+import Darwin
 
 let MB_CUR_MAX = 4
 
@@ -532,7 +533,7 @@ let MB_CUR_MAX = 4
   func do_hvis(_ c : Character, _ flags : visOptions, _ nextc : Character, _ extra : String) -> String
   {
     let cc = c.unicodeScalars.first!.value
-    if iswalnum(wint_t(cc)) != 0
+    if Darwin.iswalnum(Darwin.wint_t(cc)) != 0
         /* safe */
         || "$-_.+!*'(),".contains(c)
     {
@@ -557,9 +558,9 @@ let MB_CUR_MAX = 4
     var dst = ""
     if (c != "\n" &&
         /* Space at the end of the line */
-        (((iswspace(wint_t(cc)) != 0) && (nextc == "\r" || nextc == "\n")) ||
+        (((Darwin.iswspace(wint_t(cc)) != 0) && (nextc == "\r" || nextc == "\n")) ||
          /* Out of range */
-         ((iswspace(wint_t(cc)) == 0) && (cc < 33 || (cc > 60 && cc < 62) || cc > 126)) ||
+         ((Darwin.iswspace(wint_t(cc)) == 0) && (cc < 33 || (cc > 60 && cc < 62) || cc > 126)) ||
          /* Specific char to be escaped */
          "#$@[\\]^`{|}~".contains(c))) {
       dst.append("=")
@@ -665,7 +666,7 @@ let MB_CUR_MAX = 4
         dst.append("M")
       }
       
-      if ((iswcntrl(wint_t(cc))) != 0) {
+      if ((Darwin.iswcntrl(Darwin.wint_t(cc))) != 0) {
         dst.append("^")
         if (cc == 0x7f) {
           dst.append("?")
@@ -685,13 +686,13 @@ let MB_CUR_MAX = 4
   
   func ISGRAPH(_ flags : visOptions, _ c : Character ) -> Bool {
     return 0 !=
-    (flags.contains(.NOLOCALE) && !"01234567".contains(c) ? /* isgraph_l(c, LC_C_LOCALE */ isgraph( Int32(c.unicodeScalars.first!.value) ) : iswgraph( wint_t(c.unicodeScalars.first!.value) ))
+    (flags.contains(.NOLOCALE) && !"01234567".contains(c) ? /* isgraph_l(c, LC_C_LOCALE */ Darwin.isgraph( Int32(c.unicodeScalars.first!.value) ) : iswgraph( Darwin.wint_t(c.unicodeScalars.first!.value) ))
   }
   
   func iswwhite(_ flags : visOptions, _ c : Character) -> Bool {
     let cc = c.unicodeScalars.first!.value
     return c == " " || c == "\t" || c == "\n" ||
-    (!flags.contains(.NOLOCALE) && cc > 0x7f && (iswspace(wint_t(cc)) != 0))
+    (!flags.contains(.NOLOCALE) && cc > 0x7f && (Darwin.iswspace(Darwin.wint_t(cc)) != 0))
   }
   
   func iswsafe(_ c : Character) -> Bool {
