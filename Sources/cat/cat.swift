@@ -87,6 +87,8 @@ import CMigration
           options.flags.insert(.tflag)
           options.flags.insert(.vflag)
         case "u":
+          // output is never buffered
+          break
             // setbuf(FileDescriptor.standardOutput.rawValue, nil) // Disable output buffering
         case "v":
           options.flags.insert(.vflag)

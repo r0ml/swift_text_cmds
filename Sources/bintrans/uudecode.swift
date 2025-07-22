@@ -37,7 +37,6 @@ import CMigration
 
 import stdlib_h
 import stdio_h
-import errno_h
 import Darwin
 
 /*
@@ -379,14 +378,11 @@ extension bintrans {
     if (d.options.sflag) {
       /* don't strip, so try ~user/file expansion */
       let q = fn
-      var pw : UnsafeMutablePointer<passwd>? = nil
       if q.hasPrefix("~") {
         let j = q.split(separator: "/", maxSplits: 1)
         if j.count > 1 {
-          pw = getpwnam(String(j[0].dropFirst()))
-          if let pw {
-            let dd = String(cString: pw.pointee.pw_dir)
-            fn = dd + "/" + String(j[1])
+          if let dd = getPasswd(for: String(j[0].dropFirst())) {
+            fn = dd.home + "/" + String(j[1])
           }
         }
       }
