@@ -43,7 +43,6 @@
 
 import CMigration
 
-import locale_h
 import Darwin
 
 /*

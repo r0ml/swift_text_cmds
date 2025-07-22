@@ -35,8 +35,6 @@
 
 import CMigration
 
-import Darwin
-
 @main final class cat : ShellCommand {
 
   struct Flag : OptionSet {
@@ -62,7 +60,7 @@ import Darwin
   // Constants
   let PHYSPAGES_THRESHOLD = 32 * 1024
   let BUFSIZE_MAX = 2 * 1024 * 1024
-  let BUFSIZE_SMALL = Int(Darwin.MAXPHYS)
+  let BUFSIZE_SMALL = 65536
 
   var usage : String = "usage: cat [-belnstuv] [file ...]"
 
@@ -89,7 +87,7 @@ import Darwin
           options.flags.insert(.tflag)
           options.flags.insert(.vflag)
         case "u":
-          setbuf(Darwin.stdout, nil) // Disable output buffering
+            // setbuf(FileDescriptor.standardOutput.rawValue, nil) // Disable output buffering
         case "v":
           options.flags.insert(.vflag)
         default:
@@ -128,8 +126,9 @@ import Darwin
             try rawCat(fh)
           }
 
-        } catch(let e ) {
-          Darwin.perror(path)
+        } catch(let e) {
+          var se = FileDescriptor.standardError
+          print("\(progname): \(path): \(e)", to: &se)
           rval = 1
         }
       }
@@ -138,7 +137,8 @@ import Darwin
 
   // Helper to write to stdout
   func writeToStdout(_ text: String) {
-    print(text, terminator: "") // writes as utf8?
+    // this would be unbuffered.
+    let _ = try? FileDescriptor.standardOutput.writeAll([UInt8](text.utf8))  // writes as utf8
   }
 
   func cookCat(_ fileHandle: FileDescriptor, _ options : CommandOptions) {
@@ -226,3 +226,4 @@ extension Character {
     return false
   } }
 }
+

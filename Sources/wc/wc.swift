@@ -36,7 +36,7 @@ import CMigration
 import libxo
 import Synchronization
 
-import stdlib_h
+// import stdlib_h
 
 @main final class wc : ShellCommand {
 
@@ -127,9 +127,9 @@ import stdlib_h
     
     xo_close_container("wc")
     if xo_finish() < 0 {
-      throw CmdErr( Int(stdlib_h.EXIT_FAILURE), "stdout")
+      throw CmdErr( 1, "stdout")
     }
-    exit(errors == 0 ? stdlib_h.EXIT_SUCCESS : stdlib_h.EXIT_FAILURE)
+    exit(errors == 0 ? 0 : 1)
   }
   
   func show_cnt(options : CommandOptions, file : String, linect : UInt, wordct : UInt, charct : UInt, llct : UInt) {

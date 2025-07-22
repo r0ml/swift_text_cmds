@@ -3,7 +3,6 @@
 
 import CMigration
 
-import errno_h
 import Darwin
 
 public func encodeLatin1Lossy(_ string: String) -> [UInt8] {

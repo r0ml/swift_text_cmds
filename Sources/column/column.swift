@@ -34,9 +34,6 @@
  */
 
 import CMigration
-import locale_h
-
-import Darwin
 
 @main final class column : ShellCommand {
   
@@ -56,9 +53,7 @@ import Darwin
     var options = CommandOptions()
     let supportedFlags = "c:s:tx"
     let go = BSDGetopt(supportedFlags)
-    
-    setlocale(LC_ALL, "en_US.UTF-8")
-    
+
     while let (k, v) = try go.getopt() {
       switch k {
         case "c":
@@ -110,22 +105,25 @@ import Darwin
     }
     let list = data.split(separator: "\n").map { l in l.trimmingPrefix(while:  {c in c.isWhitespace} ) }
     if list.count == 0 {
-      Darwin.exit(Int32(eval))
+      throw CmdErr(eval, "")
     }
     
     if options.tflag {
       try maketbl(list: list, separator: options.separator)
     } else {
       let maxlength = roundup(1 + list.reduce( 0, { max($0, $1.wcwidth()) }), TAB )
-//      if maxlength >= options.termwidth {
-//        print()
-//      } else if options.xflag {
+      if maxlength >= options.termwidth {
+        for lp in list {
+          print(lp)
+        }
+      } else {
+//        if options.xflag {
 //       c_columnate(list: list, termwidth: options.termwidth)
 //      } else {
-      columnate(list: list, termwidth: options.termwidth, options.xflag)
-//      }
+        columnate(list: list, termwidth: options.termwidth, options.xflag)
+      }
     }
-    Darwin.exit((Int32(eval)))
+    if eval != 0 { throw CmdErr(eval, "") }
   }
   
  
@@ -204,4 +202,5 @@ import Darwin
     }
     
   }
+
 }

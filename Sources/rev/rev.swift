@@ -35,8 +35,6 @@
 
 import CMigration
 
-import Darwin
-
 @main final class rev : ShellCommand {
 
   var usage : String = "usage: rev [file ...]"
@@ -85,6 +83,6 @@ import Darwin
     }
     if rval == 0 { return }
 
-    Darwin.exit(Int32(rval) )
+    throw CmdErr(rval, "")
   }
 }

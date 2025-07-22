@@ -53,9 +53,7 @@ import CMigration
 import Synchronization
 
 import signal_h
-import locale_h
 import time_h
-import limits_h
 
 import Darwin // for gettimeofday and uuid_generate
 
@@ -139,7 +137,7 @@ let filesToClean = Mutex<[String]>([])
 
     // Check that the output file name (prefix + suffix) won’t be too long.
     //    let PATH_MAX = 1024
-    if options.prefix.count + options.sufflen >= limits_h.PATH_MAX {
+    if options.prefix.count + options.sufflen >= MAXPATHLEN {
       throw CmdErr(1, "name too long")
     }
 

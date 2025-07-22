@@ -39,8 +39,6 @@
 
 import CMigration
 
-import stdlib_h
-
 // Constants
 let DEFLINEWIDTH = 80
 
@@ -97,7 +95,7 @@ let DEFLINEWIDTH = 80
     // Collect remaining arguments as files
     let files = options.args
     
-    var rval : Int32 = 0
+    var rval = 0
     
     if files.isEmpty {
       // Read from standard input
@@ -127,8 +125,8 @@ let DEFLINEWIDTH = 80
         }
       }
     }
-    
-    stdlib_h.exit(rval)
+
+    throw CmdErr(rval, "")
   }
   
   // ==========================================================

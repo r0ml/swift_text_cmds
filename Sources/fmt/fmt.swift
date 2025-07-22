@@ -149,7 +149,8 @@
 
 import CMigration
 
-import Darwin
+let EX_NOINPUT = 66
+let EX_USAGE = 64
 
 @main final class fmt : ShellCommand {
   
@@ -200,13 +201,13 @@ import Darwin
           if !v.isEmpty {
             options.sentenceEnders = Array(v)
           } else {
-            throw CmdErr(Int(Darwin.EX_USAGE), "Error: -d requires an argument")
+            throw CmdErr(EX_USAGE, "Error: -d requires an argument")
           }
         case "l":
           if !v.isEmpty {
             options.outputTabWidth = try getNonNegative(v, errMess: "output tab width must be non-negative")
           } else {
-            throw CmdErr(Int(Darwin.EX_USAGE), "Error: -l requires an argument")
+            throw CmdErr(EX_USAGE, "Error: -l requires an argument")
           }
         case "m":
           options.grokMailHeaders = true
@@ -220,7 +221,7 @@ import Darwin
           if !v.isEmpty {
             options.tabWidth = try getPositive(v, errMess: "tab width must be positive")
           } else {
-            throw CmdErr(Int(EX_USAGE), "Error: -t requires an argument")
+            throw CmdErr(EX_USAGE, "Error: -t requires an argument")
           }
         case "w":
           if !v.isEmpty {
@@ -303,12 +304,12 @@ import Darwin
         let standardInput = try FileDescriptor(forReading: "/dev/stdin")
         await processStream(stream: standardInput, name: "standard input", options)
       } catch {
-        throw CmdErr(Int(Darwin.EX_NOINPUT), "Error: Could not open standard input")
+        throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
       }
     }
     
     // Exit with appropriate status
-    exit(nErrors > 0 ? Darwin.EX_NOINPUT : 0)
+    if nErrors > 0 { throw CmdErr(EX_NOINPUT, "") }
   }
   
   
@@ -464,7 +465,8 @@ import Darwin
       }
       
     } catch {
-      Darwin.fputs("Error reading \(name)\n", Darwin.stderr)
+      var se = FileDescriptor.standardError
+      print("Error reading \(name)", to: &se)
         nErrors += 1
     }
   }
@@ -579,7 +581,8 @@ import Darwin
     do {
       fileStream = try FileDescriptor(forReading: name)
     } catch {
-      Darwin.fputs("Warning: Could not open file \(name)\n", stderr)
+      var se = FileDescriptor.standardError
+      print("Warning: Could not open file \(name)", to: &se)
       nErrors += 1
       return
     }
@@ -665,7 +668,8 @@ import Darwin
       // Finish the last paragraph
       newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
     } catch {
-      Darwin.fputs("Warning: Error reading \(name)\n", Darwin.stderr)
+      var se = FileDescriptor.standardError
+      print("Warning: Error reading \(name)", to: &se)
       nErrors += 1
     }
   }

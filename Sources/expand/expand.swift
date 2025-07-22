@@ -34,9 +34,6 @@
 
 
 import CMigration
-import locale_h
-import stdlib_h
-
 
 let SILLY: Int = Int.max // Represents a value that should never be a genuine line length
 let MAX_TABSTOPS = 100    // Maximum number of tab stops
@@ -71,10 +68,9 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   }
   
   func runCommand(_ options: CommandOptions) throws(CmdErr) {
-    setlocale(LC_CTYPE, "")
 
     var rval : Int32 = 0
-    
+
     if !options.args.isEmpty {
       for file in options.args {
         do {
@@ -102,7 +98,8 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
         rval = 1
       }
     }
-    stdlib_h.exit(rval)
+
+    if rval != 0 { throw CmdErr(Int(rval), "") }
   }
   
   
@@ -126,25 +123,25 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
       }
       
       if numberString.isEmpty {
-        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
+        throw CmdErr(1, "Error: bad tab stop spec")
       }
       
       if let number = Int(numberString), number > 0 {
         if options.nstops > 0 && number <= options.tabstops[options.nstops - 1] {
-          throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
+          throw CmdErr(1, "Error: bad tab stop spec")
         }
         if options.nstops >= MAX_TABSTOPS {
-          throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: too many tab stops")
+          throw CmdErr(1, "Error: too many tab stops")
         }
         options.tabstops[options.nstops] = number
         options.nstops += 1
       } else {
-        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
+        throw CmdErr(1, "Error: bad tab stop spec")
       }
       
       // After a number, expect a comma or whitespace or end of string
       if currentIndex < cp.endIndex && cp[currentIndex] != "," && !cp[currentIndex].isWhitespace {
-        throw CmdErr(Int(stdlib_h.EXIT_FAILURE), "Error: bad tab stop spec")
+        throw CmdErr(1, "Error: bad tab stop spec")
       }
     }
   }
