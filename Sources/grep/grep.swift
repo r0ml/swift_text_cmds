@@ -270,7 +270,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     }
     
     var args : [String] = CommandLine.arguments
-    if let eopts = getenv("GREP_OPTIONS"), !eopts.isEmpty {
+    if let eopts = Environment["GREP_OPTIONS"], !eopts.isEmpty {
       let aargs = eopts.split(separator: " ", omittingEmptySubsequences: true).map { String($0) }
       args = [CommandLine.arguments[0]]+aargs+CommandLine.arguments.dropFirst()
     }
@@ -572,7 +572,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   }
   
   func init_color(_ d : String) -> String {
-    if let c = getenv("GREP_COLOR"), !c.isEmpty {
+    if let c = Environment["GREP_COLOR"], !c.isEmpty {
       return c
     } else {
       return d

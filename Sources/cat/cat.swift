@@ -130,7 +130,7 @@ import CMigration
 
         } catch(let e) {
           var se = FileDescriptor.standardError
-          print("\(progname): \(path): \(e)", to: &se)
+          print("\(Environment.progname): \(path): \(e)", to: &se)
           rval = 1
         }
       }

@@ -702,7 +702,7 @@ class SedProcess {
     
     // Set the termwidth if it has not yet been set
     if termwidth == -1 {
-      if let c = getenv("COLUMNS"), !c.isEmpty {
+      if let c = Environment["COLUMNS"], !c.isEmpty {
         if let cc = Int(c) {
           termwidth = cc
         }
