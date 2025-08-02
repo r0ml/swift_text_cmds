@@ -35,8 +35,6 @@
 
 import CMigration
 
-import Darwin
-
 extension bintrans {
   func main_base64_encode(_ inp : String?, _ outp : String?,  _ w : String?, _ options : inout CommandOptions) throws(CmdErr) {
     options.raw = true
@@ -90,7 +88,7 @@ extension bintrans {
     
     
     // FIXME: why no mode here?
-    try base64_encode(d, mode: 0, name: name)
+    try base64_encode(d, mode: FilePermissions(), name: name)
     do {
       try outfp.close()
     } catch(let e) {
@@ -131,7 +129,7 @@ extension bintrans {
   
   func main_encode(_ options : CommandOptions) throws(CmdErr) {
     var fh = FileDescriptor.standardInput
-    var mode : UInt16 = 0
+    var mode = FilePermissions()
     var name : String = "stdin"
     var d = Decoder(options: options)
     switch options.args.count {
@@ -142,14 +140,20 @@ extension bintrans {
         } catch(let e) {
           throw CmdErr(1, "opening input file \(options.args[0]): \(e)")
         }
-        var sb = Darwin.stat()
-        fstat(fh.rawValue, &sb)
+//        var sb = Darwin.stat()
+//        fstat(fh.rawValue, &sb)
 
-        let RWX = S_IRWXU|S_IRWXG|S_IRWXO
-        mode = sb.st_mode & RWX
+
+        if var sb = try? FileMetadata(for: fh) {
+
+          //        let RWX = S_IRWXU|S_IRWXG|S_IRWXO
+          mode = sb.mode
+        }
+
       case 1:
-        let RW = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
-        mode = RW & ~umask(RW)
+//        let RW = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
+//        RW & ~umask(RW)
+        mode = [.ownerReadWrite, .groupReadWrite, .otherReadWrite]
         name = options.args[0]
       default:
         throw CmdErr(1, encode_usage)
@@ -191,7 +195,7 @@ extension bintrans {
   /*
    * Copy from in to out, encoding in base64 as you go along.
    */
-  func base64_encode(_ d : Decoder, mode : UInt16, name av : String) throws(CmdErr) {
+  func base64_encode(_ d : Decoder, mode : FilePermissions, name av : String) throws(CmdErr) {
     /*
      * This buffer's length should be a multiple of 24 bits to avoid "="
      * padding. Once it reached ~1 KB, further expansion didn't improve
@@ -205,7 +209,7 @@ extension bintrans {
     //    size_t rv, written;
     
     if (!d.options.raw) {
-      d.outHandle.write("begin-base64 \(cFormat("%lo", mode)) \(av)\n");
+      d.outHandle.write("begin-base64 \(cFormat("%lo", mode.rawValue)) \(av)\n");
     }
     
     var carry = 0
@@ -252,7 +256,7 @@ extension bintrans {
   /*
    * Copy from in to out, encoding as you go along.
    */
-  func encode(_ d : Decoder, mode: UInt16, name av: String) throws(CmdErr) {
+  func encode(_ d : Decoder, mode: FilePermissions, name av: String) throws(CmdErr) {
 //    ssize_t n;
 //    int ch;
     
@@ -260,7 +264,7 @@ extension bintrans {
 //    char buf[80];
     
     if (!d.options.raw) {
-      d.outHandle.write("begin \(cFormat("%lo", mode)) \(av)\n")
+      d.outHandle.write("begin \(cFormat("%lo", mode.rawValue)) \(av)\n")
     }
     do {
       while true {

@@ -302,7 +302,7 @@ import Darwin
           }
         }
         
-        
+        // FIXME: how to avoid ___mb_cur_max() ?
         if options.cflag || (options.Cflag && Darwin.___mb_cur_max() > 1 )  {
           /*
            * This is somewhat tricky: since the character set is
@@ -318,7 +318,7 @@ import Darwin
           s2.str = Substring(s2.originalStr)
 //          s2 = STR(options.string2!)
           s2.state = .normal
-          for cnt in 0 ..< Darwin.WINT_MAX {
+          for cnt in 0 ..< Int32.max{
             if options.Cflag && !iswrune(cnt) {
               continue
             }
@@ -410,7 +410,9 @@ import Darwin
         }
         
     }
-    fsync(FileDescriptor.standardOutput.rawValue)
+
+    // FIXME: Do I need this?
+    // fsync(FileDescriptor.standardOutput.rawValue)
   }
   
   

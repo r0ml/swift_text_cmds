@@ -133,6 +133,7 @@ o=
     let t = try tmpfile("inFile", sampinp+"\n")
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
     try await run( args: args)
+    rm(t)
     let j = URL(filePath: "outfile", directoryHint: .notDirectory,  relativeTo: FileManager.default.temporaryDirectory)
     let oo = try String(contentsOf: j, encoding: .utf8)
     #expect( oo == sampoutb20+"\n")

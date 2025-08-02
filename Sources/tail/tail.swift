@@ -38,8 +38,6 @@
 
 import CMigration
 
-import Darwin
-
 @main final class tail : ShellCommand {
   
   var usage : String = """
@@ -185,9 +183,11 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
        * Determine if input is a pipe.  4.4BSD will set the SOCKET
        * bit in the st_mode field for pipes.  Fix this then.
        */
-      if (Darwin.lseek(FileDescriptor.standardInput.rawValue, 0, Darwin.SEEK_CUR) == -1 &&
-          Darwin.errno == Darwin.ESPIPE) {
-        Darwin.errno = 0;
+      if let fm = try? FileMetadata(for: FileDescriptor.standardInput),
+         fm.fileType == .fifo {
+
+//      if (Darwin.lseek(FileDescriptor.standardInput.rawValue, 0, Darwin.SEEK_CUR) == -1 && Darwin.errno == Darwin.ESPIPE) {
+//        Darwin.errno = 0;
         fflag = false    /* POSIX.2 requires this. */
       }
       
@@ -283,7 +283,7 @@ func expand_number(_ input: String) throws -> UInt64 {
     if result.overflow {
         throw ExpandNumberError.overflow
     }
-    
+
     return result.partialValue
 }
 
@@ -299,3 +299,4 @@ func expand_number(_ input: String) throws -> UInt64 {
     print("Error: \(error)")
 }
 */
+

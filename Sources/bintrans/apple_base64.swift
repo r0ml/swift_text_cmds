@@ -47,8 +47,6 @@
 
 import CMigration
 
-import stdlib_h
-
 let Base64 =
 Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
 
@@ -216,7 +214,7 @@ extension bintrans {
           target[target.count - 1] |= UInt8(pos)
           state = 0
         default:
-          stdlib_h.abort()
+          fatalError("invalid state: \(state)")
       }
     }
     
@@ -265,7 +263,7 @@ extension bintrans {
           }
           target.removeLast()
         default:
-          stdlib_h.abort()
+          fatalError("invalid state: \(state)")
       }
       return (target, false)
     } else {

@@ -43,6 +43,7 @@
 
 import CMigration
 
+import locale_h
 import Darwin
 
 /*
@@ -354,10 +355,9 @@ usage: pr [+page] [-col] [-adFfmprt] [-e[ch][gap]] [-h header]
       }
     }
 
-    // FIXME: setlocale is gone -- so what does this do?
-    //    Darwin.setlocale(Darwin.LC_TIME, (options.Lflag != nil) ? options.Lflag : "");
+    locale_h.setlocale(LC_TIME, (options.Lflag != nil) ? options.Lflag : "");
 
-    options.d_first = nl_langinfo(D_MD_ORDER).pointee == "d".first!.asciiValue!
+    options.d_first = Darwin.nl_langinfo(Darwin.D_MD_ORDER).pointee == "d".first!.asciiValue!
     options.timefrmt = options.d_first ? TIMEFMTD : TIMEFMTM
 
     if options.args.isEmpty {

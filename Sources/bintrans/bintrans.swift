@@ -31,8 +31,6 @@
 
 import CMigration
 
-import stdlib_h
-
 @main final class bintrans : ShellCommand {
 
   var usage : String = """
@@ -71,7 +69,7 @@ Usage:  base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
     //    let go = BSDGetopt(supportedFlags)
     
     var bintflag = false
-    options.progname = String(cString: stdlib_h.getprogname())
+    options.progname = Environment.progname
     if options.progname == "bintrans" && CommandLine.arguments.count > 1 {
       options.progname = CommandLine.arguments[1]
       bintflag = true
@@ -128,15 +126,15 @@ usage: [bintrans] <uuencode | uudecode> ...
           options.outFile = v
         case "version":
           FileDescriptor.standardError.write("FreeBSD base64\n")
-          stdlib_h.exit(0)
+          throw CmdErr(0)
         case "h", "help":
           print(usage)
-          stdlib_h.exit(0)
+          throw CmdErr(0)
         case "?":
           throw CmdErr(1)
         default:
           print(usage)
-          stdlib_h.exit(0)
+          throw CmdErr(0)
       }
     }
     options.args = go.remaining
