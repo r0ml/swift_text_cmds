@@ -38,8 +38,7 @@
 
 import CMigration
 
-import ctype_h
-
+// for regex
 import Darwin
 
 // Constants/defines used by compile.c

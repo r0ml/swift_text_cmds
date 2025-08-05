@@ -47,6 +47,7 @@ import locale_h
 import time_h
 import stdlib_h
 
+// for fstat
 import Darwin
 
 let FORMFEED = "\u{0c}"

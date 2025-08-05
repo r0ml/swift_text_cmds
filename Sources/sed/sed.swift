@@ -40,7 +40,7 @@
 
 import CMigration
 
-import stdlib_h
+// for regex options
 import Darwin
 
 // We replicate the Apple usage of PATH_MAX or fallback
@@ -79,9 +79,6 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     let supportedFlags = "EHI:ae:f:i:lnru"
     let go = BSDGetopt(supportedFlags)
 
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_ALL, "") // In Swift, you'd do something else or ignore.
-    
     while let (k, v) = try go.getopt() {
       switch k {
         case "r", "E":
@@ -141,7 +138,7 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
       //
     } else if options.fflagstdin {
       // If we read script from stdin but no input files => exit
-      exit(0)
+      throw CmdErr(0, "")
     } else {
       // add_file(NULL) => means read from stdin
       options.files = ["/dev/stdin"] // add_file(nil)

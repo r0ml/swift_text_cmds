@@ -44,6 +44,7 @@
 import CMigration
 
 import locale_h
+// for nl_langinfo
 import Darwin
 
 /*

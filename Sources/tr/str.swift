@@ -35,6 +35,7 @@
 
 import CMigration
 
+// for __mb_cur_max and wctype
 import Darwin
 
 // Define Character Set Size

@@ -36,8 +36,7 @@ SUCH DAMAGE.
 
 import CMigration
 
-import inttypes_h
-
+// for stat, kqueue, flock, fstatfs, lseek
 import Darwin
 
 extension tail {
@@ -136,8 +135,9 @@ extension tail {
         oerr()
       }
     }
-  */
-    fsync(FileDescriptor.standardOutput.rawValue)
+*/
+    // FIXME: do I need this?
+//    fsync(FileDescriptor.standardOutput.rawValue)
   }
   
   // Reads and prints the last `offset` lines of the file
@@ -155,7 +155,7 @@ extension tail {
      * just print the whole file.
      */
 
-    let size = try fp.seek(offset: 0, from: .end)
+    let size : Int = try Int(fp.seek(offset: 0, from: .end))
     guard size > 0 else { return }
     
     // FIXME: should it be LOCK_EX ?
@@ -165,16 +165,16 @@ extension tail {
     
     let blksize = 8192
     let wanted = options.off
-    var found: off_t = 0
-    var offset : off_t = roundup(Int64(size) - 1, blksize)
+    var found = 0
+    var offset : Int = roundup(size - 1, blksize)
 
     try fp.seek(offset: -1, from: .end)
     let lastc = try fp.readUpToCount(1)
 
     // find the `\n` at the right distance from the end.
     while offset > 0 {
-      offset -= off_t(blksize)
-      try fp.seek(offset: offset, from: .start)
+      offset -= blksize
+      try fp.seek(offset: Int64(offset), from: .start)
 
       let length = min(blksize, Int(size) - 1 - Int(offset))
       let buf = try fp.readUpToCount(length)
@@ -192,13 +192,13 @@ extension tail {
       }
       
       if let n, found == wanted {
-        offset += Int64(n + 1)
+        offset += n + 1
         break
       }
     }
 
     // seek to the right place to be, then read forward from there.
-    try fp.seek(offset: offset, from: .start)
+    try fp.seek(offset: Int64(offset), from: .start)
 
     var i = 0
     for try await line in fp.bytes.lines /* dropFirst(Int(offset)). */ {
@@ -235,7 +235,7 @@ extension tail {
       try FileDescriptor.standardOutput.write(dd)
     }
     // FIXME: if there is a file error, remove it from the list -- but keep the place in case it starts working again
-    fsync(FileDescriptor.standardOutput.rawValue)
+//    fsync(FileDescriptor.standardOutput.rawValue)
     return true
   }
 
@@ -423,7 +423,7 @@ extension tail {
   }
   
   // Helper function to round up to block size
-  func roundup(_ num: off_t, _ multiple: Int) -> off_t {
-    return (num + off_t(multiple) - 1) / off_t(multiple) * off_t(multiple)
+  func roundup(_ num: Int, _ multiple: Int) -> Int {
+    return (num + multiple - 1) / multiple * multiple
   }
 }

@@ -3,10 +3,8 @@
 
 import CMigration
 
+// link, unlink, and getpid
 import stdlib_h
-
-import Darwin
-
 
 extension SedProcess {
 
@@ -359,14 +357,6 @@ class PeekableAsyncIterator {
 // ========================
 
 public func isRegularFile(_ path : FilePath) throws -> Bool {
-  var statBuf = Darwin.stat()
-    let result = path.string.withCString { cPath in
-        lstat(cPath, &statBuf)
-    }
-
-    if result != 0 {
-        throw Errno(rawValue: errno)
-    }
-
-  return (statBuf.st_mode & Darwin.S_IFMT) == Darwin.S_IFREG
+  var statBuf = try FileMetadata(for: path.string)
+  return statBuf.fileType == .regular
 }

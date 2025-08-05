@@ -35,6 +35,7 @@
 
 import CMigration
 
+// for regcomp and regex
 import Darwin
 
 @main final class split : ShellCommand {
@@ -322,7 +323,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   /// Split the input into specified number of chunks
   func split3(_ opts : CommandOptions) throws(CmdErr) {
     var options = opts
-    var fs = 0
+    var fs : UInt = 0
     do {
       fs = try fileSize(at: FilePath(options.iurl!))
     } catch {
@@ -336,7 +337,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       throw CmdErr(1, "can't split into more than \(fs) files")
     }
     
-    options.bytecnt = fs / options.chunks
+    options.bytecnt = Int(fs) / options.chunks
     try split1(options)
   }
   
@@ -356,7 +357,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   /// Open a new output file
   func newfile(_ options : CommandOptions, _ state : inout splitState) throws(CmdErr) {
     var maxfiles = 1
-    var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_TRUNC
+//    var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_TRUNC
     var patt = "0123456789"
     
     if let ofd = state.ofd {
@@ -420,7 +421,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
             continue
           }
         }
-        state.ofd = try FileDescriptor.open(state.fname + fpnt, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
+        state.ofd = try FileDescriptor.open(state.fname + fpnt, .writeOnly, options: [.create, .truncate], permissions: [.ownerReadWrite])
           break
       } catch {
         throw CmdErr(1, "writing to \(state.fname): \(error)")
@@ -443,15 +444,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   
 }
 
-public func fileSize(at path: FilePath) throws -> Int {
-  var statBuf = Darwin.stat()
-    let result = path.string.withCString { cPath in
-        stat(cPath, &statBuf)
-    }
-
-    if result != 0 {
-      throw Errno(rawValue: Darwin.errno)
-    }
-
-    return Int(statBuf.st_size)
+public func fileSize(at path: FilePath) throws -> UInt {
+  var statBuf = try FileMetadata(for: path.string)
+  return statBuf.size
 }

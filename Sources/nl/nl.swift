@@ -35,8 +35,6 @@
 
 import CMigration
 
-import Darwin
-
 @main final class nl : ShellCommand {
   
   var usage : String = """
@@ -59,9 +57,6 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   }
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_ALL, "")
-
     var options = CommandOptions()
     let supportedFlags = "pb:d:f:h:i:l:n:s:v:w:"
     let go = BSDGetopt(supportedFlags)
@@ -194,18 +189,20 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   // MARK: - Enum, Structures, and Macros
   //======================================================================
   
-  enum numbering_type: Int {
+  enum numbering_type {
     case number_all         // number all lines
     case number_nonempty    // number non-empty lines
     case number_none        // no line numbering
-    case number_regex       // number lines matching regular expression
+    case number_regex(Regex<AnyRegexOutput>)       // number lines matching regular expression
   }
-  
+
+  /*
   struct numbering_property {
     var type: numbering_type         // numbering type
-    var expr: Darwin.regex_t?               // for type == number_regex
+    var expr: Regex<AnyRegexOutput>? // Darwin.regex_t?               // for type == number_regex
   }
-  
+  */
+
   // Line numbering formats
   enum FORMAT : String {
     case LN = "%-*d"   // left justified, leading zeros suppressed
@@ -220,10 +217,10 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
     case HEADER = 2
   }
   
-  var numbering_properties: [Section : numbering_property] = [
-    .FOOTER :  numbering_property(type: .number_none),
-    .BODY : numbering_property(type: .number_nonempty),
-    .HEADER : numbering_property(type: .number_none)
+  var numbering_properties: [Section : numbering_type] = [
+    .FOOTER :  .number_none,
+    .BODY : .number_nonempty,
+    .HEADER : .number_none,
   ]
   
   // Macro: max(a, b)
@@ -233,8 +230,8 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   
   // Maximum number of characters required for a decimal representation of an int.
   // ((sizeof (int) * CHAR_BIT - 1) * 302 / 1000 + 2)
-  let INT_STRLEN_MAXIMUM = ((MemoryLayout<Int32>.size * Int(CHAR_BIT) - 1) * 302 / 1000 + 2)
-  
+  // let INT_STRLEN_MAXIMUM = ((MemoryLayout<Int32>.size * Int(CHAR_BIT) - 1) * 302 / 1000 + 2)
+
   func filter(_ fp : FileDescriptor, _ options : CommandOptions) async throws(CmdErr) {
     
     var adjblank: UInt = 0  // adjacent blank lines
@@ -265,7 +262,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
           continue
         }
         
-        switch numbering_properties[section]!.type {
+        switch numbering_properties[section] {
           case .number_all:
             if buffer.isEmpty && { adjblank += 1; return adjblank }() < options.nblank {
               donumber = false
@@ -277,8 +274,10 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
             donumber = !buffer.isEmpty
           case .number_none:
             donumber = false
-          case .number_regex:
-            donumber = Darwin.regexec(&numbering_properties[section]!.expr!, buffer, 0, nil, 0) == 0
+          case .number_regex(let expr):
+            donumber = try expr.firstMatch(in: buffer) != nil
+          case .none:
+            fatalError("not possible (numbering property .none)")
         }
         
         if donumber {
@@ -288,7 +287,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
           
           line += options.incr
         } else {
-          print("%*s", options.width, "")
+          print(String(repeating: " ", count: options.width), terminator: "")
         }
         print(options.sep, terminator: "")
         print(buffer)
@@ -305,35 +304,33 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
     func parse_numbering(_ argstr: String, _ section: Section) throws(CmdErr) {
       switch argstr.first {
         case "a":
-          numbering_properties[section]?.type = .number_all
+          numbering_properties[section] = .number_all
         case "n":
-          numbering_properties[section]?.type = .number_none
+          numbering_properties[section] = .number_none
         case "t":
-          numbering_properties[section]?.type = .number_nonempty
+          numbering_properties[section] = .number_nonempty
         case "p":
-          if numbering_properties[section]?.type == .number_regex {
-//            regfree(&numbering_properties[section]?.expr)
-          } else {
-            numbering_properties[section]?.type = .number_regex
-          }
-          
-          var expr = Darwin.regex_t()
+
+         // var expr = Darwin.regex_t()
           let astr = String(argstr.dropFirst())
-          let error = astr.withCString {
-            regcomp(&expr, $0, Darwin.REG_NEWLINE|Darwin.REG_NOSUB)
+          do {
+            let expr = try Regex(astr)
+            numbering_properties[section] = .number_regex(expr)
+            //          let error = astr.withCString {
+            //            regcomp(&expr, $0, Darwin.REG_NEWLINE|Darwin.REG_NOSUB)
+            //          }
+            //          if error != 0 {
+            //            let t = regerror(error, expr)
+          } catch let e {
+            throw CmdErr(1, "expr: \(e) -- \(astr)")
           }
-          if error != 0 {
-            let t = regerror(error, expr)
-            throw CmdErr(1, "\(numbering_properties[section]!.type) expr: \(t) -- \(astr)")
-          }
-          numbering_properties[section]!.expr = expr
-          
+
 //          &numbering_properties[section].expr, &errorbuf, errorbuf.count)
 
         default:
           let k = numbering_properties[section]!
           // FIXME: does k.description work?
-          throw CmdErr(1, "illegal \(k.type) line numbering type -- \(argstr)")
+          throw CmdErr(1, "illegal \(k) line numbering type -- \(argstr)")
       }
     }
        

@@ -88,7 +88,7 @@ extension bintrans {
     
     
     // FIXME: why no mode here?
-    try base64_encode(d, mode: FilePermissions(), name: name)
+    try base64_encode(d, mode: [.ownerReadWrite, .groupRead, .otherRead], name: name)
     do {
       try outfp.close()
     } catch(let e) {
@@ -129,7 +129,7 @@ extension bintrans {
   
   func main_encode(_ options : CommandOptions) throws(CmdErr) {
     var fh = FileDescriptor.standardInput
-    var mode = FilePermissions()
+    var mode : FilePermissions = [.ownerReadWrite, .groupRead, .otherRead]
     var name : String = "stdin"
     var d = Decoder(options: options)
     switch options.args.count {
@@ -144,7 +144,7 @@ extension bintrans {
 //        fstat(fh.rawValue, &sb)
 
 
-        if var sb = try? FileMetadata(for: fh) {
+        if let sb = try? FileMetadata(for: fh) {
 
           //        let RWX = S_IRWXU|S_IRWXG|S_IRWXO
           mode = sb.mode
@@ -153,7 +153,7 @@ extension bintrans {
       case 1:
 //        let RW = S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH
 //        RW & ~umask(RW)
-        mode = [.ownerReadWrite, .groupReadWrite, .otherReadWrite]
+        mode = [.ownerReadWrite, .groupRead, .otherRead]
         name = options.args[0]
       default:
         throw CmdErr(1, encode_usage)

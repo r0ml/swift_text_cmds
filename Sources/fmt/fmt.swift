@@ -285,9 +285,6 @@ let EX_USAGE = 64
   var pendingSpaces: Int = 0                // Spaces to add before the next word
 
   func runCommand(_ options: CommandOptions) async throws(CmdErr) {
-
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_CTYPE, "")
     var goalLengthSet = false
     
     // Initialize the output buffer

@@ -35,8 +35,10 @@
 
 import CMigration
 
+// Need getmode, setmode and chmod
+
 import stdlib_h
-import stdio_h
+// import stdio_h
 import Darwin
 
 /*
@@ -123,8 +125,8 @@ extension bintrans {
     
     var d = Decoder.init(inFile: inFile, outFile: outFile, inHandle: infp, outHandle: outfp, options: options)
     
-    let res = try await decode(&d)
-    stdlib_h.exit(Int32(res))
+    try await decode(&d)
+//    throw CmdErr(1, "")
   }
   
   func parseOptions_decode(_ options : inout CommandOptions, _ bintflag : Bool) throws(CmdErr) {
@@ -196,14 +198,14 @@ extension bintrans {
     
     var rval : Int32 = 0
     if options.args.isEmpty {
-      rval = try await decode(&d)
+      try await decode(&d)
     } else {
       for inFile in options.args {
         do {
           if let di = d.options.inFile { d.inFile = di }
           d.inHandle = try FileDescriptor(forReading: d.inFile)
           d.inFile = inFile
-          rval |= try await decode(&d)
+          try await decode(&d)
           try d.inHandle.close()
         } catch(let e) {
           warn(inFile)
@@ -213,10 +215,10 @@ extension bintrans {
       }
     }
     
-    stdlib_h.exit( Int32(rval) )
+    throw CmdErr(Int(rval), "")
   }
   
-  func decode(_ d : inout Decoder ) async throws(CmdErr) -> Int32 {
+  func decode(_ d : inout Decoder ) async throws(CmdErr) {
     //    int r, v;
     
     /*
@@ -258,16 +260,20 @@ extension bintrans {
       } catch(let e) {
         throw CmdErr(1, "read error \(d.inFile): \(e)")
       }
-      return 0
-      
+
     } else {
-      
-      var r : Int32 = 0
+
+      // FIXME: this needs to be inside decode2
+/*      var r : Int32 = 0
       var first = true
-      
+
       while d.options.cflag || first {
         first = false
-        var v = try await decode2(&d)
+ */
+        try await decode2(&d)
+
+        // FIXME: this needs to be inside decode2
+        /*
         if first && v == stdlib_h.EOF {
           warn("\(d.inFile): missing or bad \"begin\" line")
           return 1
@@ -278,10 +284,11 @@ extension bintrans {
         r |= v
       }
       return r
+         */
     }
   }
   
-  func decode2(_ d : inout Decoder ) async throws(CmdErr) -> Int32 {
+  func decode2(_ d : inout Decoder ) async throws(CmdErr)  {
     //      int flags, fd, mode;
     //      size_t n, m;
     //      char *p, *q;
@@ -331,7 +338,6 @@ extension bintrans {
     } catch(let e){
       throw CmdErr(1, "read error: \(d.inFile): \(e)")
     }
-    return 0
   }
   
   func doDecodeHeader(_ buf : String, _ d : inout Decoder) throws(CmdErr) -> Int32 {
@@ -414,19 +420,21 @@ extension bintrans {
       return 2
     }
     else {
-      var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_EXCL
-      var st = Darwin.stat()
-      if (Darwin.lstat(d.outFile, &st) == 0) {
-        if d.options.iflag && !S_ISFIFO(st.st_mode) {
+      var flags = FileDescriptor.OpenOptions.create.union(.exclusiveCreate)
+      do {
+        var st = try FileMetadata(for: d.outFile)
+//      if (Darwin.lstat(d.outFile, &st) == 0) {
+        if d.options.iflag && st.fileType != .fifo {
           warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")
           return 0
         }
-        switch st.st_mode & Darwin.S_IFMT {
-          case Darwin.S_IFREG:
-            flags |= Darwin.O_NOFOLLOW | Darwin.O_TRUNC
-            flags &= ~Darwin.O_EXCL
+        switch st.fileType {
+          case .regular:
+            flags.insert(.noFollow)
+            flags.insert(.truncate)
+            flags.subtract(.exclusiveCreate)
 
-          case Darwin.S_IFLNK:
+          case .symbolicLink:
             /* avoid symlink attacks */
             
             /*
@@ -434,39 +442,41 @@ extension bintrans {
              * following symlink.
              */
             if (true /* unix2003compat */) {
-              flags |= Darwin.O_TRUNC
-              flags &= ~Darwin.O_EXCL
+              flags.insert(.truncate)
+              flags.subtract(.exclusiveCreate)
               break
             }
-            
+
             if (unlink(d.outFile) == 0 || errno == errno_h.ENOENT) {
               break
             }
             warn("\(d.inFile): unlink \(d.outFile)")
             return 1
-          case Darwin.S_IFDIR:
+          case .directory:
             warnc(errno_h.EISDIR, "\(d.inFile): \(d.outFile)")
             return 1
             
-          case S_IFIFO:
-            flags &= ~O_EXCL
+          case .fifo:
+            flags.subtract(.exclusiveCreate)
             break
             
           default:
             if (d.options.oflag) {
               /* trust command-line names */
-              flags &= ~O_EXCL
+              flags.subtract(.exclusiveCreate)
               break;
             }
             warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")
             return 1
         }
-      } else if errno != errno_h.ENOENT {
-        warn("\(d.inFile): \(d.outFile)")
-        return 1
+      } catch let e {
+        if e.code != ENOENT {
+          warn("\(d.inFile): \(d.outFile)")
+          return 1
+        }
       }
       do {
-        d.outHandle = try FileDescriptor.open(d.outFile, .writeOnly, options: [.create], permissions: [.ownerReadWrite])
+        d.outHandle = try FileDescriptor.open(d.outFile, .writeOnly, options: flags, permissions: [.ownerReadWrite])
       } catch(let e) {
         warn("failed to create outfile \(d.outFile): \(e) from \(d.inFile)")
         return 1
@@ -725,7 +735,3 @@ usage: uudecode [-cimprs] [file ...]
 """ }
     
   }
-
-func S_ISFIFO(_ m : Darwin.mode_t) -> Bool {
-  return (((m) & Darwin.S_IFMT) == Darwin.S_IFIFO)     /* fifo or socket */
-}

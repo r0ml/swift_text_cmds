@@ -38,6 +38,7 @@
 
 import CMigration
 
+// for winsize and regmatch
 import Darwin
 
 public enum Branch : Error {
@@ -276,7 +277,7 @@ class SedProcess {
             PS.append_newline = true
              */
           } else {
-            exit(0)
+            throw CmdErr(0, "")
             // We'll treat this as done. Return from process().
             return
           }
@@ -296,7 +297,7 @@ class SedProcess {
             }
             PS.space.append(nl)
           } else {
-            exit(0)
+            throw CmdErr(0, "")
             return
           }
           
@@ -325,7 +326,7 @@ class SedProcess {
               try OUT(PS)
             }
             try flush_appends()
-            exit(0)
+            throw CmdErr(0, "")
           }
           quit = true
           

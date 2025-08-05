@@ -105,8 +105,6 @@ let filesToClean = Mutex<[String]>([])
 
 
   func parseOptions() throws(CmdErr) -> CommandOptions {
-    setlocale(LC_ALL, "")
-
     var options = CommandOptions()
     let supportedFlags = "ksf:n:"
     let go = BSDGetopt(supportedFlags)

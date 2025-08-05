@@ -35,6 +35,7 @@
 
 import CMigration
 
+// for __mb_cur_max
 import Darwin
 
 @main final class tr : ShellCommand {
@@ -61,12 +62,7 @@ import Darwin
   
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
-    // Set the locale (as in the original C code).
-    // FIXME: setlocale has disappeared!
-    // setlocale(LC_ALL, "")
-    
     var options = CommandOptions()
-    
     
     let supportedFlags = "Ccdsui:"
     let go = BSDGetopt(supportedFlags)

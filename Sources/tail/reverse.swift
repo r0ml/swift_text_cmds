@@ -36,6 +36,7 @@ SUCH DAMAGE.
 
 import CMigration
 
+// for stat and mmap
 import Darwin
 
 extension tail {
@@ -81,9 +82,9 @@ extension tail {
   }
   
   struct mapinfo {
-    var mapoff: Darwin.off_t
-    var maxoff : Darwin.off_t
-    var maplen : Darwin.size_t
+    var mapoff: Int64
+    var maxoff : Int64
+    var maplen : UInt
     var start : UnsafePointer<UInt8>?
     var fd : Int32
   };
@@ -278,6 +279,7 @@ extension UnsafeRawBufferPointer {
   }
 }
 
+/*
 extension FileDescriptor {
   public var isRegularFile : Bool {
     var sbp = stat()
@@ -287,7 +289,7 @@ extension FileDescriptor {
     return (sbp.st_mode & S_IFMT) == S_IFREG
   }
 }
-
+*/
 
 
 
@@ -297,17 +299,18 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     let fd = try FileDescriptor.open(path, .readOnly)
 
     // Get file size
-  var statBuf = Darwin.stat()
-    let statResult = path.string.withCString { cPath in
-        stat(cPath, &statBuf)
-    }
+  let statBuf = try FileMetadata(for: path.string)
+//  var statBuf = Darwin.stat()
+//    let statResult = path.string.withCString { cPath in
+//        stat(cPath, &statBuf)
+//    }
 
-    if statResult != 0 {
-        try? fd.close()
-        throw Errno(rawValue: errno)
-    }
+//    if statResult != 0 {
+//        try? fd.close()
+//        throw Errno(rawValue: errno)
+//    }
 
-    let size = Int(statBuf.st_size)
+    let size = statBuf.size
     guard size > 0 else {
         try? fd.close()
       if size < 0 { throw Errno.invalidArgument }
@@ -322,5 +325,5 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     throw Errno(rawValue: Darwin.errno)
     }
 
-    return UnsafeRawBufferPointer(start: addr, count: size)
+    return UnsafeRawBufferPointer(start: addr, count: Int(size) )
 }
