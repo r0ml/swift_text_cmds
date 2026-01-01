@@ -48,7 +48,9 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
     
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "0123456789t:"
@@ -67,7 +69,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
 
     var rval : Int32 = 0
 
@@ -76,12 +78,12 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
         do {
           if file == "-" {
             // Read from standard input
-            try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin", options: options)
+            try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin")
           } else {
             // Open the file
 //            let url = URL(fileURLWithPath: file)
             let fileHandle = try FileDescriptor(forReading: file)
-            try processInput(fileHandle: fileHandle, curfile: file, options: options)
+            try processInput(fileHandle: fileHandle, curfile: file)
             try fileHandle.close()
           }
         } catch {
@@ -92,7 +94,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
     } else {
       do {
         // No files provided, read from standard input
-        try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin", options: options)
+        try processInput(fileHandle: FileDescriptor.standardInput, curfile: "stdin")
       } catch {
         warn("Warning: stdin: \(error)")
         rval = 1
@@ -105,6 +107,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   
   /// Parses the tab stops from a given string.
   /// - Parameter cp: A string containing comma or space-separated tab stop numbers.
+  // FIXME: can I do this without passing CommandOptions around?
   func getstops(cp: String, _ options : inout CommandOptions) throws(CmdErr) {
     var currentIndex = cp.startIndex
     options.nstops = 0
@@ -158,7 +161,7 @@ let MAX_TABSTOPS = 100    // Maximum number of tab stops
   /// - Parameters:
   ///   - fileHandle: The file handle to read from.
   ///   - curfile: The current file name being processed.
-  func processInput(fileHandle: FileDescriptor, curfile: String, options: CommandOptions) throws {
+  func processInput(fileHandle: FileDescriptor, curfile: String) throws {
     var column = 0
     
     // Read data in chunks]

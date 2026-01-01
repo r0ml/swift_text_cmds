@@ -57,6 +57,8 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     var filePaths: [String] = []
     var args : [String] = CommandLine.arguments
   }
+
+  var options : CommandOptions!
   
   // Enum to define different tail styles
   enum STYLE {
@@ -139,7 +141,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.filePaths.count > 0 && options.fflag {
       var files = try options.filePaths.map { (x : String) throws(CmdErr) -> FileInfo in
         let fi = FileInfo(x)
@@ -149,7 +151,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
         return fi
       }
       do {
-        try await follow(&files, options)
+        try await follow(&files)
       } catch {
         throw CmdErr(1, "\(error)")
       }
@@ -165,9 +167,9 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
             }
             // FIXME: what about the directory?
             if options.rflag {
-              try await reverse(fp, fn, options)
+              try await reverse(fp, fn)
             } else {
-              try await forward(fp, fn, options)
+              try await forward(fp, fn)
             }
             
           } catch {
@@ -193,12 +195,12 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
       
       do {
         if (options.rflag) {
-          try await reverse(FileDescriptor.standardInput, fn, options)
+          try await reverse(FileDescriptor.standardInput, fn)
         } else if fflag {
           var ff = [FileInfo()]
-          try await follow(&ff, options)
+          try await follow(&ff)
         } else {
-          try await forward(FileDescriptor.standardInput, fn, options)
+          try await forward(FileDescriptor.standardInput, fn)
         }
       } catch {
         throw CmdErr(1, "\(error)")
@@ -207,7 +209,8 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     // exit(Int32(rval))
   }
   
-  
+
+  // FIXME: do this without passing in CommandOptions?
   func ARG(_ options : inout CommandOptions, _ optarg : String, _ units : Int, _ forward : STYLE, _ backward : STYLE) throws(CmdErr) {
     if (options.style != .NOTSET) {
       throw CmdErr(1)
@@ -239,53 +242,6 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
 
 // ==================================================
 
-enum ExpandNumberError: Error {
-    case invalidFormat
-    case overflow
-}
-
-func expand_number(_ input: String) throws -> UInt64 {
-    let suffixMultipliers: [Character: UInt64] = [
-        "B": 1,         // Bytes
-        "K": 1024,      // Kilobytes
-        "M": 1024 * 1024, // Megabytes
-        "G": 1024 * 1024 * 1024, // Gigabytes
-        "T": 1024 * 1024 * 1024 * 1024, // Terabytes
-        "P": 1024 * 1024 * 1024 * 1024 * 1024, // Petabytes
-        "E": 1024 * 1024 * 1024 * 1024 * 1024 * 1024 // Exabytes
-    ]
-    
-  let trimmed = input.drop { $0.isWhitespace || $0.isNewline }.uppercased()
-    let regex = try! Regex("^([0-9]+)([BKMGTPE]?)$")
-    
-    guard let match = try regex.firstMatch(in: trimmed) else {
-        throw ExpandNumberError.invalidFormat
-    }
-    
-  guard let numberString = match.output[1].substring else {
-    throw ExpandNumberError.invalidFormat
-  }
-    
-    guard let number = UInt64(numberString) else {
-        throw ExpandNumberError.invalidFormat
-    }
-    
-    var multiplier: UInt64 = 1
-  if let mr = match.output[2].range {
-      if let suffix = trimmed[mr].first {
-        multiplier = suffixMultipliers[suffix] ?? 1
-      } else {
-          multiplier = 1
-      }
-    }
-    
-    let result = number.multipliedReportingOverflow(by: multiplier)
-    if result.overflow {
-        throw ExpandNumberError.overflow
-    }
-
-    return result.partialValue
-}
 
 // **Example Usage**
 /* do {

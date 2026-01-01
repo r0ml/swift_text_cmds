@@ -90,7 +90,9 @@ import CMigration
     var inf = FileDescriptor.standardInput
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "bfhl:pxi:"
@@ -136,7 +138,7 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
     var cur_line = 0
     var cur_col = 0
@@ -268,10 +270,10 @@ import CMigration
           if (this_line > nflushd_lines &&
               this_line - nflushd_lines >= options.max_bufd_lines + BUFFER_MARGIN) {
             if extra_lines > 0 {
-              flush_lines(&lines, extra_lines, options)
+              flush_lines(&lines, extra_lines)
               extra_lines = 0
             }
-            flush_lines(&lines, this_line - nflushd_lines - options.max_bufd_lines, options)
+            flush_lines(&lines, this_line - nflushd_lines - options.max_bufd_lines)
             nflushd_lines = this_line - options.max_bufd_lines;
           }
         }
@@ -299,7 +301,7 @@ import CMigration
        * yet. This means that 'lines' must point to line zero
        * after we flush the extra lines.
        */
-      flush_lines(&lines, extra_lines, options);
+      flush_lines(&lines, extra_lines);
       this_line = 0 // or startIndex?
     }
 
@@ -309,7 +311,7 @@ import CMigration
     }
  */
     this_line = lines.endIndex - 1
-    flush_lines(&lines, this_line - nflushd_lines + 1, options);
+    flush_lines(&lines, this_line - nflushd_lines + 1)
 
     // make sure we leave things in a sane state
     if last_set != .normal {
@@ -324,7 +326,7 @@ import CMigration
       // end with a newline even if the source doesn't
       nblank_lines = 2
     }
-    flush_blanks(options)
+    flush_blanks()
   }
   
   func PUTC(_ ch: Character) {
@@ -338,13 +340,13 @@ import CMigration
    * number of half line feeds between the final flushed line
    * and the first remaining line.
    */
-  func flush_lines(_ lines : inout ArraySlice<LINE>, _  nflush: Int, _ options: CommandOptions) {
+  func flush_lines(_ lines : inout ArraySlice<LINE>, _  nflush: Int) {
     for _ in 0..<nflush {
       if !lines.isEmpty {
         let line = lines.removeFirst()
         if !line.l_line.isEmpty {
-          flush_blanks(options)
-          flush_line(line, options)
+          flush_blanks()
+          flush_line(line)
         }
       }
       if !lines.isEmpty {
@@ -357,7 +359,7 @@ import CMigration
    * Print a number of newline/half newlines.
    * nblank_lines is the number of half line feeds.
    */
-  func flush_blanks(_ options: CommandOptions) {
+  func flush_blanks() {
     var half = 0
     var nb = nblank_lines
     if nb & 1 != 0 {
@@ -385,7 +387,7 @@ import CMigration
    * Write a line to stdout taking care of space to tab conversion (-h flag)
    * and character set shifts.
    */
-  func flush_line(_ line: LINE, _ options : CommandOptions) {
+  func flush_line(_ line: LINE) {
     var chars = line.l_line
     var last_col = 0
     var nchars = chars.count

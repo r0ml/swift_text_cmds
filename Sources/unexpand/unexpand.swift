@@ -45,7 +45,9 @@ import CMigration
     var tabstops : [Int] = [8]
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "at:"
@@ -65,10 +67,10 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.args.isEmpty {
       do {
-        try await tabify(FileDescriptor.standardInput, "stdin", options: options)
+        try await tabify(FileDescriptor.standardInput, "stdin")
       } catch {
         warn("stdin")
       }
@@ -77,7 +79,7 @@ import CMigration
         do {
 //          let u = URL(filePath: filename)
           let fh = try FileDescriptor(forReading: filename)
-          try await tabify(fh, filename, options: options)
+          try await tabify(fh, filename)
         } catch {
           warn(filename)
         }
@@ -86,7 +88,7 @@ import CMigration
   }
   
   
-  func tabify(_ fh : FileDescriptor, _ curfile : String, options : CommandOptions) async throws(CmdErr) {
+  func tabify(_ fh : FileDescriptor, _ curfile : String) async throws(CmdErr) {
 //    int dcol, doneline, limit, n, ocol, width;
 //    wint_t ch;
 

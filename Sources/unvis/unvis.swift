@@ -76,7 +76,9 @@ struct visOptions : OptionSet {
     var eflags : visOptions = []
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "eHhm"
@@ -101,7 +103,7 @@ struct visOptions : OptionSet {
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.args.isEmpty {
       try await process(FileDescriptor.standardInput, "<stdin>", options.eflags)
     } else {

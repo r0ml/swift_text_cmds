@@ -55,6 +55,8 @@ let DEFLINEWIDTH = 80
     
     var args : [String] = CommandLine.arguments
   }
+
+  var options : CommandOptions!
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
@@ -91,7 +93,7 @@ let DEFLINEWIDTH = 80
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
     // Collect remaining arguments as files
     let files = options.args
     
@@ -100,14 +102,14 @@ let DEFLINEWIDTH = 80
     if files.isEmpty {
       // Read from standard input
       if let input = readStdin() {
-        let folded = fold(width: options.width, input: input, options: options)
+        let folded = fold(width: options.width, input: input)
         print(folded, terminator: "")
       }
     } else {
       for file in files {
         if file == "-" {
           if let input = readStdin() {
-            let folded = fold(width: options.width, input: input, options: options)
+            let folded = fold(width: options.width, input: input)
             print(folded, terminator: "")
           }
           continue
@@ -116,7 +118,7 @@ let DEFLINEWIDTH = 80
         do {
           let input = try readFileAsString(at: file)
 //          let input = try String(contentsOfFile: file, encoding: .utf8)
-          let folded = fold(width: options.width, input: input, options: options)
+          let folded = fold(width: options.width, input: input)
           print(folded, terminator: "")
         } catch {
           var se = FileDescriptor.standardError
@@ -133,7 +135,7 @@ let DEFLINEWIDTH = 80
   
   
   // Function to update the current column position for a character
-  func newpos(col: Int, ch: Character, _ options : CommandOptions) -> Int {
+  func newpos(col: Int, ch: Character) -> Int {
     var column = col
     if options.bflag {
       // In Swift, counting bytes can be done using UTF8 encoding
@@ -162,7 +164,7 @@ let DEFLINEWIDTH = 80
   }
   
   // Fold Function
-  func fold(width: Int, input: String, options: CommandOptions) -> String {
+  func fold(width: Int, input: String) -> String {
     var output = ""
     var col = 0
     var buf = ""
@@ -177,7 +179,7 @@ let DEFLINEWIDTH = 80
         continue
       }
       
-      let newColumn = newpos(col: col, ch: ch, options)
+      let newColumn = newpos(col: col, ch: ch)
       if newColumn > width {
         if options.sflag, let space = spaceIndex {
           // Split at the last space
@@ -185,12 +187,12 @@ let DEFLINEWIDTH = 80
           let line = String(buf[..<splitIndex])
           output += line + "\n"
           buf = String(buf[splitIndex...])
-          col = newpos(col: 0, ch: ch, options)
+          col = newpos(col: 0, ch: ch)
         } else {
           // Split at the current position
           output += buf + "\n"
           buf = ""
-          col = newpos(col: 0, ch: ch, options)
+          col = newpos(col: 0, ch: ch)
         }
       }
       

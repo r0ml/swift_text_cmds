@@ -56,10 +56,13 @@ usage: cut -b list [-n] [file ...]
     var autostart : Int = 0
     var autostop : Int = 0
   
-    var fcn : ((FileDescriptor, String, CommandOptions) async throws(CmdErr) -> Void)?
+    var fcn : ((FileDescriptor, String) async throws(CmdErr) -> Void)?
+    
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "b:c:d:f:snw"
@@ -207,7 +210,7 @@ usage: cut -b list [-n] [file ...]
   }
 
   
-  func c_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+  func c_cut(_ fh : FileDescriptor, _ fname : String) async throws(CmdErr) {
 //    wint_t ch;
 //    int col;
 //    char *pos;
@@ -274,14 +277,14 @@ usage: cut -b list [-n] [file ...]
     }
   }
 
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.args.isEmpty {
-      try await options.fcn!(FileDescriptor.standardInput, "stdin", options)
+      try await options.fcn!(FileDescriptor.standardInput, "stdin")
     } else {
       for fnam in options.args {
         do {
           let fp = try FileDescriptor.init(forReading: fnam)
-          try await options.fcn!(fp, fnam, options)
+          try await options.fcn!(fp, fnam)
           try fp.close()
         } catch(let e) {
           throw CmdErr(1, "reading from: \(fnam): \(e)")
@@ -291,7 +294,7 @@ usage: cut -b list [-n] [file ...]
   }
   
   
-  func f_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr)
+  func f_cut(_ fh : FileDescriptor, _ fname : String) async throws(CmdErr)
   {
 //    wchar_t ch;
 //    int field, i, isdelim;
@@ -417,7 +420,7 @@ usage: cut -b list [-n] [file ...]
   }
 */
   
-  func b_cut(_ fh : FileDescriptor, _ fname : String, _ options: CommandOptions) async throws(CmdErr) {
+  func b_cut(_ fh : FileDescriptor, _ fname : String) async throws(CmdErr) {
 //    wint_t ch;
 //    int col;
 //    char *pos;

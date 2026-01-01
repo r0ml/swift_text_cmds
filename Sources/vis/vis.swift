@@ -50,7 +50,9 @@ let MB_CUR_MAX = 4
     var none = false
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   struct visOptions : OptionSet {
     var rawValue : Int = 0
     
@@ -143,14 +145,14 @@ let MB_CUR_MAX = 4
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     
     if options.args.isEmpty {
-      await process(fileHandle: FileDescriptor.standardInput, options: options)
+      await process(fileHandle: FileDescriptor.standardInput)
     } else {
       for f in options.args {
         do {
-          await process(fileHandle: try FileDescriptor(forReading: f), options: options)
+          await process(fileHandle: try FileDescriptor(forReading: f))
         } catch(let e) {
           warn("\(e)")
         }
@@ -162,7 +164,7 @@ let MB_CUR_MAX = 4
   
   // ================================================
   
-  func process(fileHandle: FileDescriptor, options: CommandOptions) async {
+  func process(fileHandle: FileDescriptor) async {
     var last : Character = "\n"
     
     // Helper to convert a character to its visual representation
@@ -190,10 +192,10 @@ let MB_CUR_MAX = 4
           thischar = readahead
           readahead = c
         }
-        last = handleChar(thischar, readahead, options: options)
+        last = handleChar(thischar, readahead)
       }
       if !first {
-        last = handleChar(readahead, nil, options: options)
+        last = handleChar(readahead, nil)
       }
     } catch(let e) {
       fatalError("failed to read character:  \(e)")
@@ -205,7 +207,7 @@ let MB_CUR_MAX = 4
     
   }
   
-  func handleChar(_ thischar : Character, _ readahead : Character?, options : CommandOptions) -> Character {
+  func handleChar(_ thischar : Character, _ readahead : Character?) -> Character {
     var buff = ""
     if options.none {
       buff.append(thischar)

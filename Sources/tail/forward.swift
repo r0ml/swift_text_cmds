@@ -73,7 +73,7 @@ extension tail {
   }
     
   // Reads and prints file content based on the given style and offset
-  func forward(_ fp : FileDescriptor, _ filename : String, _ options : CommandOptions) async throws {
+  func forward(_ fp : FileDescriptor, _ filename : String) async throws {
 
     
     var offset = options.off
@@ -292,7 +292,7 @@ extension tail {
   
   
   // Displays the file content and handles event-driven following (`-f` flag)
-  func follow(_ files: inout [FileInfo], _ options : CommandOptions) async throws {
+  func follow(_ files: inout [FileInfo]) async throws {
 
     var active = false
     
@@ -304,7 +304,7 @@ extension tail {
         print("==> \(fi.name) <==")
       }
       
-      try await forward(fi.descriptor!, fi.name, options)
+      try await forward(fi.descriptor!, fi.name)
     }
     
     if (!options.Fflag && !active) { return }

@@ -15,7 +15,9 @@ import SwiftUI
     var width : Int = 132
     var message : String = ""
   }
-  
+
+  var options : CommandOptions!
+
   nonisolated let usage: String = "banner message"
   
   
@@ -49,7 +51,7 @@ import SwiftUI
     return args
   }
 
-  func runCommand(_ options : CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     let m = options.message
     
     let f = Font.custom(options.fontName, fixedSize: CGFloat(options.fontSize))
@@ -59,9 +61,10 @@ import SwiftUI
       .foregroundStyle(Color.black)
       .backgroundStyle(Color.white)
       .padding([.leading, .trailing], 20)
-    
+
+    let jj = CGFloat(options.width)
     let t = Task {@MainActor in
-      let j = ImageRenderer(content: kx.frame(height: CGFloat(options.width)) )
+      let j = ImageRenderer(content: kx.frame(height: jj) )
       let k = j.cgImage!
       let p = pixelValues(k)
       let w = k.width

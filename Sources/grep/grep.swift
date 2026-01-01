@@ -97,7 +97,9 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     var filebehave : FILE = .STDIO
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   let VERSION = "1.0.0 Darwin"
 
   // from grep.h
@@ -580,6 +582,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
   }
 
   // Adds a file include/exclude pattern to the internal array.
+  // FIXME: not passing CommandOptions around?
   func add_fpattern(_ pat : String , _ mode : PAT, _ options : inout CommandOptions)
   {
     options.fpatterns.append(epat(pat: pat, mode: mode) )
@@ -624,12 +627,11 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     }
   }
 
-  func runCommand(_ optionsx: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
     // FIXME: create the queue when I know what it does
     //    initqueue();
-    let options = optionsx
     let grepDoer = grepDoer(options)
-    
+
     //  #ifdef __APPLE__
     if options.args.count == 0 && options.dirbehave != .RECURSE {
       let matched = try grepDoer.procfile("-", nil)

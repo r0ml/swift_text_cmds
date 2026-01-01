@@ -63,6 +63,8 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
     var args : [FileOptions] = []
   }
 
+  var options : CommandOptions!
+
   /// This command cannot use the normal `getopt` function because the input filenames can be interspersed with the command options
   /// in such a way that the options apply to the file following the option.  Hence parsing all the options, then parsing the input files will not work.
   /// The optiosn are constructed by generating an array of input files, which each file has an associated set of options.
@@ -175,9 +177,8 @@ usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...
     return options
   }
 
-  func runCommand(_ optionsx: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
-    var options = optionsx
     while true {
       var line : String = ""
 

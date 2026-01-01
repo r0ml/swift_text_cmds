@@ -59,8 +59,9 @@ import Darwin
     var string2: String? = nil     // Only used for translation and squeeze+delete mode.
     var args : [String] = CommandLine.arguments
   }
-  
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     
@@ -113,7 +114,7 @@ import Darwin
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     
     // The original C code distinguishes several cases:
     //   - tr -ds string1 string2 : delete characters in string1 then squeeze using string2
@@ -130,11 +131,11 @@ import Darwin
     if options.dflag && options.sflag {
       // Both deletion and squeeze:
       
-      let delete = try setup(options.string1, options)
-      var opx = options
-      opx.cflag = false
-      opx.Cflag = false
-      let squeeze = try setup(options.string2!, opx)
+      let delete = try setup(options.string1)
+      // FIXME: do I have to set these back?
+      options.cflag = false
+      options.Cflag = false
+      let squeeze = try setup(options.string2!)
       
       do {
         var lastch : UnicodeScalar? = nil
@@ -165,7 +166,7 @@ import Darwin
           throw CmdErr(1, "missing second string")
         }
         
-        let delete = try setup(options.string1, options)
+        let delete = try setup(options.string1)
         
         do {
           for try await chx in options.input.characters {
@@ -186,7 +187,7 @@ import Darwin
 
       } else if options.sflag, options.string2 == nil {
         // Squeeze-only mode.
-        let squeeze = try setup(options.string1, options)
+        let squeeze = try setup(options.string1)
         
         do {
           var lastch : UnicodeScalar? = nil
@@ -441,7 +442,7 @@ import Darwin
   
   // -----------------------------------------------------------------------------
   
-  func setup(_ arg : String, _ options : CommandOptions) throws(CmdErr) -> XCharacterSet {
+  func setup(_ arg : String) throws(CmdErr) -> XCharacterSet {
     var cs = { ( _ : UnicodeScalar) in false }
     let str = STR(arg)
     while try str.next() {

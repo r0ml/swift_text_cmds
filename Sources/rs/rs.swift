@@ -66,7 +66,9 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     var isep : Character = " "
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "Ttc::s::C::S::w:K::k::mg::G::eEjnyHhzpo:b:B:"
@@ -180,20 +182,18 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
-    var opts = options
-    
+  func runCommand() async throws(CmdErr) {
     do {
-      try await getfile(&opts)
+      try await getfile()
     } catch {
       throw CmdErr(1, "reading input: \(error)")
     }
     
-    if opts.flags.contains(.SHAPEONLY) {
-      print("\(opts.irows) \(opts.icols)")
+    if options.flags.contains(.SHAPEONLY) {
+      print("\(options.irows) \(options.icols)")
     } else {
-      prepfile(&opts)
-      putfile(opts)
+      prepfile()
+      putfile()
     }
   }
 
@@ -222,7 +222,8 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   }
   
 
-  func getfile(_ options : inout CommandOptions) async throws {
+  // FIXME: does the options modification need to be fixed?
+  func getfile() async throws {
     // FIXME: add a test case to check this.
     let multisep = !options.flags.contains(.ONEISEPONLY)
     let nullpad = options.flags.contains(.NULLPAD)
@@ -232,7 +233,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     var curline : String = ""
     
     for _ in 0..<options.skip {
-      if let curline = try await get_line(false, &flines, curline, options: options) {
+      if let curline = try await get_line(false, &flines, curline) {
         //   try await flines.next() {
         if options.flags.contains(.SKIPPRINT) {
           print(curline)
@@ -248,7 +249,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     // of empty file -- but that's not how the original worked -- and so doing it what
     // appears to be the right way will fail some tests.
     
-    let firstline = try await get_line(false, &flines, "", options: options) // flines.next()
+    let firstline = try await get_line(false, &flines, "") // flines.next()
     curline = firstline ?? ""
     
     if options.flags.contains(.NOARGS) && curline.count < options.owidth {
@@ -295,7 +296,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
           options.elem.append(options.blank)
         }
       }
-    } while try await gnl(firstline != nil, &flines, &curline, options: options)
+    } while try await gnl(firstline != nil, &flines, &curline)
     
     options.nelem = options.elem.count
   }
@@ -304,8 +305,8 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   // the behavior of the original C code.  Curline needs to be assigned and tested -- which
   // cannot be done in the expression.  Also, if the first line was nil, the result must
   // be false
-  func gnl(_ fln : Bool, _ flines : inout AsyncLineReader.AsyncIterator, _ curline : inout String, options: CommandOptions) async throws -> Bool {
-    if let cl = try await get_line(!fln, &flines, curline, options: options) { // flines.next() {
+  func gnl(_ fln : Bool, _ flines : inout AsyncLineReader.AsyncIterator, _ curline : inout String) async throws -> Bool {
+    if let cl = try await get_line(!fln, &flines, curline) { // flines.next() {
       curline = cl
       return true
     }
@@ -347,7 +348,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   var putlength = false
 
   // get line; maintain curline, curlen; manage storage
-  func get_line(_ fnl : Bool, _ fline : inout AsyncLineReader.AsyncIterator, _ prevline : String, options: CommandOptions) async throws -> String? {
+  func get_line(_ fnl : Bool, _ fline : inout AsyncLineReader.AsyncIterator, _ prevline : String) async throws -> String? {
 
     if options.irows == 0 {
       putlength = options.flags.contains(.DETAILSHAPE)
@@ -363,7 +364,9 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     return curline
   }
 
-  func prepfile(_ opts : inout CommandOptions) {
+  // FIXME: does the modifications to options need to be fixed?
+  func prepfile() {
+    var opts = self.options!
     if opts.nelem == 0 {
           return
       }
@@ -447,41 +450,41 @@ let LINE_MAX: Int = 1024 // Adjust as needed
       }
   }
 
-  func prints(_ s: String, _ col: Int, _ opts : CommandOptions) {
+  func prints(_ s: String, _ col: Int) {
       let n: Int
-    if opts.flags.contains(.ONEOSEPONLY) {
+    if options.flags.contains(.ONEOSEPONLY) {
           n = 1
       } else {
-        n = Int(opts.colwidths[col]) - s.count
+        n = Int(options.colwidths[col]) - s.count
       }
       
-    if opts.flags.contains(.RIGHTADJUST) {
+    if options.flags.contains(.RIGHTADJUST) {
           for _ in 0..<n {
-            print(String(opts.osep), terminator: "")
+            print(String(options.osep), terminator: "")
           }
       }
       
       print(s, terminator: "")
       
       for _ in 0..<n {
-        print(String(opts.osep), terminator: "")
+        print(String(options.osep), terminator: "")
       }
   }
 
-  func putfile(_ opts : CommandOptions) {
-    if opts.flags.contains(.TRANSPOSE) {
-      for i in 0..<opts.orows {
-        for j in stride(from: i, to: opts.nelem, by: opts.orows) {
-          prints(opts.elem[j], j / opts.orows, opts)
+  func putfile() {
+    if options.flags.contains(.TRANSPOSE) {
+      for i in 0..<options.orows {
+        for j in stride(from: i, to: options.nelem, by: options.orows) {
+          prints(options.elem[j], j / options.orows)
               }
               print("")
           }
       } else {
           var k = 0
-        for _ in 0..<opts.orows {
-          for j in 0..<opts.ocols {
-            if k < opts.nelem {
-              prints(opts.elem[k], j, opts)
+        for _ in 0..<options.orows {
+          for j in 0..<options.ocols {
+            if k < options.nelem {
+              prints(options.elem[k], j)
                       k += 1
                   }
               }

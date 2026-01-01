@@ -62,7 +62,9 @@ Usage:  base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
     var decode = false
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     //    let supportedFlags = "belnstuv"
@@ -144,8 +146,8 @@ usage: [bintrans] <uuencode | uudecode> ...
     }
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
-    var xoptions = options
+  func runCommand() async throws(CmdErr) {
+    var xoptions = options!
     switch options.coder {
       case .base64:
         if options.decode {
@@ -155,7 +157,7 @@ usage: [bintrans] <uuencode | uudecode> ...
         }
 //        throw CmdErr(1, usage)
       case .uuencode, .b64encode:
-        try main_encode(options)
+        try main_encode()
       case .uudecode, .b64decode:
         try await main_decode(options)
       case .qp:

@@ -132,6 +132,8 @@ usage: pr [+page] [-col] [-adFfmprt] [-e[ch][gap]] [-h header]
     var hdrDate : String = ""
   }
 
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "#adFfmrte?h:i?L:l:n?o:ps?w:"
@@ -368,7 +370,7 @@ usage: pr [+page] [-col] [-adFfmprt] [-e[ch][gap]] [-h header]
     return options
   }
 
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.merge {
       try await mulfile(options)
     } else if options.clcnt == 1 {

@@ -127,7 +127,7 @@ extension bintrans {
     options.args = go.remaining
   }
   
-  func main_encode(_ options : CommandOptions) throws(CmdErr) {
+  func main_encode() throws(CmdErr) {
     var fh = FileDescriptor.standardInput
     var mode : FilePermissions = [.ownerReadWrite, .groupRead, .otherRead]
     var name : String = "stdin"

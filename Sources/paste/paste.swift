@@ -51,7 +51,9 @@ let EX_IOERR = 74
     
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "d:s"
@@ -80,11 +82,11 @@ let EX_IOERR = 74
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.seq {
-      try await sequential(options)
+      try await sequential()
     } else {
-      try await parallel(options)
+      try await parallel()
     }
   }
   
@@ -127,7 +129,7 @@ let EX_IOERR = 74
     }
   }
   
-  func parallel(_ options : CommandOptions) async throws(CmdErr)  {
+  func parallel() async throws(CmdErr)  {
 
     var head = [LIST]()
     
@@ -196,7 +198,7 @@ let EX_IOERR = 74
   
   // MARK: - sequential()
   
-  func sequential(_ options : CommandOptions) async throws(CmdErr) -> Bool {
+  func sequential() async throws(CmdErr) -> Bool {
     var fp: FileDescriptor
     var failed = false
     var needdelim = false

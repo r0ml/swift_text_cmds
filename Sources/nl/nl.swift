@@ -55,7 +55,9 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
     var delim2 : Character = ":"
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "pb:d:f:h:i:l:n:s:v:w:"
@@ -127,7 +129,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
     var fp = FileDescriptor.standardInput
     switch options.args.count {
@@ -145,7 +147,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
         throw CmdErr(1)
     }
     
-    try await filter(fp, options)
+    try await filter(fp)
   }
   
   
@@ -232,7 +234,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
   // ((sizeof (int) * CHAR_BIT - 1) * 302 / 1000 + 2)
   // let INT_STRLEN_MAXIMUM = ((MemoryLayout<Int32>.size * Int(CHAR_BIT) - 1) * 302 / 1000 + 2)
 
-  func filter(_ fp : FileDescriptor, _ options : CommandOptions) async throws(CmdErr) {
+  func filter(_ fp : FileDescriptor) async throws(CmdErr) {
     
     var adjblank: UInt = 0  // adjacent blank lines
     

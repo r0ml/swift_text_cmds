@@ -73,7 +73,9 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() async throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "EHI:ae:f:i:lnru"
@@ -147,12 +149,12 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
     return options
   }
   
-  func runCommand(_ optionsx: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     
     var cs : CompileState
     
     // FIXME: this is because somewhere in the bowels, nflag might be set.
-    var options = optionsx
+//    var options = optionsx
     // compile() the sed commands
     do {
       cs = try await compile(&options)

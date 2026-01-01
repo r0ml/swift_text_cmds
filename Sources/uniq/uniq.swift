@@ -61,7 +61,9 @@ import CMigration
     var numfields : Int = 0
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   enum Dflag {
     case DF_NONE
     case DF_NOSEP
@@ -137,26 +139,26 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     do {
       
       if options.args.count == 0 || options.args[0] == "-" {
         for try await line in FileDescriptor.standardInput.bytes.lines {
-          doLine(line, options)
+          doLine(line)
         }
       } else {
         for try await line in try FileDescriptor(forReading: options.args[0]).bytes.lines {
-          doLine(line, options)
+          doLine(line)
         }
       }
-      doLine(nil, options)
+      doLine(nil)
       
     } catch(let e) {
       throw CmdErr(1, "\(e)")
     }
   }
   
-  func skip(_ line : String, _ options : CommandOptions) -> String {
+  func skip(_ line : String) -> String {
     var lx = Substring(line)
     for _ in 0..<options.numfields {
       lx = lx.drop { $0.isWhitespace }
@@ -166,16 +168,16 @@ import CMigration
     return String(lx)
   }
   
-  func convert(_ line : String, _ options : CommandOptions) -> String {
+  func convert(_ line : String) -> String {
     var linex : String = line
     if options.numfields > 0 || options.numchars > 0 {
-      linex = skip(line, options)
+      linex = skip(line)
     }
     
     return options.iflag ? linex.lowercased() : linex
   }
   
-  func show(_ s : String, _ options : CommandOptions) {
+  func show(_ s : String) {
     if options.cflag {
       print( cFormat("%4ld ", repeats+1) + s)
     } else {
@@ -190,10 +192,10 @@ import CMigration
   var ff = true
   var repeats = 0
 
-  func doLine(_ line : String?, _ options : CommandOptions) {
+  func doLine(_ line : String?) {
     
     if let line, ff && (!options.cflag && options.Dflag == .DF_NONE && !options.dflag && !options.uflag) {
-      show(line, options)
+      show(line)
     }
     
     if ff {
@@ -202,13 +204,13 @@ import CMigration
         if options.Dflag == .DF_NONE &&
             (!options.dflag || (options.cflag && repeats > 0)) &&
             (!options.uflag || repeats == 0) {
-          show(prevline, options)
+          show(prevline)
         }
       }
       
       prevline = line
       if let line {
-        tprev = convert(line, options)
+        tprev = convert(line)
       } else {
         tprev = nil
       }
@@ -218,7 +220,7 @@ import CMigration
     }
     
     let thisline = line
-    let tthis = line == nil ? nil : convert(line!, options)
+    let tthis = line == nil ? nil : convert(line!)
     
     let comp = tthis == tprev
     
@@ -226,28 +228,28 @@ import CMigration
       if options.Dflag != .DF_NONE {
         if repeats == 0 {
           if options.Dflag == .DF_PRESEP {
-            show("", options)
+            show("")
           }
-          show(prevline!, options)
+          show(prevline!)
         }
-        if let thisline { show(thisline, options) }
+        if let thisline { show(thisline) }
       } else if options.dflag && !options.cflag {
         if repeats == 0 {
-          show(prevline!, options)
+          show(prevline!)
         }
       }
       repeats += 1
     } else {
       // If different, print; set previous to new value.
       if options.Dflag == .DF_POSTSEP && repeats > 0 {
-        show("", options)
+        show("")
       }
       if !options.cflag && options.Dflag == .DF_NONE && !options.dflag && !options.uflag {
-        if let thisline { show(thisline, options) }
+        if let thisline { show(thisline) }
       } else if options.Dflag == .DF_NONE &&
                   (!options.dflag || (options.cflag && repeats > 0)) &&
                   (!options.uflag || repeats == 0) {
-        show(prevline!, options)
+        show(prevline!)
       }
       prevline = thisline
       tprev = tthis

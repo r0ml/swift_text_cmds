@@ -74,6 +74,8 @@ let filesToClean = Mutex<[String]>([])
     var args : [String] = CommandLine.arguments
   }
 
+  var options : CommandOptions!
+
   var currfile = ""
   var nfiles = 0
   var maxfiles = 0
@@ -143,7 +145,7 @@ let filesToClean = Mutex<[String]>([])
     return options
   }
 
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
     var infn = options.infn
 
@@ -214,26 +216,26 @@ let filesToClean = Mutex<[String]>([])
       // Dispatch the expression to the appropriate handler.
       if expr.first == "/" || expr.first == "%" {
         repeat {
-          try await do_rexp(expr: expr, &carryover, options)
+          try await do_rexp(expr: expr, &carryover)
           reps -= 1
         } while reps >= 0 && nfiles < maxfiles - 1
       } else if expr.first?.isNumber == true {
-        try await do_lineno(expr: expr, options)
+        try await do_lineno(expr: expr)
       } else {
         throw CmdErr(1, "\(expr): unrecognised pattern")
       }
     }
 
-    try await restOfFile(carryover, options)
+    try await restOfFile(carryover)
   }
 
     /// Copy the rest of the input into a new file.
 
-  func restOfFile(_ prevline : String?, _ options : CommandOptions) async throws(CmdErr) {
+  func restOfFile(_ prevline : String?) async throws(CmdErr) {
     // FIXME: need to check that there is more data to read
     //    if feof(inFile) {
 
-    ofp = try newfile(options)
+    ofp = try newfile()
     if let prevline {
       print(prevline, to: &ofp)
     }
@@ -268,7 +270,7 @@ let filesToClean = Mutex<[String]>([])
   /// Create a new output file based on the current nfiles count.
   /// The filename is created by concatenating the prefix with the nfiles number,
   /// zero–padded to the requested width.
-  func newfile(_ options : CommandOptions) throws(CmdErr) -> FileDescriptor {
+  func newfile() throws(CmdErr) -> FileDescriptor {
     // Construct the file name.
     let numStr = cFormat("%0\(options.sufflen)d", nfiles)
     currfile = options.prefix + numStr
@@ -369,7 +371,7 @@ let filesToClean = Mutex<[String]>([])
   // MARK: - Pattern Handlers
 
   /// Handle /regexp/ and %regexp% patterns.
-  func do_rexp(expr: String, _ prevline : inout String?, _ options : CommandOptions) async throws(CmdErr) {
+  func do_rexp(expr: String, _ prevline : inout String?) async throws(CmdErr) {
 
     guard !expr.isEmpty else {
       throw CmdErr(1, "empty regexp")
@@ -407,7 +409,7 @@ let filesToClean = Mutex<[String]>([])
     // For a '/' pattern we create a permanent new file.
     // For a '%' pattern we create a temporary file.
     if delim == "/" {
-      ofp = try newfile(options)
+      ofp = try newfile()
     } else {
       // Create a temporary file.
       let tempName = globallyUniqueString()
@@ -490,7 +492,7 @@ let filesToClean = Mutex<[String]>([])
   }
 
   /// Handle splits based on line number.
-  func do_lineno(expr: String, _ options : CommandOptions) async throws(CmdErr) {
+  func do_lineno(expr: String) async throws(CmdErr) {
     guard let tgtline = Int(expr), tgtline > 0 else {
       throw CmdErr(1, "\(expr): bad line number")
     }
@@ -500,7 +502,7 @@ let filesToClean = Mutex<[String]>([])
     }
 
     while nfiles < Int(maxfiles) - 1 {
-      var ofp = try newfile(options)
+      var ofp = try newfile()
       // Write lines until we have written (lastline - 1) lines.
       while (lineno + 1) != lastline {
         do {

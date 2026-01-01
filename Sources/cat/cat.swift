@@ -54,6 +54,8 @@ import CMigration
     var args : [String] = []
   }
 
+  var options : CommandOptions!
+  
   var rval = 0
   var filename: String = ""
 
@@ -100,7 +102,7 @@ import CMigration
     return options
   }
 
-  func runCommand(_ options : CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
     let cooked = !options.flags.intersection([.bflag, .eflag, .nflag, .sflag, .tflag, .vflag]).isEmpty
 
@@ -109,7 +111,7 @@ import CMigration
         filename = "stdin"
         let fh = FileDescriptor.standardInput
         if cooked {
-          cookCat(fh, options)
+          cookCat(fh)
         } else {
           do {
             try rawCat(fh)
@@ -123,7 +125,7 @@ import CMigration
           let fh = try FileDescriptor(forReading: path)
           defer { try? fh.close() }
           if cooked {
-            cookCat(fh, options)
+            cookCat(fh)
           } else {
             try rawCat(fh)
           }
@@ -143,7 +145,7 @@ import CMigration
     let _ = try? FileDescriptor.standardOutput.writeAll([UInt8](text.utf8))  // writes as utf8
   }
 
-  func cookCat(_ fileHandle: FileDescriptor, _ options : CommandOptions) {
+  func cookCat(_ fileHandle: FileDescriptor) {
     var line = 0
     var gobble = false
     var prev: Character = "\n"

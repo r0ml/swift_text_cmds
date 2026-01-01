@@ -62,7 +62,9 @@ struct Decoration : OptionSet {
   struct CommandOptions {
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "belnstuv"
@@ -77,7 +79,7 @@ struct Decoration : OptionSet {
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
     throw CmdErr(1, usage)
   }
   

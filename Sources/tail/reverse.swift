@@ -59,7 +59,7 @@ extension tail {
    *  REG  mmap the file and display the lines
    *  NOREG  cyclically read input into a linked list of buffers
    */
-  func reverse(_ fp : FileDescriptor, _ fn : String, _ options : CommandOptions) async throws {
+  func reverse(_ fp : FileDescriptor, _ fn : String) async throws {
     if (options.style != .REVERSE && options.off == 0) {
       return;
     }
@@ -279,18 +279,6 @@ extension UnsafeRawBufferPointer {
   }
 }
 
-/*
-extension FileDescriptor {
-  public var isRegularFile : Bool {
-    var sbp = stat()
-    if fstat(self.rawValue, &sbp) != 0 {
-      return false
-    }
-    return (sbp.st_mode & S_IFMT) == S_IFREG
-  }
-}
-*/
-
 
 
 /// Memory-maps a file read-only and returns its contents as an `UnsafeRawBufferPointer`.
@@ -318,7 +306,7 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     }
 
     // Map file into memory
-  let addr = Darwin.mmap(nil, size, Darwin.PROT_READ, Darwin.MAP_PRIVATE, fd.rawValue, 0)
+  let addr = Darwin.mmap(nil, Int(size), Darwin.PROT_READ, Darwin.MAP_PRIVATE, fd.rawValue, 0)
     try fd.close() // Safe to close after mmap
 
   guard addr != Darwin.MAP_FAILED else {

@@ -192,12 +192,12 @@ extension sed {
       // Parsing addresses
       // ===================
       if addrchar(p.first) {
-        cmd.a1  = try compile_addr(&p, &cs, options)
+        cmd.a1  = try compile_addr(&p, &cs)
         EATSPACE(&p)
         if p.first == "," {
           p.removeFirst()
           EATSPACE(&p)
-          cmd.a2 = try compile_addr(&p, &cs, options)
+          cmd.a2 = try compile_addr(&p, &cs)
           EATSPACE(&p)
         }
       }
@@ -377,7 +377,7 @@ extension sed {
 */
           
           if !os!.isEmpty {
-            let re2 = try compile_re(os!, mysubst.icase, &cs, options)
+            let re2 = try compile_re(os!, mysubst.icase, &cs)
             mysubst.re = re2
           }
           cmd.u = .s(mysubst)
@@ -597,7 +597,7 @@ extension sed {
    * regular expression.
    * Cflags are passed to regcomp.
    */
-  func compile_re(_ re : String, _ case_insensitive : Bool, _ st : inout CompileState, _ options : CommandOptions) throws(CompileErr) -> regex_t?
+  func compile_re(_ re : String, _ case_insensitive : Bool, _ st : inout CompileState) throws(CompileErr) -> regex_t?
   {
     var rep = regex_t()
 
@@ -638,7 +638,7 @@ extension sed {
    */
   // FIXME: support NSRegularExpression ?
   /*
-  func compile_nsre(_ re: String, _ case_insensitive: Bool, _ options: CommandOptions) throws(CompileErr) -> regex_t? {
+  func compile_nsre(_ re: String, _ case_insensitive: Bool) throws(CompileErr) -> regex_t? {
     // rflags is a global controlling some RE flags.
     // We'll do the best we can with NSRegularExpression.
     // If an error occurs, we call errx.
@@ -935,8 +935,7 @@ extension sed {
    * compile_addr: parse an address (line number, /re/, $)
    */
   func compile_addr(_ p: inout Substring,
-                    _ cs : inout CompileState,
-                    _ options : CommandOptions) throws(CompileErr) -> s_addr {
+                    _ cs : inout CompileState) throws(CompileErr) -> s_addr {
     guard !p.isEmpty else {
       fatalError("expected context address")
     }
@@ -963,7 +962,7 @@ extension sed {
         if reString.isEmpty {
           return s_addr.AT_RE(nil, nil)
         } else {
-          return try s_addr.AT_RE( compile_re(reString, icase, &cs, options), reString )
+          return try s_addr.AT_RE( compile_re(reString, icase, &cs), reString )
         }
       case "$":
         p.removeFirst()

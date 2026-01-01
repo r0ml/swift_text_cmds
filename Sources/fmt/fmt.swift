@@ -184,7 +184,9 @@ let EX_USAGE = 64
     
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "0123456789cd:l:mnpst:w:"
@@ -284,7 +286,7 @@ let EX_USAGE = 64
   var x0: Int = 0                           // Horizontal position ignoring leading whitespace
   var pendingSpaces: Int = 0                // Spaces to add before the next word
 
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     var goalLengthSet = false
     
     // Initialize the output buffer
@@ -293,13 +295,13 @@ let EX_USAGE = 64
     // Process files or standard input
     if !options.args.isEmpty {
       for file in options.args {
-        await process_named_file(file, options)
+        await process_named_file(file)
       }
     } else {
       // Read from standard input
       do {
         let standardInput = try FileDescriptor(forReading: "/dev/stdin")
-        await processStream(stream: standardInput, name: "standard input", options)
+        await processStream(stream: standardInput, name: "standard input")
       } catch {
         throw CmdErr(Int(EX_NOINPUT), "Error: Could not open standard input")
       }
@@ -358,10 +360,10 @@ let EX_USAGE = 64
   // MARK: - Paragraph Handling
   
   /// Begins a new paragraph with specified indentation.
-  func newParagraph(oldIndent: Int, indent: Int, _ options : CommandOptions) {
+  func newParagraph(oldIndent: Int, indent: Int) {
     if !outputBuffer.isEmpty {
       if oldIndent > 0 {
-        outputIndent(nSpaces: oldIndent, options)
+        outputIndent(nSpaces: oldIndent)
       }
       print(outputBuffer)
     }
@@ -373,7 +375,7 @@ let EX_USAGE = 64
   }
   
   /// Outputs spaces or tabs for leading indentation.
-  func outputIndent(nSpaces: Int, _ options : CommandOptions) {
+  func outputIndent(nSpaces: Int) {
     var spaces = nSpaces
     if options.outputTabWidth > 0 {
       while spaces >= options.outputTabWidth {
@@ -387,7 +389,7 @@ let EX_USAGE = 64
   }
   
   /// Outputs a single word or adds it to the buffer.
-  func outputWord(indent0: Int, indent1: Int, word: String, spaces: Int, _ options : CommandOptions) {
+  func outputWord(indent0: Int, indent1: Int, word: String, spaces: Int) {
     let indent = outputInParagraph ? indent1 : indent0
     let width = word.wcwidth()
     let newX = x + pendingSpaces + width
@@ -411,7 +413,7 @@ let EX_USAGE = 64
     } else {
       // Output the current buffer
       if indent > 0 {
-        outputIndent(nSpaces: indent, options)
+        outputIndent(nSpaces: indent)
       }
       print(outputBuffer, terminator: "")
       if x0 == 0 || (newX <= options.maxLength && (newX - options.goalLength) <= (options.goalLength - x)) {
@@ -426,7 +428,7 @@ let EX_USAGE = 64
         if indent + width > options.maxLength {
           print()
           if indent > 0 {
-            outputIndent(nSpaces: indent, options)
+            outputIndent(nSpaces: indent)
           }
           print(word, terminator: "")
           x = indent1
@@ -445,7 +447,7 @@ let EX_USAGE = 64
   }
   
   /// Centers each line in the stream.
-  func centerStream(stream: FileDescriptor, name: String, _ options : CommandOptions) async {
+  func centerStream(stream: FileDescriptor, name: String) async {
 //    let buffer = StreamReader(stream: stream)
     do {
       for try await line in stream.bytes.lines {
@@ -470,7 +472,7 @@ let EX_USAGE = 64
   
   /*
   /// Reads a single line from the stream, handling tabs, control characters, and backspaces.
-  func getLine(stream: FileDescriptor, _ options : CommandOptions) -> String? {
+  func getLine(stream: FileDescriptor) -> String? {
     var line = ""
     var spacesPending = 0
     var troff = false
@@ -573,7 +575,7 @@ let EX_USAGE = 64
   // MARK: - Processing Functions
   
   /// Processes a single named file.
-  func processNamedFile(_ name: String, _ options : CommandOptions) async {
+  func processNamedFile(_ name: String) async {
     var fileStream : FileDescriptor
     do {
       fileStream = try FileDescriptor(forReading: name)
@@ -584,7 +586,7 @@ let EX_USAGE = 64
       return
     }
 //    do {
-      await processStream(stream: fileStream, name: name, options)
+      await processStream(stream: fileStream, name: name)
 //    } catch {
 //        fputs("Warning: Error reading file \(name)\n", stderr)
 //        nErrors += 1
@@ -594,14 +596,14 @@ let EX_USAGE = 64
 
   
   /// Processes a stream. This is where the real work happens, except centering is handled separately.
-  func processStream(stream: FileDescriptor, name: String, _ options: CommandOptions) async {
+  func processStream(stream: FileDescriptor, name: String) async {
     var lastIndent = SILLY
     var paraLineNumber = 0
     var firstIndent = SILLY
     var prevHeaderType: HdrType = .paragraphStart
     
     if options.centerP {
-      await centerStream(stream: stream, name: name, options)
+      await centerStream(stream: stream, name: name)
       return
     }
     
@@ -629,7 +631,7 @@ let EX_USAGE = 64
         (np != lastIndent && headerType != .continuation && (!options.allowIndentedParagraphs || paraLineNumber != 1))
         
         if shouldStartNewParagraph {
-          newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: np, options)
+          newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: np)
           paraLineNumber = 0
           firstIndent = np
           lastIndent = np
@@ -657,13 +659,13 @@ let EX_USAGE = 64
         for (index, wordSlice) in words.enumerated() {
           let word = String(wordSlice)
           let spaces = (index < words.count - 1) ? 1 : 0
-          outputWord(indent0: firstIndent, indent1: lastIndent, word: word, spaces: spaces, options)
+          outputWord(indent0: firstIndent, indent1: lastIndent, word: word, spaces: spaces)
         }
         paraLineNumber += 1
       }
       
       // Finish the last paragraph
-      newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0, options)
+      newParagraph(oldIndent: outputInParagraph ? lastIndent : firstIndent, indent: 0)
     } catch {
       var se = FileDescriptor.standardError
       print("Warning: Error reading \(name)", to: &se)
@@ -672,8 +674,8 @@ let EX_USAGE = 64
   }
   
   /// Processes a named file by opening it and passing its stream to `processStream`.
-  func process_named_file(_ name: String, _ options : CommandOptions) async {
-    await processNamedFile(name, options)
+  func process_named_file(_ name: String) async {
+    await processNamedFile(name)
   }
   
   // MARK: - Enumeration

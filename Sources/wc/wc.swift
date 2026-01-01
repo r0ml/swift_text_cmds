@@ -52,7 +52,9 @@ import Synchronization
     var stdout_handle : OpaquePointer? = nil
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "clmwL"
@@ -94,7 +96,7 @@ import Synchronization
   }
   
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
     xo_open_container("wc")
     xo_open_list("file")
     
@@ -102,14 +104,14 @@ import Synchronization
     var total = 0
     if options.args.count == 0 {
       xo_open_instance("file")
-      if cnt(options: options, xfile: nil) {
+      if cnt(xfile: nil) {
         errors += 1
       }
       xo_close_instance("file")
     } else {
       for a in options.args {
         xo_open_instance("file")
-        if cnt(options: options, xfile: a) {
+        if cnt(xfile: a) {
           errors += 1
         }
         xo_close_instance("file")
@@ -121,7 +123,7 @@ import Synchronization
     
     if total > 1 {
       xo_open_container("total")
-      show_cnt(options: options, file: "total", linect: tlinect, wordct: twordct, charct: tcharct, llct: tlongline)
+      show_cnt(file: "total", linect: tlinect, wordct: twordct, charct: tcharct, llct: tlongline)
       xo_close_container("total")
     }
     
@@ -132,7 +134,7 @@ import Synchronization
     exit(errors == 0 ? 0 : 1)
   }
   
-  func show_cnt(options : CommandOptions, file : String, linect : UInt, wordct : UInt, charct : UInt, llct : UInt) {
+  func show_cnt(file : String, linect : UInt, wordct : UInt, charct : UInt, llct : UInt) {
     var xop : OpaquePointer?
     
     if !(siginfo.withLock {$0}) {
@@ -166,7 +168,7 @@ import Synchronization
   var tlinect : UInt = 0, twordct : UInt = 0, tcharct : UInt = 0,
       tlongline : UInt = 0
   
-  func cnt(options: CommandOptions, xfile : String?) -> Bool {
+  func cnt(xfile : String?) -> Bool {
 //    var buf = Data(capacity: Int(MAXBSIZE))
     var sb = stat()
     //     var mbs = mbstate_t()
@@ -214,7 +216,7 @@ import Synchronization
         if (S_ISREG(sb.st_mode)) {
           reset_siginfo();
           charct = UInt(sb.st_size)
-          show_cnt(options: options, file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
+          show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
           tcharct += charct;
           try? fh.close()
           return false
@@ -238,7 +240,7 @@ import Synchronization
           return true
         }
         if (siginfo.withLock { $0 } ) {
-          show_cnt(options: options, file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
+          show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
         }
         charct += len;
         if (options.doline || options.dolongline) {
@@ -282,7 +284,7 @@ import Synchronization
           var p = pp.baseAddress!.assumingMemoryBound(to: UInt8.self)
           while (len > 0) {
             if (siginfo.withLock { $0 }) {
-              show_cnt(options: options, file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
+              show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
             }
             var clen : Int
             if (!options.domulti || mbcm == 1) {
@@ -354,7 +356,7 @@ import Synchronization
       tlongline = llct
     }
 
-    show_cnt(options: options, file: file, linect: linect, wordct: wordct, charct: charct, llct: llct)
+    show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct)
     try? fh.close()
     return false
 

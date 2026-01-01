@@ -48,7 +48,9 @@ import CMigration
     var iflag = false
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "123i?"
@@ -74,7 +76,7 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     var fp1 : FileDescriptor
     var fp2 : FileDescriptor
     do {

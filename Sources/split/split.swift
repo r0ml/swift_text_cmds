@@ -67,7 +67,9 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
 //    var regexPattern: NSRegularExpression?
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options: CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "0::1::2::3::4::5::6::7::8::9::a:b:cdl:n:p:"
@@ -187,18 +189,18 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     if options.bytecnt != 0 {
-      try split1(options)
+      try split1()
     } else if options.chunks != 0 {
-      try split3(options)
+      try split3()
     } else {
-      try await split2(options)
+      try await split2()
     }
   }
   
   /// Split the input by bytes
-  func split1( _ options : CommandOptions) throws(CmdErr) {
+  func split1() throws(CmdErr) {
     
     var bcnt = 0
     var nfiles = 0
@@ -217,7 +219,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       var len = buffer.count
       if state.ofd == nil {
             if options.chunks == 0 || nfiles < options.chunks {
-              try newfile(options, &state)
+              try newfile(&state)
               nfiles += 1
             }
           }
@@ -237,7 +239,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
         
         while len >= options.bytecnt {
           if options.chunks == 0 || nfiles < options.chunks {
-            try newfile(options, &state)
+            try newfile(&state)
             nfiles += 1
           }
           do {
@@ -251,7 +253,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           
         if len != 0 {
           if options.chunks == 0 || nfiles < options.chunks {
-            try newfile(options, &state)
+            try newfile(&state)
             nfiles += 1
           }
           
@@ -277,7 +279,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     }
   
   /// Split the input by lines
-  func split2(_ options : CommandOptions) async throws(CmdErr) {
+  func split2() async throws(CmdErr) {
     var state = splitState(options)
     var lcnt: Int = 0
     var rgx = options.rgx
@@ -290,7 +292,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           pmatch.rm_eo = Darwin.regoff_t(line.count)
 
           if (Darwin.regexec(&rgx, line, 0, &pmatch, REG_STARTEND) == 0) {
-            try newfile(options, &state)
+            try newfile(&state)
           }
           //        if let regex = regexPattern, regex.firstMatch(in: line, range: NSRange(location: 0, length: line.utf16.count)) != nil {
           //          newfile()
@@ -298,14 +300,14 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
           
         } else {
            if lcnt == options.numlines {
-            try newfile(options, &state)
+            try newfile(&state)
             lcnt = 1
            } else {
              lcnt += 1
            }
         }
         if state.ofd == nil {
-          try newfile(options, &state)
+          try newfile(&state)
         }
 
         print(line, to: &state.ofd!)
@@ -321,8 +323,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   }
   
   /// Split the input into specified number of chunks
-  func split3(_ opts : CommandOptions) throws(CmdErr) {
-    var options = opts
+  func split3() throws(CmdErr) {
     var fs : UInt = 0
     do {
       fs = try fileSize(at: FilePath(options.iurl!))
@@ -338,7 +339,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
     }
     
     options.bytecnt = Int(fs) / options.chunks
-    try split1(options)
+    try split1()
   }
   
 
@@ -355,7 +356,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
   }
   
   /// Open a new output file
-  func newfile(_ options : CommandOptions, _ state : inout splitState) throws(CmdErr) {
+  func newfile(_ state : inout splitState) throws(CmdErr) {
     var maxfiles = 1
 //    var flags = Darwin.O_WRONLY | Darwin.O_CREAT | Darwin.O_TRUNC
     var patt = "0123456789"

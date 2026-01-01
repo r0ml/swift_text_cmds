@@ -59,6 +59,8 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
     var args : [String] = CommandLine.arguments
   }
 
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "\01a:e:j:1:2:o:t:v:"
@@ -152,7 +154,7 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
     return options
   }
 
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
 
     var f1 : FileDescriptor
     var f2 : FileDescriptor
@@ -212,18 +214,18 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
       
       if let f1k, let f2k, f1k == f2k {
         if options.joinout {
-          try joinlines(f1l, f2l, options: options)
+          try joinlines(f1l, f2l)
         }
         f1l = try await slurp(&f1i, delimiter: options.tabchar, keyfield: options.F1.joinf, nextline: &prev1)
         f2l = try await slurp(&f2i, delimiter: options.tabchar, keyfield: options.F2.joinf, nextline: &prev2)
       } else if let f1k, f2k == nil || f1k < f2k! {
         if options.F1.unpair {
-          try joinlines(f1l, nil, options: options)
+          try joinlines(f1l, nil)
         }
         f1l = try await slurp(&f1i, delimiter: options.tabchar, keyfield: options.F1.joinf, nextline: &prev1)
       } else {
         if options.F2.unpair {
-          try joinlines(nil, f2l, options: options)
+          try joinlines(nil, f2l)
         }
         f2l = try await slurp(&f2i, delimiter: options.tabchar, keyfield: options.F2.joinf, nextline: &prev2)
       }
@@ -286,7 +288,7 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
     }
   }
 
-  func joinlines(_ F1 : [[Substring]]?, _ F2 : [[Substring]]?, options : CommandOptions ) throws(CmdErr) {
+  func joinlines(_ F1 : [[Substring]]?, _ F2 : [[Substring]]? ) throws(CmdErr) {
 
     /*
      * Output the results of a join comparison.  The output may be from
@@ -294,19 +296,19 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
      * file from which to output) or from both.
      */
     if F2 == nil {
-      F1!.forEach{ outoneline(1, $0, options: options) }
+      F1!.forEach{ outoneline(1, $0) }
     } else if F1 == nil {
-      F2!.forEach { outoneline(2, $0, options: options) }
+      F2!.forEach { outoneline(2, $0) }
     } else {
       for f1 in F1! {
         for f2 in F2! {
-          outtwolines(f1, f2, options: options)
+          outtwolines(f1, f2)
         }
       }
     }
   }
 
-  func outoneline(_ number : Int, _ line : [Substring], options: CommandOptions) {
+  func outoneline(_ number : Int, _ line : [Substring]) {
     /*
      * Output a single line from one of the files, according to the
      * join rules.  This happens when we are writing unmatched single
@@ -316,12 +318,12 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
       var needsep = false
       for ol in olist {
         if ol.fileno == number {
-          outfield(line, ol.fieldno-1, false, needsep, options: options)
+          outfield(line, ol.fieldno-1, false, needsep)
         }
         else if ol.fileno == 0 {
-          outfield(line, number == 1 ? options.F1.joinf : options.F2.joinf, false, needsep, options: options)
+          outfield(line, number == 1 ? options.F1.joinf : options.F2.joinf, false, needsep)
         } else {
-          outfield(line, 0, true, needsep, options: options)
+          outfield(line, 0, true, needsep)
         }
         needsep = true
       }
@@ -329,36 +331,36 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
       /*
        * Output the join field, then the remaining fields.
        */
-      outfield(line, number == 1 ? options.F1.joinf : options.F2.joinf, false, false, options: options)
+      outfield(line, number == 1 ? options.F1.joinf : options.F2.joinf, false, false)
       for i in 0..<line.count {
         if (number == 1 ? options.F1.joinf : options.F2.joinf) != i {
-          outfield(line, i, false, true, options:options)
+          outfield(line, i, false, true)
         }
       }
     }
     print("")
   }
 
-  func outtwolines(_ line1 : [Substring], _ line2 : [Substring], options: CommandOptions) {
+  func outtwolines(_ line1 : [Substring], _ line2 : [Substring]) {
     /* Output a pair of lines according to the join list (if any). */
     if let olist = options.olist {
       var needsep = false
       for ol in olist {
         if ol.fileno == 0 {
           if line1.count > options.F1.joinf {
-            outfield(line1, options.F1.joinf, false, needsep, options: options)
+            outfield(line1, options.F1.joinf, false, needsep)
             needsep = true
           }
           else {
-            outfield(line2, options.F2.joinf, false, needsep, options: options)
+            outfield(line2, options.F2.joinf, false, needsep)
             needsep = true
           }
         } else if ol.fileno == 1 {
-          outfield(line1, ol.fieldno-1, false, needsep, options:options)
+          outfield(line1, ol.fieldno-1, false, needsep)
           needsep = true
         }
         else { /* if (olist[cnt].filenum == 2) */
-          outfield(line2, ol.fieldno-1, false, needsep, options: options)
+          outfield(line2, ol.fieldno-1, false, needsep)
         }
       }
     } else {
@@ -366,22 +368,22 @@ usage: join [-a fileno | -v fileno ] [-e string] [-1 field] [-2 field]
        * Output the join field, then the remaining fields from F1
        * and F2.
        */
-      outfield(line1, options.F1.joinf, false, false, options:options)
+      outfield(line1, options.F1.joinf, false, false)
       for i in 0..<line1.count {
         if options.F1.joinf != i {
-          outfield(line1, i, false, true, options: options)
+          outfield(line1, i, false, true)
         }
       }
       for i in 0..<line2.count {
         if options.F2.joinf != i {
-          outfield(line2, i, false, true, options: options)
+          outfield(line2, i, false, true)
         }
       }
     }
     print("")
   }
 
-  func outfield(_ line : [Substring], _ fieldno : Int, _ out_empty : Bool, _ needsep : Bool, options : CommandOptions) {
+  func outfield(_ line : [Substring], _ fieldno : Int, _ out_empty : Bool, _ needsep : Bool) {
     if needsep { print(options.tabchar, terminator: "") }
     if line.count <= fieldno || out_empty {
       if let empty = options.empty  {

@@ -42,7 +42,9 @@ import CMigration
   struct CommandOptions {
     var args : [String] = CommandLine.arguments
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = ""
@@ -58,7 +60,7 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     var rval = 0
     if options.args.isEmpty {
       do {

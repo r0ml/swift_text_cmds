@@ -159,7 +159,7 @@ extension SedProcess {
       if let inplace = options.inplace {
         var v = false
         do {
-          v = try isRegularFile(FilePath(fnam) )
+          v = try FilePath(fnam).isRegularFile()
         } catch {
           throw CmdErr(1, "checking \(fnam): \(error)")
         }
@@ -355,8 +355,3 @@ class PeekableAsyncIterator {
 }
 
 // ========================
-
-public func isRegularFile(_ path : FilePath) throws -> Bool {
-  var statBuf = try FileMetadata(for: path.string)
-  return statBuf.fileType == .regular
-}

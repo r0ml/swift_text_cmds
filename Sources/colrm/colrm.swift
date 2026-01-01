@@ -43,7 +43,9 @@ import CMigration
     var args : [String] = CommandLine.arguments
     var inFile : FilePath = "-"
   }
-  
+
+  var options : CommandOptions!
+
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var options = CommandOptions()
     let supportedFlags = "f:"
@@ -81,10 +83,10 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) async throws(CmdErr) {
+  func runCommand() async throws(CmdErr) {
     let TAB = 8
     do {
-      var fd = options.inFile == "-" ? FileDescriptor.standardInput : try FileDescriptor(forReading: options.inFile.string)
+      let fd = options.inFile == "-" ? FileDescriptor.standardInput : try FileDescriptor(forReading: options.inFile.string)
       for try await buf in fd.bytes.lines(true) {
         var column = 0
         let bx = buf.compactMap { ch in

@@ -89,6 +89,7 @@ extension FileDescriptor {
     var byteCount: Int? = nil
   }
   
+  var options : CommandOptions!
   
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var opts = CommandOptions()
@@ -128,23 +129,23 @@ extension FileDescriptor {
     opts.args = go.remaining
     
     
-    if let lineCount = opts.lineCount, let byteCount = opts.byteCount {
+    if let lineCount = options.lineCount, let byteCount = options.byteCount {
       throw CmdErr(1, "Cannot combine line and byte counts")
     }
     return opts
   }
   
-  func runCommand(_ opts : CommandOptions) throws(CmdErr) {
-    let useStandardInput = opts.args.isEmpty
+  func runCommand() throws(CmdErr) {
+    let useStandardInput = options.args.isEmpty
     if useStandardInput {
-      if let lineCount = opts.lineCount {
+      if let lineCount = options.lineCount {
         head(FileDescriptor.standardInput, lines: lineCount)
-      } else if let byteCount = opts.byteCount {
+      } else if let byteCount = options.byteCount {
         try? headBytes(FileDescriptor.standardInput, bytes: byteCount)
       }
     } else {
       var se = FileDescriptor.standardError
-      for file in opts.args {
+      for file in options.args {
 //        let u = URL(filePath: file)
         var fileHandle : FileDescriptor
         do {
@@ -154,13 +155,13 @@ extension FileDescriptor {
           continue
         }
         
-        if opts.args.count > 1 {
+        if options.args.count > 1 {
           print("\n==> \(file) <==")
         }
         
-        if let lineCount = opts.lineCount {
+        if let lineCount = options.lineCount {
           head(fileHandle, lines: lineCount)
-        } else if let byteCount = opts.byteCount {
+        } else if let byteCount = options.byteCount {
           try? headBytes(fileHandle, bytes: byteCount)
         }
         try? fileHandle.close()
