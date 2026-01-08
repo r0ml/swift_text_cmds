@@ -186,7 +186,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
        * bit in the st_mode field for pipes.  Fix this then.
        */
       if let fm = try? FileMetadata(for: FileDescriptor.standardInput),
-         fm.fileType == .fifo {
+         fm.filetype == .fifo {
 
 //      if (Darwin.lseek(FileDescriptor.standardInput.rawValue, 0, Darwin.SEEK_CUR) == -1 && Darwin.errno == Darwin.ESPIPE) {
 //        Darwin.errno = 0;

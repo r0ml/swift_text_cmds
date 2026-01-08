@@ -424,11 +424,11 @@ extension bintrans {
       do {
         var st = try FileMetadata(for: d.outFile)
 //      if (Darwin.lstat(d.outFile, &st) == 0) {
-        if d.options.iflag && st.fileType != .fifo {
+        if d.options.iflag && st.filetype != .fifo {
           warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")
           return 0
         }
-        switch st.fileType {
+        switch st.filetype {
           case .regular:
             flags.insert(.noFollow)
             flags.insert(.truncate)

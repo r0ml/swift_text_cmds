@@ -71,7 +71,7 @@ Usage:  base64 [-Ddh] [-b num] [-i in_file] [-o out_file]
     //    let go = BSDGetopt(supportedFlags)
     
     var bintflag = false
-    options.progname = Environment.progname
+    options.progname = programName
     if options.progname == "bintrans" && CommandLine.arguments.count > 1 {
       options.progname = CommandLine.arguments[1]
       bintflag = true

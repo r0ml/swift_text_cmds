@@ -147,7 +147,7 @@ extension bintrans {
         if let sb = try? FileMetadata(for: fh) {
 
           //        let RWX = S_IRWXU|S_IRWXG|S_IRWXO
-          mode = sb.mode
+          mode = sb.permissions
         }
 
       case 1:
