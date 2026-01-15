@@ -126,59 +126,53 @@ class grepDoer {
   /// the -R option.  Each appropriate file is passed to procfile().
   func grep_tree(_ argv : [String]) throws(CmdErr) -> Bool {
     var matched = false;
-    var fts_flags : Int32 = FTS_NOCHDIR;
-    
+    var fts_flags = FTSFlags.NOCHDIR
+
     // This switch effectively initializes 'fts_flags'
     switch options.linkbehave {
       case .EXPLICIT:
-        fts_flags |= FTS_COMFOLLOW | FTS_PHYSICAL
+        fts_flags.insert([.COMFOLLOW, .PHYSICAL])
 
       case .DEFAULT, .SKIP:
-        fts_flags |= FTS_PHYSICAL
+        fts_flags.insert(.PHYSICAL)
       default:
-        fts_flags |= FTS_LOGICAL | FTS_NOSTAT
+        fts_flags.insert([.LOGICAL, .NOSTAT])
     }
     
     let vv = argv.isEmpty ? ["."] : argv
-    var vvv = vv.map { strdup($0) }
-    vvv.append(nil)
-    let fts = fts_open(vvv, fts_flags, nil);
-    if (fts == nil) {
-      err(2, "fts_open");
+    guard let fts = try? FTSWalker(path: vv, options: fts_flags, sort: nil) else {
+      err(2, "fts_open")
+      fatalError()
     }
-    while let p = fts_read(fts) {
-      switch Int32((p.pointee.fts_info)) {
-        case FTS_DNR, FTS_ERR:
+    for var p in fts {
+      switch p.info {
+        case .DNR, .ERR:
           file_err = true;
           if(!options.sflag) {
-            warnx("\(String(cString: p.pointee.fts_path)): \(String(cString: strerror(p.pointee.fts_errno)))");
+            warnx("\(p.path)): \(p.errno.localizedDescription)")
           }
           break;
-        case FTS_D, FTS_DP:
+        case .D, .DP:
           if (options.dexclude || options.dinclude) {
-            let ss1 = withUnsafePointer(to: p.pointee.fts_name) { pn in
-              String(cString: pn)
-            }
-            
-            if (!dir_matching(ss1) ||
-                !dir_matching( String(cString: p.pointee.fts_path))) {
-              fts_set(fts, p, FTS_SKIP);
+            let ss1 = p.name
+            if !dir_matching(ss1) || !dir_matching( p.path) {
+              p.setAction(.SKIP)
             }
           }
           break;
-        case FTS_DC:
+        case .DC:
           // Print a warning for recursive directory loop
-          warnx("warning: \(String(cString: p.pointee.fts_path)): recursive directory loop")
+          warnx("warning: \(p.path): recursive directory loop")
           break
           // #ifdef __APPLE__
-        case FTS_SL:
+        case .SL:
           /*
            * If we see a symlink, it's because a linkbehave has
            * been specified that should be skipping them; do so
            * silently.
            */
           break
-        case FTS_SLNONE:
+        case .SLNONE:
           /*
            * We should not complain about broken symlinks if
            * we would skip it anyways.  Notably, if skip was
@@ -186,7 +180,7 @@ class grepDoer {
            * the root.
            */
           if options.linkbehave == .SKIP ||
-              (options.linkbehave == .EXPLICIT && p.pointee.fts_level > FTS_ROOTLEVEL) {
+              (options.linkbehave == .EXPLICIT && p.level > CMigration.FTS_ROOTLEVEL) {
             break
           }
           fallthrough
@@ -195,13 +189,12 @@ class grepDoer {
           // Check for file exclusion/inclusion
           var ok = true
           if (options.fexclude || options.finclude) {
-            ok = ok && file_matching(String(cString: p.pointee.fts_path))
+            ok = ok && file_matching(p.path)
           }
           
           if ok {
-            if try procfile(String(cString: p.pointee.fts_path),
-                            (fts_flags & FTS_NOSTAT) != 0 ? nil : p.pointee.fts_statp.pointee) {
-              matched = true;
+            if try procfile(p.path, fts_flags.contains(.NOSTAT) ? nil : p.statp) {
+              matched = true
             }
           }
           break
@@ -210,8 +203,6 @@ class grepDoer {
     if (errno != 0) {
       err(2, "fts_read")
     }
-    
-    fts_close(fts)
     return matched
   }
   
@@ -315,7 +306,7 @@ class grepDoer {
   
   /// Opens a file and processes it.  Each file is processed line-by-line
   /// passing the lines to procline().
-  func procfile( _ fnx : String, _ psbp : stat?) throws(CmdErr) -> Bool {
+  func procfile( _ fnx : String, _ psbp : FileMetadata?) throws(CmdErr) -> Bool {
     var fn : String = fnx
     var f : file?
     if fnx == "-" {
@@ -323,16 +314,21 @@ class grepDoer {
       f = file(nil, options.filebehave, options.fileeol, options.binbehave)
     } else {
       var sbp = stat()
-      if let psbp  { sbp = psbp }
+      if let psbp  {
+        // sbp = psbp
+      }
       else {
-        if stat(fn, &sbp) == 0 {
+        if let sbp = try? FileMetadata(for: fn) {
+//        if stat(fn, &sbp) == 0 {
           // Check if we need to process the file
-          let s = sbp.st_mode & S_IFMT
-          if options.dirbehave == .SKIP && s == S_IFDIR {
+          if options.dirbehave == .SKIP && sbp.filetype == .directory {
             return false
           }
           if options.devbehave == .SKIP &&
-              (s == S_IFIFO || s == S_IFCHR || s == S_IFBLK || s == S_IFSOCK) {
+              ( sbp.filetype == .fifo
+               || sbp.filetype == .characterDevice
+               || sbp.filetype == .blockDevice
+               || sbp.filetype == .socket) {
             return false
           }
         }
