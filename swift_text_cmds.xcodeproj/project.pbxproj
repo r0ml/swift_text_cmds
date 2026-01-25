@@ -56,6 +56,7 @@
 
 /* Begin PBXBuildFile section */
 		E70C04862D20E20A00442F2D /* libncurses.5.4.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E70C04852D20E20A00442F2D /* libncurses.5.4.tbd */; };
+		E71B41E62F26C85000A02D2C /* Atomics in Frameworks */ = {isa = PBXBuildFile; productRef = E71B41E52F26C85000A02D2C /* Atomics */; };
 		E73F98772D44345E00E89FF3 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E73F98762D44345E00E89FF3 /* ShellTesting */; };
 		E73F98912D443E1B00E89FF3 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E73F98902D443E1B00E89FF3 /* ShellTesting */; };
 		E73F992C2D449EFB00E89FF3 /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E73F992B2D449EFB00E89FF3 /* ShellTesting */; };
@@ -2527,6 +2528,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E71B41E62F26C85000A02D2C /* Atomics in Frameworks */,
 				E7E6250A2D13755D00E26DA9 /* xo in Frameworks */,
 				E73F99812D45835F00E89FF3 /* CMigration in Frameworks */,
 			);
@@ -3947,6 +3949,7 @@
 				E7E6250B2D14995000E26DA9 /* XCRemoteSwiftPackageReference "libxo" */,
 				E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */,
 				E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */,
+				E71B41E42F26C83600A02D2C /* XCRemoteSwiftPackageReference "swift-atomics" */,
 			);
 			preferredProjectObjectVersion = 55;
 			productRefGroup = FC7A7B3A149865C80086576A /* Products */;
@@ -6767,6 +6770,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E71B41E42F26C83600A02D2C /* XCRemoteSwiftPackageReference "swift-atomics" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-atomics.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
 		E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/r0ml/CMigration";
@@ -6794,6 +6805,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E71B41E52F26C85000A02D2C /* Atomics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E71B41E42F26C83600A02D2C /* XCRemoteSwiftPackageReference "swift-atomics" */;
+			productName = Atomics;
+		};
 		E73F98762D44345E00E89FF3 /* ShellTesting */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E7C2936D2D417C62007721DE /* XCRemoteSwiftPackageReference "ShellTesting" */;

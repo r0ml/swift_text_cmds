@@ -33,8 +33,10 @@
  */
 
 import CMigration
+import Atomics
+
 import libxo
-import Synchronization
+// import Synchronization
 
 // import stdlib_h
 
@@ -137,11 +139,11 @@ import Synchronization
   func show_cnt(file : String, linect : UInt, wordct : UInt, charct : UInt, llct : UInt) {
     var xop : OpaquePointer?
     
-    if !(siginfo.withLock {$0}) {
+    if !siginfo.load(ordering: .relaxed) {
       xop = nil
     } else {
       xop = options.stderr_handle!
-      siginfo.withLock { $0 = false }
+      siginfo.store(false, ordering: .relaxed)
     }
 
     if options.doline {
@@ -239,7 +241,7 @@ import Synchronization
           try? fh.close()
           return true
         }
-        if (siginfo.withLock { $0 } ) {
+        if siginfo.load(ordering: . relaxed) {
           show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
         }
         charct += len;
@@ -283,7 +285,7 @@ import Synchronization
           var wch : wchar_t = Int32(UnicodeScalar("?").value)
           var p = pp.baseAddress!.assumingMemoryBound(to: UInt8.self)
           while (len > 0) {
-            if (siginfo.withLock { $0 }) {
+            if siginfo.load(ordering: .relaxed) {
               show_cnt(file: file, linect: linect, wordct: wordct, charct: charct, llct: llct);
             }
             var clen : Int
@@ -368,15 +370,15 @@ import Synchronization
 }
 
 // var siginfo : sig_atomic_t = 0
-let siginfo : Mutex<Bool> = Mutex(false)
+let siginfo = ManagedAtomic<Bool>(false) //  Mutex<Bool> = Mutex(false)
 
 func siginfo_handler(_ sig : Int) {
-  siginfo.withLock { $0 = true }
+  siginfo.store(true, ordering: .relaxed) //  { $0 = true }
 }
 
 func reset_siginfo() {
   signal(SIGINFO, SIG_DFL);
-  siginfo.withLock { $0 = false }
+  siginfo.store(false, ordering: .relaxed)
 }
 
 
