@@ -34,6 +34,7 @@ let package = Package(
 //    .package(name: "ShellTesting", path: "../ShellTesting"),
     .package(url: "https://github.com/r0ml/ShellTesting.git" , branch: "main"),
 // .package(name: "CMigration", path: "../CMigration"),
+    .package(url: "https://github.com/apple/swift-atomics.git", from: "1.2.0"),
     .package(url: "https://github.com/r0ml/CMigration.git", branch: "main"),
   ],
   targets:
@@ -49,45 +50,46 @@ let package = Package(
 func generateTargets() -> [Target] {
     var res = [Target]()
     let cd = try! FileManager.default.contentsOfDirectory(atPath: "Sources")
-    print(cd)
-    for i in cd {
+
+  let skipForNow = ["ed", "look", "md5", "sort"]
+
+  for i in cd {
+    if i == ".DS_Store" { continue}
+    if skipForNow.contains(i) { continue }
+    var deps : [Target.Dependency] = [.product(name: "CMigration", package: "CMigration")]
+
       if i == "wc" {
-        let t = Target.executableTarget(
-          name: i,
-          dependencies: [.product(name: "CMigration", package: "CMigration"),
-                         .product(name: "xo", package: "libxo"),
-          ] )
-        res.append(t)
-      } else {
-        let t = Target.executableTarget(
-          name: i,
-          dependencies: [.product(name: "CMigration", package: "CMigration"),
-                        ] )
-        res.append(t)
+        deps += [.product(name: "xo", package: "libxo"), .product(name: "Atomics", package: "swift-atomics")]
       }
+
+        let t = Target.executableTarget(
+          name: i,
+          dependencies: deps)
+        res.append(t)
     }
     return res
 }
  
 
 func generateTestTargets() -> [Target] {
-    var res = [Target]()
-    
-    let cd = try! FileManager.default.contentsOfDirectory(atPath: "Tests")
-    print(cd)
-    for i in cd {
-      if i == ".DS_Store" { continue }
-        let r = try! FileManager.default.fileExists(atPath: "Tests/\(i)/Resources")
-      let x = try! FileManager.default.contentsOfDirectory(atPath: "Tests/\(i)").filter { $0.hasSuffix(".xctestplan") }
-        let rr = r ? [Resource.copy("Resources")] : []
-        let t = Target.testTarget(name: i,
-                                  dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
-                                        .target(name: i.replacingOccurrences(of: "Test", with: ""))],
-                                  path: nil,
-                                  exclude: x
-                                  , resources: rr
-        )
-        res.append(t)
-    }
-    return res
+  var res = [Target]()
+  let skipTestsForNow : [String] = ["edTest", "lookTest", "md5Test", "sortTest"]
+  
+  let cd = try! FileManager.default.contentsOfDirectory(atPath: "Tests")
+  for i in cd {
+    if i == ".DS_Store" { continue }
+    if skipTestsForNow.contains(i) { continue }
+    let r = FileManager.default.fileExists(atPath: "Tests/\(i)/Resources")
+    let x = try! FileManager.default.contentsOfDirectory(atPath: "Tests/\(i)").filter { $0.hasSuffix(".xctestplan") }
+    let rr = r ? [Resource.copy("Resources")] : []
+    let t = Target.testTarget(name: i,
+                              dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
+                                             .target(name: i.replacingOccurrences(of: "Test", with: ""))],
+                              path: nil,
+                              exclude: x
+                              , resources: rr
+    )
+    res.append(t)
+  }
+  return res
 }

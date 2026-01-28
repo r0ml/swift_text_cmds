@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FC7A7D5414986A360086576A"
+               BlueprintIdentifier = "FC7A7D4C14986A340086576A"
                BuildableName = "look"
                BlueprintName = "look"
                ReferencedContainer = "container:swift_text_cmds.xcodeproj">
@@ -49,7 +49,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FC7A7D5414986A360086576A"
+            BlueprintIdentifier = "FC7A7D4C14986A340086576A"
             BuildableName = "look"
             BlueprintName = "look"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">
@@ -66,7 +66,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "FC7A7D5414986A360086576A"
+            BlueprintIdentifier = "FC7A7D4C14986A340086576A"
             BuildableName = "look"
             BlueprintName = "look"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">

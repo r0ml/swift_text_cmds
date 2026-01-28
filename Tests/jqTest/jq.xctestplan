@@ -1,7 +1,7 @@
 {
   "configurations" : [
     {
-      "id" : "C56D96B1-2A3E-469C-89E3-EA6A00DF3DB5",
+      "id" : "568EAC93-E1BD-471E-8CF4-34E0E81F5E5A",
       "name" : "Configuration 1",
       "options" : {
 
@@ -15,8 +15,8 @@
     {
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E73E817B2F2A972200E62103",
-        "name" : "lamTest"
+        "identifier" : "E73E815E2F2A8F9100E62103",
+        "name" : "jqTest"
       }
     }
   ],

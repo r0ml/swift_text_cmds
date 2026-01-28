@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "FC7A7D4C14986A340086576A"
-               BuildableName = "lam"
-               BlueprintName = "lam"
+               BuildableName = "look"
+               BlueprintName = "look"
                ReferencedContainer = "container:swift_text_cmds.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -50,8 +50,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FC7A7D4C14986A340086576A"
-            BuildableName = "lam"
-            BlueprintName = "lam"
+            BuildableName = "look"
+            BlueprintName = "look"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -97,8 +97,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "FC7A7D4C14986A340086576A"
-            BuildableName = "lam"
-            BlueprintName = "lam"
+            BuildableName = "look"
+            BlueprintName = "look"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

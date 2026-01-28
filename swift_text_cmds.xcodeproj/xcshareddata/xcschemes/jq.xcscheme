@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "3290F2A9290BDDED00C57BFE"
+               BlueprintIdentifier = "E73E81522F2A8F5600E62103"
                BuildableName = "jq"
                BlueprintName = "jq"
                ReferencedContainer = "container:swift_text_cmds.xcodeproj">
@@ -24,14 +24,19 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <TestPlans>
+         <TestPlanReference
+            reference = "container:Tests/jqTest/jq.xctestplan"
+            default = "YES">
+         </TestPlanReference>
+      </TestPlans>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -45,7 +50,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3290F2A9290BDDED00C57BFE"
+            BlueprintIdentifier = "E73E81522F2A8F5600E62103"
             BuildableName = "jq"
             BlueprintName = "jq"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">
@@ -62,7 +67,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3290F2A9290BDDED00C57BFE"
+            BlueprintIdentifier = "E73E81522F2A8F5600E62103"
             BuildableName = "jq"
             BlueprintName = "jq"
             ReferencedContainer = "container:swift_text_cmds.xcodeproj">

@@ -1,7 +1,7 @@
 {
   "configurations" : [
     {
-      "id" : "C56D96B1-2A3E-469C-89E3-EA6A00DF3DB5",
+      "id" : "868B5D50-D8D6-4EA8-B5EF-A5E77B3F4761",
       "name" : "Configuration 1",
       "options" : {
 
@@ -15,8 +15,8 @@
     {
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E73E817B2F2A972200E62103",
-        "name" : "lamTest"
+        "identifier" : "E73E81C82F2A9A1C00E62103",
+        "name" : "sortTest"
       }
     }
   ],
