@@ -103,24 +103,24 @@ foo
     for n in 1...5 {
       let k = "1\(n)_9\n"
       let p = ShellProcess(cmd, expr)
-      let (_, j, _) = try await p.run(k)
+      let po = try await p.run(k)
       linesin.append(k)
       let u = try tmpfile("lines.in.\(n)", k)
       inns.append(u)
       let _u = try tmpfile("lines._in.\(n)", k)
       _inns.append(_u)
-      linesout.append(j!)
+      linesout.append(po.string)
     }
     
     let p = ShellProcess(cmd, [expr]+inns.map { $0 } )
-    let (r, lo, _) = try await p.run()
-    #expect(r == 0)
-    
+    let po = try await p.run()
+    #expect(po.code == 0)
+
     let p2 = ShellProcess(cmd, ["-i", "", expr] + inns)
-    let (_, _, _) = try await p2.run()
-    
+    let _ = try await p2.run()
+
     let p3 = ShellProcess(cmd, ["-I", "", expr] + _inns)
-    let (_, _, _) = try await p3.run()
+    let _ = try await p3.run()
 
     var li = [String]()
     for n in inns.indices {
@@ -130,8 +130,8 @@ foo
     }
 
     
-    #expect(lo! == li.joined() )
-    
+    #expect(po.string == li.joined() )
+
     inns.forEach { rm($0) }
     _inns.forEach { rm($0) }
   }

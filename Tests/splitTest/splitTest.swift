@@ -43,8 +43,8 @@ import ShellTesting
   
   @Test func bytes1() async throws {
     let p = ShellProcess(cmd, "-b", "4", "-", "split-")
-    let (r, _, _) = try await p.run("aaaabb\ncccc\n")
-    #expect( r == 0 )
+    let po = try await p.run("aaaabb\ncccc\n")
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
     let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
@@ -63,8 +63,8 @@ import ShellTesting
       ]
     
     let p2 = ShellProcess(cmd, "-b", String(MAXBSIZE+12), "-", "split-")
-    let (r2, _, _) = try await p2.run( pieces.joined() )
-    #expect( r2 == 0 )
+    let po2 = try await p2.run( pieces.joined() )
+    #expect( po2.code == 0 )
     let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o5 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
    let o6 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
@@ -85,9 +85,9 @@ import ShellTesting
     try i.write(to: i1, atomically: true, encoding: .utf8)
     let p = ShellProcess(cmd, "-n", "3", i1, "split-")
     
-    let (r, _, _) = try await p.run(i)
-    #expect( r == 0 )
-    
+    let po = try await p.run(i)
+    #expect( po.code == 0 )
+
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
@@ -107,8 +107,8 @@ import ShellTesting
     ]
     
     let p = ShellProcess(cmd, "-l", "1", "-", "split-")
-    let (r, _, _) = try await p.run( pieces.joined() )
-    #expect( r == 0 )
+    let po = try await p.run( pieces.joined() )
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
     let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
@@ -127,8 +127,8 @@ import ShellTesting
     ]
     
     let p2 = ShellProcess(cmd, "-l", "2", "-", "split-")
-    let (r2, _, _) = try await p2.run( pieces.joined() )
-    #expect( r2 == 0 )
+    let po2 = try await p2.run( pieces.joined() )
+    #expect( po2.code == 0 )
     let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o5 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
     #expect( o4 == pieces[0]+pieces[1])
@@ -144,8 +144,8 @@ import ShellTesting
       String(repeating: "d", count: 1024)+"\n"
     ]
     let p = ShellProcess(cmd, "-l", "1", "-", "split-")
-    let (r, _, _) = try await p.run( pieces.joined())
-    #expect( r == 0 )
+    let po = try await p.run( pieces.joined())
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
@@ -162,8 +162,8 @@ import ShellTesting
         "the lazy dog\n",
         ]
     let p = ShellProcess(cmd, "-d", "-l", "1", "-", "split-")
-    let (r, _, _) = try await p.run( pieces.joined() )
-    #expect( r == 0 )
+    let po = try await p.run( pieces.joined() )
+    #expect( po.code == 0 )
     for i in 0..<pieces.count {
       let j = String(format: "%02d", i)
       let u = FileManager.default.temporaryDirectory.appendingPathComponent("split-\(j)")
@@ -177,9 +177,9 @@ import ShellTesting
   @Test func larger_suffix_length() async throws {
     let pieces = (0...11).map { String(repeating: "a", count: $0)+"\n" }
     let p = ShellProcess(cmd, "-a", "3", "-d", "-l", "1", "-", "split-")
-    let (r, _, _) = try await p.run( pieces.joined() )
-    #expect( r == 0 )
-    
+    let po = try await p.run( pieces.joined() )
+    #expect( po.code == 0 )
+
     for i in 0...11 {
       let j = String(format: "%03d", i)
       let u = FileManager.default.temporaryDirectory.appendingPathComponent("split-\(j)")
@@ -206,8 +206,8 @@ dog:
 """
     
     let p = ShellProcess(cmd, "-p", "^[^[:space:]]+:", "-", "split-")
-    let (r, _, _) = try await p.run(i1+i2)
-    #expect( r == 0 )
+    let po = try await p.run(i1+i2)
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
     #expect( i1 == o1 )
@@ -219,8 +219,8 @@ dog:
     let m = 26*26
     let i = ((1...m).map { String($0)+"\n"}).joined()
     let p = ShellProcess(cmd, "-a2", "-l1")
-    let (r, _, _) = try await p.run(i)
-    #expect( r == 0 )
+    let po = try await p.run(i)
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xzz"), encoding: .utf8   )
     #expect( (String(m)+"\n") == o1 )
     let az = "abcdefghijklmnopqrstuvwxyz"
@@ -231,8 +231,8 @@ dog:
   @Test func continue_test() async throws {
     let i = "hello\n"
     let p = ShellProcess(cmd)
-    let (r, _, _) = try await p.run(i)
-    #expect( r == 0 )
+    let po = try await p.run(i)
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xaa"), encoding: .utf8   )
     #expect( i == o1)
     
@@ -240,8 +240,8 @@ dog:
     #expect( !FileManager.default.fileExists(atPath: o2f.path) )
 
     let p2 = ShellProcess(cmd, "-c")
-    let (r2, _, _) = try await p2.run(i)
-    #expect( r2 == 0)
+    let po2 = try await p2.run(i)
+    #expect( po2.code == 0)
     let o2 = try String(contentsOf: o2f, encoding: .utf8)
 
     #expect( i == o2 )
@@ -251,8 +251,8 @@ dog:
   @Test func undocumented_kludge() async throws {
     let i = ((1...5000).map { String($0)+"\n" }).joined()
     let p = ShellProcess(cmd, "-1000")
-    let (r, _, _) = try await p.run(i)
-    #expect( r == 0 )
+    let po = try await p.run(i)
+    #expect( po.code == 0 )
     let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xae"), encoding: .utf8   )
     let i2 = ((4001...5000).map { String($0)+"\n" }).joined()
     #expect( i2 == o1 )
@@ -260,8 +260,8 @@ dog:
     deleteTempFiles(["xaa", "xab", "xac", "xad", "xae"])
     
     let p2 = ShellProcess(cmd, "-d1000")
-    let (r2, _, _) = try await p2.run(i)
-    #expect( r2 == 0 )
+    let po2 = try await p2.run(i)
+    #expect( po2.code == 0 )
     let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("x04"), encoding: .utf8   )
     #expect( i2 == o2)
     deleteTempFiles(["x00", "x01", "x02", "x03", "x04"])

@@ -7,6 +7,9 @@ import CMigration
 
 @main final class ed : ShellCommand {
 
+  var options: CommandOptions!
+  
+
   var usage : String = "Not yet implemented"
   
   struct CommandOptions {
@@ -27,7 +30,7 @@ import CMigration
     return options
   }
   
-  func runCommand(_ options: CommandOptions) throws(CmdErr) {
+  func runCommand() throws(CmdErr) {
     throw CmdErr(1, usage)
   }
 }

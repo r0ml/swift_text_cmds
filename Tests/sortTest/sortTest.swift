@@ -118,8 +118,8 @@ z b m f
     let inf = try tmpfile("in", inp)
     try await run(output: inp, args: "-b", inf)
     try await run(withStdin: inp, output: inp, args: "-b")
-    let (r, j, _) = try await ShellProcess(cmd, inf).run()
-    try await run(withStdin: j!, status: 1, error: /disorder/, args: "-c", "-r")
+    let po = try await ShellProcess(cmd, inf).run()
+    try await run(withStdin: po.string, status: 1, error: /disorder/, args: "-c", "-r")
     rm(inf)
   }
   
@@ -288,9 +288,9 @@ a 1
 24:17:05:07:05:11:05:20    ba
 
 """)
-    let (r, xx, _) = try await ShellProcess(cmd, cols + [inf]).run()
-    #expect(r == 0)
-    try await run(withStdin: xx!, args: "-c", "-t:", "-k\(n)n")
+    let po = try await ShellProcess(cmd, cols + [inf]).run()
+    #expect(po.code == 0)
+    try await run(withStdin: po.string, args: "-c", "-t:", "-k\(n)n")
   }
   
   @Test("Test the -k flag with a field without end")

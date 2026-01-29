@@ -21,6 +21,7 @@
 */
 
 import ShellTesting
+import CMigration
 import System
 
 let sampinp="aoijeasdflkbnoiqenfoaisdfjlkadjslkjdf"
@@ -163,7 +164,7 @@ o=
     let t = try tmpfile("unreadable", sampinp+"\n")
     let a = try FileManager.default.attributesOfItem(atPath: t.path)
     let k = a[.posixPermissions]
-    var j = FilePermissions(rawValue: k as! CModeT)
+    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.groupRead, .otherRead, .ownerRead])
     try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
     try await run(status: 1, error: /denied/, args: "base64", "-i", t)
@@ -174,7 +175,7 @@ o=
     let t = try tmpfile("unwriteable", "")
     let a = try FileManager.default.attributesOfItem(atPath: t.path)
     let k = a[.posixPermissions]
-    var j = FilePermissions(rawValue: k as! CModeT)
+    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.ownerWrite, .groupWrite, .otherWrite] )
     try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
     try await run(status: 1, error: /denied/, args: "base64", "-o", t)

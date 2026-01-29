@@ -250,6 +250,7 @@
       }
     },
     {
+      "enabled" : false,
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E73E81C82F2A9A1C00E62103",
@@ -257,6 +258,7 @@
       }
     },
     {
+      "enabled" : false,
       "target" : {
         "containerPath" : "container:swift_text_cmds.xcodeproj",
         "identifier" : "E73E817B2F2A972200E62103",

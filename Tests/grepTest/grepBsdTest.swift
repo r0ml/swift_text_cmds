@@ -38,15 +38,15 @@ class grepBsdTest : ShellTest {
     let rd = try geturl()
     let p = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", ".", cd: rd)
 //    await p.setDirectory(rd)
-    let (r, j, e) = try await p.run()
-    #expect(r == 0, Comment(rawValue: e ?? ""))
+    let po1 = try await p.run()
+    #expect(po1.code == 0, Comment(rawValue: po1.error))
     let p2 = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", cd: rd)
-    let (r2, j2, _) = try await p2.run()
-    
-    #expect(r2 == 0)
-    
-    #expect(j == j2)
-    
+    let po2 = try await p2.run()
+
+    #expect(po2.code == 0)
+
+    #expect(po1.string == po2.string)
+
   }
 
 }

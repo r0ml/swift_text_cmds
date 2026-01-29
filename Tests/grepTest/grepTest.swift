@@ -70,10 +70,10 @@ import ShellTesting
     
     let expected = try fileContents("d_recurse_symlink.out")
     let exp2 = try fileContents("d_recurse_symlink.err")
-    let (r, j, e) = try await ShellProcess(cmd, "-rS", "string", "test").run()
-    #expect(r == 0)
-    #expect( j == expected)
-    #expect( e == exp2)
+    let po = try await ShellProcess(cmd, "-rS", "string", "test").run()
+    #expect(po.code == 0)
+    #expect( po.string == expected)
+    #expect( po.error == exp2)
     rm(dir)
   }
   
@@ -351,12 +351,12 @@ import ShellTesting
     let fc = try fileContents("COPYRIGHT")
     let lines = fc.count { $0 == "\n"}
     
-    let (r, j, _) = try await ShellProcess(cmd, "-Fxc", "").run(fc)
-    let (r2, j2, _) = try await ShellProcess(cmd, "-Fvxc", "").run(fc)
-    #expect(r == 0)
-    #expect(r2 == 0)
-    let n = Int(j!.dropLast() ) // remove trailing newline
-    let n2 = Int(j2!.dropLast()) // remove trailing newline
+    let po1 = try await ShellProcess(cmd, "-Fxc", "").run(fc)
+    let po2 = try await ShellProcess(cmd, "-Fvxc", "").run(fc)
+    #expect(po1.code == 0)
+    #expect(po2.code == 0)
+    let n = Int(po1.string.dropLast() ) // remove trailing newline
+    let n2 = Int(po2.string.dropLast()) // remove trailing newline
     #expect(n != lines)
     #expect(n2 != lines)
     #expect(n != n2)
@@ -391,13 +391,13 @@ import ShellTesting
   
   @Test("Check for proper handling of lines with excessive matches (PR 218811") func excessive_matches() async throws {
     let intest = String(repeating: "x", count: 4096)
-    let (r, j, _) = try await ShellProcess(cmd, "-o", "x").run(intest)
-    #expect(r == 0)
-    #expect( (j!.count { $0 == "\n" }) == intest.count)
-    let (r2, j2, _) = try await ShellProcess(cmd, "-on", "x").run(intest)
-    #expect(r2 == 0)
-    let (r3, j3, _) = try await ShellProcess(cmd, "-v", "1:x").run(j2!)
-    #expect(r3 == 1)
+    let po1 = try await ShellProcess(cmd, "-o", "x").run(intest)
+    #expect(po1.code == 0)
+    #expect( (po1.string.count { $0 == "\n" }) == intest.count)
+    let po2 = try await ShellProcess(cmd, "-on", "x").run(intest)
+    #expect(po2.code == 0)
+    let po3 = try await ShellProcess(cmd, "-v", "1:x").run(po2.string)
+    #expect(po3.code == 1)
   }
   
   @Test("Check for fgrep sanity, literal expressions only") func fgrep_sanity() async throws {
@@ -455,18 +455,18 @@ import ShellTesting
     let test1 = "xxx\nyyyy\nzzz\nfoobarbaz\n"
     // these checks ensure that grep isn't producing bogus line numbering in the middle of a line
     let check_expr = "^[^:]*[0-9][^:]*:[^:]+$"
-    let (r, j, _) = try await ShellProcess(cmd, "-Eon", "x|y|z|f").run(test1)
-    #expect(r == 0)
-    
-    try await run(withStdin: j!, status: 1, args: "-Ev", check_expr)
+    let po1 = try await ShellProcess(cmd, "-Eon", "x|y|z|f").run(test1)
+    #expect(po1.code == 0)
 
-    let (r2, j2, _) = try await ShellProcess(cmd, "-En", "x|y|z|f", "--color=always").run(test1)
-    #expect(r2 == 0)
-    try await run(withStdin: j2!, status: 1, args: "-Ev", check_expr)
-    
-    let (r3, j3, _) = try await ShellProcess(cmd, "-Eon", "x|y|z|f", "--color=always").run(test1)
-    #expect(r3 == 0)
-    try await run(withStdin: j3!, status: 1, args: "-Ev", check_expr)
+    try await run(withStdin: po1.string, status: 1, args: "-Ev", check_expr)
+
+    let po2 = try await ShellProcess(cmd, "-En", "x|y|z|f", "--color=always").run(test1)
+    #expect(po2.code == 0)
+    try await run(withStdin: po2.string, status: 1, args: "-Ev", check_expr)
+
+    let po3 = try await ShellProcess(cmd, "-Eon", "x|y|z|f", "--color=always").run(test1)
+    #expect(po3.code == 0)
+    try await run(withStdin: po3.string, status: 1, args: "-Ev", check_expr)
   }
   
   @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (PR 219077)", arguments: [

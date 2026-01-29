@@ -49,9 +49,9 @@ import ShellTesting
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.3))
     let k2 = await p.midCapture()
 */
-    let (r, j, _) = try await tt.value
-    #expect(r == 0)
-    #expect(j == res)
+    let po = try await tt.value
+    #expect(po.code == 0)
+    #expect(po.string == res)
   }
   
   @Test(arguments: [

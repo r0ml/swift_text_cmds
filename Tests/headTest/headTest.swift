@@ -45,24 +45,24 @@ import ShellTesting
 
   @Test("Test head(1)'s -n option") func line_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let (_, j, _) = try await ShellProcess(cmd, "-n", "50").run(i)
-    #expect( j!.split(separator: "\n", omittingEmptySubsequences: true).count == 50)
+    let po = try await ShellProcess(cmd, "-n", "50").run(i)
+    #expect( po.string.split(separator: "\n", omittingEmptySubsequences: true).count == 50)
   }
 
   @Test("Test head(1)'s -c option") func byte_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
-    let (_, j, _) = try await ShellProcess(cmd, "-c", "50").run(i)
-    #expect( j?.count == 50)
+    let po = try await ShellProcess(cmd, "-c", "50").run(i)
+    #expect( po.string.count == 50)
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the beginning of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup") ) func sparse_file_text_at_beginning() async throws {
-    let (_, j, _) = try await ShellProcess(cmd).run()
+    let po = try await ShellProcess(cmd).run()
       // Not yet implemented.
     #expect(Bool(false))
   }
 
   @Test("Test head(1)'s handling of a sparse file with text at the end of the file", .disabled("the tests all read from stdin instead of from files, so the sparse file test needs different setup")) func spare_file_text_at_end() async throws {
-    let (_, j, _) = try await ShellProcess(cmd).run()
+    let po = try await ShellProcess(cmd).run()
       // Not yet implemented.
     #expect(Bool(false))
   }

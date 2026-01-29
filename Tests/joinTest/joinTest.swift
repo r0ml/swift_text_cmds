@@ -41,11 +41,11 @@ struct joinTest : ShellTest {
   @Test func man4() async throws {
     let inp1 = try inFile("regress.3.in")
     let inp2 = try inFile("regress.4.in")
-    let (_, o1, _) = try await ShellProcess(cmd, "-t,", "-1", "2", "-o", "1.2 2.2", inp1, inp2).run()
+    let po1 = try await ShellProcess(cmd, "-t,", "-1", "2", "-o", "1.2 2.2", inp1, inp2).run()
     let inp3 = try inFile("regress.5.in")
     let expected = try fileContents("regress.6.out")
-    let (_, o2, _) = try await ShellProcess("/usr/bin/sort", "-k2", "-t,").run(o1)
-    try await run( withStdin: o2, output: expected, args: "-t,", "-e", "<<NULL>>", "-1", "2", "-o", "1.1 2.2", "-", inp3)
+    let po2 = try await ShellProcess("/usr/bin/sort", "-k2", "-t,").run(po1.string)
+    try await run( withStdin: po2.string, output: expected, args: "-t,", "-e", "<<NULL>>", "-1", "2", "-o", "1.1 2.2", "-", inp3)
   }
 
 

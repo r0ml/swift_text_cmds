@@ -55,12 +55,12 @@ six
 """)
     ]
     
-    let (r, j, e) = try await ShellProcess(cmd, "-k", "-", "/xxx/", "{10}").run("one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n")
-    
+    let po = try await ShellProcess(cmd, "-k", "-", "/xxx/", "{10}").run("one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n")
+
     let cd = FileManager.default.temporaryDirectory
     let ffx = [0,1,2].map { cd.appending(path: "xx0\($0)", directoryHint: .notDirectory) }
     
-    #expect(r == 1, Comment(rawValue: e ?? ""))
+    #expect(po.code == 1, Comment(rawValue: po.error))
     for i in [0,1,2] {
       let aa = try String(contentsOf: xf[i], encoding: .utf8)
       let bb = try String(contentsOf: ffx[i], encoding: .utf8)
@@ -71,8 +71,8 @@ six
   
   @Test("Basic regular expression split") func bre() async throws {
     let a = try tmpfile("sample.txt", "apple\nbanana\ncherry\ndate\n")
-    let (r, j, e) = try await ShellProcess(cmd, a, "/cherry/").run()
-    #expect(r == 0)
+    let po = try await ShellProcess(cmd, a, "/cherry/").run()
+    #expect(po.code == 0)
     let cd = FileManager.default.temporaryDirectory
     let aa = try String(contentsOf: cd.appending(component: "xx00"), encoding: .utf8)
     let bb = try String(contentsOf: cd.appending(component: "xx01"), encoding: .utf8)

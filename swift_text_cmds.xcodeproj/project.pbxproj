@@ -133,6 +133,7 @@
 		E7C2939F2D417D23007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C2939E2D417D23007721DE /* ShellTesting */; };
 		E7C293A12D418BFD007721DE /* ShellTesting in Frameworks */ = {isa = PBXBuildFile; productRef = E7C293A02D418BFD007721DE /* ShellTesting */; };
 		E7E6250A2D13755D00E26DA9 /* xo in Frameworks */ = {isa = PBXBuildFile; productRef = E7E625092D13755D00E26DA9 /* xo */; };
+		E7FF31242F2BD9BC00DF22C9 /* CMigration in Frameworks */ = {isa = PBXBuildFile; productRef = E7FF31232F2BD9BC00DF22C9 /* CMigration */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,13 +206,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = E73E81A52F2A995300E62103;
 			remoteInfo = md5;
-		};
-		E73E867A2F2A9E0D00E62103 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = FC7A7B30149865C80086576A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = E73E81BF2F2A9A1600E62103;
-			remoteInfo = sort;
 		};
 		E73F98782D44346400E89FF3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -2330,6 +2324,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E73E81742F2A971B00E62103 /* (null) in Frameworks */,
+				E7FF31242F2BD9BC00DF22C9 /* CMigration in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3259,7 +3254,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				E73E867B2F2A9E0D00E62103 /* PBXTargetDependency */,
 			);
 			name = sortTest;
 			packageProductDependencies = (
@@ -5466,11 +5460,6 @@
 			isa = PBXTargetDependency;
 			target = E73E81A52F2A995300E62103 /* md5 */;
 			targetProxy = E73E86782F2A9DF000E62103 /* PBXContainerItemProxy */;
-		};
-		E73E867B2F2A9E0D00E62103 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = E73E81BF2F2A9A1600E62103 /* sort */;
-			targetProxy = E73E867A2F2A9E0D00E62103 /* PBXContainerItemProxy */;
 		};
 		E73F98792D44346400E89FF3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -7790,7 +7779,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/r0ml/ShellTesting";
 			requirement = {
-				branch = main;
+				branch = defoundation;
 				kind = branch;
 			};
 		};
@@ -8174,6 +8163,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E7E625062D136E8800E26DA9 /* XCLocalSwiftPackageReference "../libxo" */;
 			productName = xo;
+		};
+		E7FF31232F2BD9BC00DF22C9 /* CMigration */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E73F993B2D45815500E89FF3 /* XCRemoteSwiftPackageReference "CMigration" */;
+			productName = CMigration;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

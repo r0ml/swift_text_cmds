@@ -143,7 +143,7 @@ line
     let of = try tmpfile("outfile", Data())
     let ofh = try FileHandle(forWritingTo: of)
     await p2.setOutput(ofh)
-    let (_, _, _) = try await p2.run()
+    let _ = try await p2.run()
     let j = try String(contentsOf: of, encoding: .utf8)
     let bb = j == o
     #expect( j.count == o.count)
@@ -153,7 +153,7 @@ line
     let ofh2 = try FileHandle(forWritingTo: of2)
     let p3 = ShellProcess(ex, "-r")
     await p3.setOutput(ofh2)
-    let (_, _, _) = try await p3.run(d)
+    let _ = try await p3.run(d)
     let j2 = try String(contentsOf: of2, encoding: .utf8)
     let bb2 = j2 == o
     #expect( bb2 )
@@ -194,8 +194,8 @@ line
     let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
-    let (r, _, _) = try await p.run( lines.joined() )
-    #expect(r == 0)
+    let po = try await p.run( lines.joined() )
+    #expect(po.code == 0)
     let j = try String(contentsOf: of, encoding: .utf8)
     #expect( j == lines.reversed().joined() )
   }
@@ -252,10 +252,10 @@ line
     let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
-    let (r, _, _) = try await p.run(i)
+    let po = try await p.run(i)
     let j = try String(contentsOf: of, encoding: .utf8)
     
-    #expect(r == 0)
+    #expect(po.code == 0)
     let o = ((stride(from: 8999, to: 0, by: -1).prefix(2500)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined()
     print(j.count, o.count)
     #expect( j == o )
@@ -435,7 +435,7 @@ line
     
     let f1 = "first line\nsecond line\n"
     let inf = try tmpfile("blkbof.in", f1)
-
+    defer { rm(inf) }
     var buf : stat = stat()
     let s = stat(inf.path, &buf)
     
@@ -449,12 +449,12 @@ line
     infh.seekToEndOfFile()
     infh.write( f2.data(using: .utf8)!)
     
-    let p = ShellProcess(ex, "-n", "3", inf)
-    let (r, j, _) = try await p.run()
-    #expect(r == 0)
-    #expect(j == f1 + f2)
-    
-    rm(inf)
+    try await run(output: f1 + f2, args: "-n", "3", inf)
+/*    let p = ShellProcess(ex, "-n", "3", inf)
+    let po = try await p.run()
+    #expect(po.code == 0)
+    #expect(po.string == f1 + f2)
+*/
 
   }
 
@@ -478,9 +478,9 @@ line
     infh.write( f2.data(using: .utf8)!)
     
     let p = ShellProcess(ex, "-1", inf)
-    let (r, j, _) = try await p.run()
-    #expect(r == 0)
-    #expect( (j!.count { $0 == "\n"}) == 1)
+    let po = try await p.run()
+    #expect(po.code == 0)
+    #expect( (po.string.count { $0 == "\n"}) == 1)
 
   }
 
