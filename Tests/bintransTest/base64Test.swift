@@ -166,7 +166,7 @@ o=
     var j = try FileMetadata(for: t.string).permissions
 //    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.groupRead, .otherRead, .ownerRead])
-    try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
+    try t.setPermissions(j)
     try await run(status: 1, error: /denied/, args: "base64", "-i", t)
     rm(t)
   }
@@ -175,7 +175,7 @@ o=
     let t = try tmpfile("unwriteable", "")
     var j = try FileMetadata(for: t.string).permissions
     j.remove([.ownerWrite, .groupWrite, .otherWrite] )
-    try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
+    try t.setPermissions(j)
     try await run(status: 1, error: /denied/, args: "base64", "-o", t)
     rm(t)
   }

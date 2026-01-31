@@ -7779,7 +7779,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/r0ml/ShellTesting";
 			requirement = {
-				branch = defoundation;
+				branch = main;
 				kind = branch;
 			};
 		};
