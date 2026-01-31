@@ -455,18 +455,18 @@ import ShellTesting
     let test1 = "xxx\nyyyy\nzzz\nfoobarbaz\n"
     // these checks ensure that grep isn't producing bogus line numbering in the middle of a line
     let check_expr = "^[^:]*[0-9][^:]*:[^:]+$"
-    let po1 = try await ShellProcess(cmd, "-Eon", "x|y|z|f").run(test1)
-    #expect(po1.code == 0)
-
-    try await run(withStdin: po1.string, status: 1, args: "-Ev", check_expr)
-
-    let po2 = try await ShellProcess(cmd, "-En", "x|y|z|f", "--color=always").run(test1)
-    #expect(po2.code == 0)
-    try await run(withStdin: po2.string, status: 1, args: "-Ev", check_expr)
-
-    let po3 = try await ShellProcess(cmd, "-Eon", "x|y|z|f", "--color=always").run(test1)
-    #expect(po3.code == 0)
-    try await run(withStdin: po3.string, status: 1, args: "-Ev", check_expr)
+    try await run(withStdin: test1, args: "-Eon", "x|y|z|f") { po1 in
+      #expect(po1.code == 0)
+      try await run(withStdin: po1.string, status: 1, args: "-Ev", check_expr)
+    }
+    try await run(withStdin: test1, args: "-En", "x|y|z|f", "--color=always") {po2 in
+      #expect(po2.code == 0)
+      try await run(withStdin: po2.string, status: 1, args: "-Ev", check_expr)
+    }
+    try await run(withStdin: test1, args: "-Eon", "x|y|z|f", "--color=always") { po3 in
+      #expect(po3.code == 0)
+      try await run(withStdin: po3.string, status: 1, args: "-Ev", check_expr)
+    }
   }
   
   @Test("Check for no match (-c, -l, -L, -q) flags not producing line matches or context (PR 219077)", arguments: [

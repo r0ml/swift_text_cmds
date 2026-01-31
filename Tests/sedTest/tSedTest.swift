@@ -92,8 +92,8 @@ import ShellTesting
   // FIXME: is this monstrosity of encoding really what was intended?
   @Test("Test that sed(1) handles zero length matches correctly")
   func zerolen() async throws {
-    let str = "H\u{c3}\u{82}Bnc\n".data(using: .isoLatin1)!
-    let res = "`H`\u{c3}\u{82}`B`n``c``\n".data(using: .isoLatin1)!
+    let str = try "H\u{c3}\u{82}Bnc\n".isoLatin1()
+    let res = try "`H`\u{c3}\u{82}`B`n``c``\n".isoLatin1()
     try await run(withStdin: str, output: res, args: "-E", "s/[A-Z]*/\\`&\\`/g", env: ["LANG":"C", "LC_CTYPE":"en_US.UTF-8", "LC_ALL":""])
   }
 }

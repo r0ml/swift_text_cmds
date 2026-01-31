@@ -2,6 +2,7 @@
 // from automatically generated files
 
 import ShellTesting
+import Darwin
 
 @Suite("edTest") class edTest : ShellTest {
   let cmd = "ed"
@@ -49,7 +50,7 @@ import ShellTesting
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.3))
     let k2 = await p.midCapture()
 */
-    let po = try await tt.value
+    let po = tt.value
     #expect(po.code == 0)
     #expect(po.string == res)
   }
@@ -68,10 +69,10 @@ import ShellTesting
     let tt = Task.detached {
       try await p.run(ss)
     }
-    let ii = try String(contentsOf: inp, encoding: .utf8)
+    let ii = try inp.readAsString()
     se.send(ii)
     await Task.yield()
-    try await Task.sleep(nanoseconds: NSEC_PER_SEC / 10)
+    try await Task.sleep(nanoseconds: Darwin.NSEC_PER_SEC / 10)
     let k1 = await p.midCapture()
     se.finish()
 
@@ -83,11 +84,11 @@ import ShellTesting
 
 
 class StringEmitter {
-  private var continuation: AsyncStream<Data>.Continuation!
-  
+  private var continuation: AsyncStream<[UInt8]>.Continuation!
+
   // The AsyncStream that consumers will await on
-  var stream: AsyncStream<Data>!
-  
+  var stream: AsyncStream<[UInt8]>!
+
   init() {
     stream = AsyncStream { continuation in
       self.continuation = continuation
@@ -95,10 +96,10 @@ class StringEmitter {
   }
   // Function to send the next string to the stream
   func send(_ string: String) {
-    continuation!.yield(string.data(using: .utf8)!)
+    continuation!.yield(Array(string.utf8))
   }
   
-  func send(_ string: Data) {
+  func send(_ string: [UInt8]) {
     continuation.yield(string)
   }
   

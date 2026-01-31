@@ -34,49 +34,51 @@ import ShellTesting
   let suiteBundle = "text_cmds_csplitTest"
   
   @Test("Test an edge case where input has fewer lines than count") func lines_lt_count() async throws {
-    let xf = [
-      try tmpfile("expectfile00", """
+    let xf = try [
+      tmpfile("expectfile00", """
 one
 two
 
 """),
-      try tmpfile("expectfile01", """
+      tmpfile("expectfile01", """
 xxx 1
 three
 four
 
 """)
       ,
-      try tmpfile("expectfile02", """
+      tmpfile("expectfile02", """
 xxx 2
 five
 six
 
 """)
     ]
-    
-    let po = try await ShellProcess(cmd, "-k", "-", "/xxx/", "{10}").run("one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n")
 
-    let cd = FileManager.default.temporaryDirectory
-    let ffx = [0,1,2].map { cd.appending(path: "xx0\($0)", directoryHint: .notDirectory) }
-    
-    #expect(po.code == 1, Comment(rawValue: po.error))
-    for i in [0,1,2] {
-      let aa = try String(contentsOf: xf[i], encoding: .utf8)
-      let bb = try String(contentsOf: ffx[i], encoding: .utf8)
-      #expect(aa == bb)
+    let inp = "one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n"
+    try await run(withStdin: inp, args: "-k", "-", "/xxx/", "{10}") { po in
+
+      let cd = try self.tmpdir("")
+      let ffx = [0,1,2].map { cd.appending("xx0\($0)") }
+
+      #expect(po.code == 1, Comment(rawValue: po.error))
+      for i in [0,1,2] {
+        let aa = try xf[i].readAsString()
+        let bb = try ffx[i].readAsString()
+        #expect(aa == bb)
+      }
+      self.rm(xf + ffx)
     }
-    rm(xf + ffx)
   }
   
   @Test("Basic regular expression split") func bre() async throws {
     let a = try tmpfile("sample.txt", "apple\nbanana\ncherry\ndate\n")
-    let po = try await ShellProcess(cmd, a, "/cherry/").run()
-    #expect(po.code == 0)
-    let cd = FileManager.default.temporaryDirectory
-    let aa = try String(contentsOf: cd.appending(component: "xx00"), encoding: .utf8)
-    let bb = try String(contentsOf: cd.appending(component: "xx01"), encoding: .utf8)
-    #expect(aa == "apple\nbanana\n")
-    #expect(bb == "cherry\ndate\n")
+    try await run(status: 0, args: a, "/cherry/") { po in
+      let cd = try self.tmpdir("")
+      let aa = try cd.appending("xx00").readAsString()
+      let bb = try cd.appending("xx01").readAsString()
+      #expect(aa == "apple\nbanana\n")
+      #expect(bb == "cherry\ndate\n")
+    }
   }
 }

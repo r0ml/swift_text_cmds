@@ -98,42 +98,40 @@ foo
                    ]) func inplace(_ n : String, _ expr : String) async throws {
     var linesin = [String]()
     var linesout = [String]()
-    var inns = [URL]()
-    var _inns = [URL]()
+    var inns = [FilePath]()
+    var _inns = [FilePath]()
     for n in 1...5 {
       let k = "1\(n)_9\n"
-      let p = ShellProcess(cmd, expr)
-      let po = try await p.run(k)
-      linesin.append(k)
-      let u = try tmpfile("lines.in.\(n)", k)
-      inns.append(u)
-      let _u = try tmpfile("lines._in.\(n)", k)
-      _inns.append(_u)
-      linesout.append(po.string)
+      try await run(withStdin: k, args: expr) {po in
+        linesin.append(k)
+        let u = try self.tmpfile("lines.in.\(n)", k)
+        inns.append(u)
+        let _u = try self.tmpfile("lines._in.\(n)", k)
+        _inns.append(_u)
+        linesout.append(po.string)
+      }
     }
     
-    let p = ShellProcess(cmd, [expr]+inns.map { $0 } )
-    let po = try await p.run()
-    #expect(po.code == 0)
+    try await run(status: 0, args: [expr]+inns.map { $0 } ) { po in
+      try await self.run(args: ["-i", "", expr] + inns) { _ in
 
-    let p2 = ShellProcess(cmd, ["-i", "", expr] + inns)
-    let _ = try await p2.run()
+        try await self.run(args: ["-I", "", expr] + _inns) { _ in
 
-    let p3 = ShellProcess(cmd, ["-I", "", expr] + _inns)
-    let _ = try await p3.run()
+          var li = [String]()
+          for n in inns.indices {
+            let res = try inns[n].readAsString()
+            #expect(linesout[n] == res )
+            li.append(try _inns[n].readAsString())
+          }
 
-    var li = [String]()
-    for n in inns.indices {
-      let res = try String(contentsOf: inns[n], encoding: .utf8)
-      #expect(linesout[n] == res )
-      li.append(try String(contentsOf: _inns[n], encoding: .utf8))
+
+          #expect(po.string == li.joined() )
+        }
+      }
     }
-
-    
-    #expect(po.string == li.joined() )
-
     inns.forEach { rm($0) }
     _inns.forEach { rm($0) }
+
   }
   
   @Test(arguments: [("1", "/SED/Id"),

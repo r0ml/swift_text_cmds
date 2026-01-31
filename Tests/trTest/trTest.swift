@@ -66,7 +66,7 @@ import ShellTesting
           ("slice", "'\n'p"),
           ("slice", "'\\012'p"),
         ]) func dopt4(_ output: String, _ pattern: String) async throws {
-    try await run(withStdin: "spl\nice", output: output, args: "-d", pattern)
+          try await run(withStdin: "spl\nice", output: output, args: "-d", pattern)
   }
   
   @Test("=x= with tr -d", arguments: [
@@ -213,7 +213,7 @@ import ShellTesting
   ]) func legacy2( _ si : String, _ f : String, _ a : [String] ) async throws {
     let i = try fileContents("regress.in" )
     let i2 = try fileContents("regress2.in" )
-    
+
     let expected1 = try fileContents("regress.\(f).out")
     try await run(withStdin: si, output: expected1, args: a)
   }

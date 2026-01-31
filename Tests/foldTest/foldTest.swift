@@ -38,13 +38,11 @@ import ShellTesting
   let suiteBundle = "text_cmds_foldTest"
 
   @Test("Verify the usage of option 'b'") func b_flag() async throws {
-    let po = try await ShellProcess(cmd, "-b").run()
-    #expect(po.code == 0 && po.string.isEmpty)
+    try await run(output: "", args: "-b")
   }
   
   @Test("Verify the usage of option 's'") func s_flag() async throws {
-    let po = try await ShellProcess(cmd, "-s").run()
-    #expect(po.code == 0 && po.string.isEmpty)
+    try await run(output: "", args: "-s")
   }
 
   @Test("Verify that an invalid usage with a supported option produces a valid error message") func invalid_usage() async throws {
@@ -52,8 +50,7 @@ import ShellTesting
   }
 
   @Test("Verify that fold(1) executes successfully and silently when invoked without any arguments") func no_arguments() async throws {
-    let po = try await ShellProcess(cmd).run()
-    #expect(po.code == 0 && po.string.isEmpty)
+    try await run(output: "")
   }
 
 

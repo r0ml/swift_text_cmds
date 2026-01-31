@@ -36,17 +36,13 @@ class grepBsdTest : ShellTest {
   
   @Test func grep_r_implied() async throws {
     let rd = try geturl()
-    let p = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", ".", cd: rd)
-//    await p.setDirectory(rd)
-    let po1 = try await p.run()
-    #expect(po1.code == 0, Comment(rawValue: po1.error))
-    let p2 = ShellProcess(cmd, "-r", "--exclude=*.out", "-e", "test", cd: rd)
-    let po2 = try await p2.run()
-
-    #expect(po2.code == 0)
-
-    #expect(po1.string == po2.string)
-
+    try await run(status: 0, args: "-r", "--exclude=*.out", "-e", "test", ".", cd: rd) {po1 in
+      //    await p.setDirectory(rd)
+      
+      try await self.run(args: "-r", "--exclude=*.out", "-e", "test", cd: rd) { po2 in
+        #expect(po2.code == 0)
+        #expect(po1.string == po2.string)
+      }
+    }
   }
-
 }

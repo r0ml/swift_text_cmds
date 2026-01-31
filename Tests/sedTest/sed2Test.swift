@@ -122,7 +122,7 @@ import ShellTesting
     let a = try tmpfile("a", "test='foo'")
     let b = try tmpfile("b", "test='27foo'")
     let c = try tmpfile("c", "\rn")
-    
+
     try await run(output: "test=\"foo\"", args: "s/\\x27/\"/g", a)
     
     try await run(output: "'test'='foo'", args: "s/test/\\x27test\\x27/g", a)

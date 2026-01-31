@@ -418,7 +418,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       
       do {
         if !options.clobber {
-          if fileExists(atPath: state.fname+fpnt) {
+          if FilePath(state.fname+fpnt).exists {
             continue
           }
         }
@@ -446,6 +446,6 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
 }
 
 public func fileSize(at path: FilePath) throws -> UInt {
-  var statBuf = try FileMetadata(for: path.string)
+  let statBuf = try FileMetadata(for: path.string)
   return statBuf.size
 }

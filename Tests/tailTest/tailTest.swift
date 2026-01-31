@@ -28,15 +28,14 @@
  */
 
 import ShellTesting
+import Darwin
 
 @Suite(.serialized) class tailTest : ShellTest {
   let cmd = "tail"
   let suiteBundle = "tailTest"
 
-  let ex = "tail"
-
   @Test("Reverse an empty file") func empty_r() async throws {
-    let i = try tmpfile("inFile", Data() )
+    let i = try tmpfile("inFile", [] )
     defer { rm(i) }
     try await run(output: "", args: "-r", i)
   }
@@ -477,10 +476,9 @@ line
     try infh.seekToEnd()
     infh.write( f2.data(using: .utf8)!)
     
-    let p = ShellProcess(ex, "-1", inf)
-    let po = try await p.run()
-    #expect(po.code == 0)
-    #expect( (po.string.count { $0 == "\n"}) == 1)
+    try await run(status: 0, args: "-1", inf) { po in
+      #expect( (po.string.count { $0 == "\n"}) == 1)
+    }
 
   }
 

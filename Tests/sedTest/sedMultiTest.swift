@@ -40,13 +40,13 @@ import ShellTesting
   
   let lines1 = ((1...14).map { "l1_\($0)\n" })
   let lines2 = ((1...9).map { "l2_\($0)\n"})
-  var flines1 : URL!
-  var flines2 : URL!
+  var flines1 : FilePath!
+  var flines2 : FilePath!
   let script1 = "s/^/s1_/p"
   let script2 = "s/^/s2_/p"
-  var fscript1 : URL!
-  var fscript2 : URL!
-  
+  var fscript1 : FilePath!
+  var fscript2 : FilePath!
+
   init() throws {
     flines1 = try tmpfile("lines1", lines1.joined())
     flines2 = try tmpfile("lines2", lines2.joined())
@@ -58,14 +58,14 @@ import ShellTesting
     rm(flines1, flines2)
   }
   
-  func check( _ p : ShellProcess, _ f : String, _ inp : Data) async throws {
+  func check( _ p : DarwinProcess, _ f : String, _ inp : [UInt8]) async throws {
     let res = try fileContents("\(f).out")
     let po = try await p.run(inp)
     #expect(po.code == 0, Comment(rawValue: po.error))
     #expect(po.string == res)
   }
 
-  func check( _ p : ShellProcess, _ f : String, _ inp : String? = nil) async throws {
+  func check( _ p : DarwinProcess, _ f : String, _ inp : String? = nil) async throws {
     let po = if let inp {
       try await p.run(inp)
     } else {
@@ -436,7 +436,7 @@ s/^/tested /p
   
   @Test("Labels and branching (5.3)") func test_branch_53() async throws {
     let res = try fileContents("multi.5.3.out")
-    try await(output: res, args: "-n", "-e", """
+    try await run(output: res, args: "-n", "-e", """
 5,8b inside
 1,5 {
   s/^/^/p
@@ -545,8 +545,8 @@ p
   }
         
   @Test("Print and file routines (7.1)") func test_print_71() async throws {
-    let res = try ShellProcess.fileData(suiteBundle, "multi.7.1.out")
-    var lines3 = Data(repeating: 0, count: 257)
+    let res = try geturl("multi.7.1.out").readAllBytes()
+    var lines3 = Array<UInt8>(repeating: 0, count: 257)
     for i in 1..<256 { lines3[i-1] = UInt8(i) }
     lines3[255] = 10
     lines3[256] = 10
@@ -563,13 +563,14 @@ p
   
   @Test("Print and file routines (7.3)") func test_print_73() async throws {
     let res = try fileContents("multi.7.3.out")
-    let f = URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory)
+    let f = try tmpfile("lines4")
     rm(f)
-    let po = try await ShellProcess(cmd, "-e", "3,12w lines4", flines1).run()
-    #expect(po.code == 0)
-    let k = try String(contentsOf: f, encoding: .utf8)
-    #expect(po.string + k == res)
-    rm(f)
+    try await run(args: "-e", "3,12w lines4", flines1) { po in
+      #expect(po.code == 0)
+      let k = try f.readAsString()
+      #expect(po.string + k == res)
+      self.rm(f)
+    }
   }
   
   @Test("Print and file routines (7.4)") func test_print_74() async throws {
@@ -589,36 +590,31 @@ p
   
   @Test("Print and file routines (7.7)") func test_print_77() async throws {
     let res = try fileContents("multi.7.7.out")
-    let d = URL(filePath: "/usr/share/dict/words")
+    let d = FilePath("/usr/share/dict/words")
     let wwo = try await d.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
 
     // FIXME: the original test failed because some dictionary entries are
     // duplicates if ignoring case, and the file system is not case sensitive.
     let ww = Set(wwo.map { $0.lowercased() })
-    let p = ShellProcess(cmd, "s$.*$s/^/&/w tmpdir/&$")
-    let po = try await p.run( (ww.map { $0+"\n" } ).joined() )
-    #expect(po.code == 0)
-    let tt = FileManager.default.temporaryDirectory.appending(path: "tmpdir", directoryHint: .isDirectory)
-    rm(tt)
-    try FileManager.default.createDirectory(at: tt, withIntermediateDirectories: true)
-
-    let script1 = try tmpfile("script1", po.string)
-    let p2 = ShellProcess(cmd,  "-f", script1, flines1)
-    let po2 = try await p2.run()
-    #expect(po2.code == 0)
-    let kk = try FileManager.default.contentsOfDirectory(at: tt, includingPropertiesForKeys: nil)
-    #expect( kk.count == ww.count)
-    
+    try await run(withStdin: (ww.map { $0+"\n" } ).joined(), args: "s$.*$s/^/&/w tmpdir/&$") { po in
+      #expect(po.code == 0)
+      let tt = try tmpdir("tmpdir")
+      defer { rm(tt) }
+      let script1 = try tmpfile("script1", po.string)
+      defer { rm(script1) }
+      try await run(args:  "-f", script1, flines1) { po2 in
+        #expect(po2.code == 0)
+        let kk = try tt.listDirectory()
+        #expect( kk.count == ww.count)
+      }
+    }
 //  FIXME: the stored result file 7.7 depends on the contents of
 //      /usr/share/dict/words -- which varies across versions
 //    let res = try fileContents("sedTest", "7.7", withExtension: "out" )
 //    let jj = (try kk.map { try String(contentsOf: $0, encoding: .utf8) }).joined()
 //    #expect(jj == res)
-
-    rm(tt)
-    rm(script1)
   }
-  
+
   @Test("Print and file routines (7.8)") func test_print_78() async throws {
     let res = try fileContents("multi.7.8.out")
     let flines3 = try tmpfile("lines3", lines1.joined()+"\n")
@@ -650,14 +646,14 @@ p
   }
   
   @Test("Substitution command (8.11)") func test_subst_811() async throws {
-    let l4 = URL(fileURLWithPath: "lines4", relativeTo: FileManager.default.temporaryDirectory)
+    let l4 = try tmpfile("lines4")
     rm(l4)
-    let p = ShellProcess(cmd, "-e", "s/1/X/w lines4", flines1)
-    let po = try await p.run()
-    #expect(po.code == 0)
-    let res = try fileContents("multi.8.11.out" )
-    let jj = try String(contentsOf: l4, encoding: .utf8)
-    #expect(po.string + jj == res)
+    try await run(args: "-e", "s/1/X/w lines4", flines1) { po in
+      #expect(po.code == 0)
+      let res = try self.fileContents("multi.8.11.out" )
+      let jj = try l4.readAsString()
+      #expect(po.string + jj == res)
+    }
   }
   
   @Test("Substitution command (8.16)") func test_subst_816() async throws {
@@ -682,23 +678,23 @@ p
   
   @Test("Substitution command (8.19)") func test_subst_819() async throws {
     let res = try fileContents("multi.8.19.out")
-    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1)
-    let po = try await p.run()
-    #expect(po.code == 0)
-    try await run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X[")
+    try await run(args: "-e", "s/l/[/", flines1) { po in
+      #expect(po.code == 0)
+      try await self.run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X[")
+    }
   }
   
   @Test("Substitution command (8.20)") func test_subst_820() async throws {
     let res = try fileContents("multi.8.20.out")
-    let p = ShellProcess(cmd, "-e", "s/l/[/", flines1)
-    let po = try await p.run()
-    #expect(po.code == 0)
-    try await run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X\\[[")
+    try await run(args: "-e", "s/l/[/", flines1) {po in
+      #expect(po.code == 0)
+      try await self.run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X\\[[")
+    }
   }
   
   @Test("Substitution command (8.21)") func test_subst_821() async throws {
     let res = try fileContents("multi.8.21.out")
-    try await run(withStdin: "a\\b(c\n", output: res, args: "y%ABCDEFGHIJKLMNOPQRSTUVWXYZ, /\\\\()\"%abcdefghijklmnopqrstuvwxyz,------%")
+    try await self.run(withStdin: "a\\b(c\n", output: res, args: "y%ABCDEFGHIJKLMNOPQRSTUVWXYZ, /\\\\()\"%abcdefghijklmnopqrstuvwxyz,------%")
   }
 
   @Test("Substitution command (8.22)",

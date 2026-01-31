@@ -34,32 +34,28 @@ kom Terje Vigen nær.
   let suiteBundle = "text_cmds_wcTest"
 
   func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
-    let p1 = ShellProcess(cmd)
-    let o = try await p1.run(i)
-    let k = o.string.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
-    #expect(k.count == 1 &&
-            Int(k[0].output.1)! == a &&
-            Int(k[0].output.2)! == b &&
-            Int(k[0].output.3)! == c )
-
-    let p2 = ShellProcess(cmd, "-l")
-    let po = try await p2.run(i)
-    let k1 = po.string.matches(of: /^ +(\d+)\n$/)
-    #expect(k1.count == 1 &&
-            Int(k1[0].output.1)! == a )
-
-    let p3 = ShellProcess(cmd, "-w")
-    let po2 = try await p3.run(i)
-    let k2 = po2.string.matches(of: /^ +(\d+)\n$/)
-    #expect(k2.count == 1 &&
-            Int(k2[0].output.1)! == b)
-
-    let p4 = ShellProcess(cmd, "-c")
-    let po3 = try await p4.run(i)
-    let k3 = po3.string.matches(of: /^ +(\d+)\n$/)
-    #expect(k3.count == 1 &&
-            Int(k3[0].output.1)! == c, "\(c)")
-
+    try await run(withStdin: i) { o in
+      let k = o.string.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
+      #expect(k.count == 1 &&
+              Int(k[0].output.1)! == a &&
+              Int(k[0].output.2)! == b &&
+              Int(k[0].output.3)! == c )
+    }
+    try await run(args: "-l") { po in
+      let k1 = po.string.matches(of: /^ +(\d+)\n$/)
+      #expect(k1.count == 1 &&
+              Int(k1[0].output.1)! == a )
+    }
+    try await run(args: "-w") { po2 in
+      let k2 = po2.string.matches(of: /^ +(\d+)\n$/)
+      #expect(k2.count == 1 &&
+              Int(k2[0].output.1)! == b)
+    }
+    try await run(args: "-c") { po3 in
+      let k3 = po3.string.matches(of: /^ +(\d+)\n$/)
+      #expect(k3.count == 1 &&
+              Int(k3[0].output.1)! == c, "\(c)")
+    }
 /*
     let (_, o4, _) = try run(cl, ex, ["-m"], i)
     let k4 = o4!.matches(of: /^ +(\d)\n$/)
@@ -81,17 +77,17 @@ kom Terje Vigen nær.
   }
 
   @Test("Invalid multibye input") func invalid() async throws {
-    let i = "a\u{ff}b\n".data(using: .isoLatin1)!
-    
-    let p = ShellProcess(cmd, "-m", env: ["LC_ALL":"UTF-8"])
-    let po = try await p.run(i)
-    let k = po.string.matches(of: /^ +(\d+)\n$/)
-    #expect(k.count == 1)
-    
-    if k.count == 1 {
-      #expect(Int(k[0].output.1)! == 4)
+    let i = try "a\u{ff}b\n".isoLatin1()
+
+    try await run(withStdin: i, args: "-m", env: ["LC_ALL":"UTF-8"]) {po in
+      let k = po.string.matches(of: /^ +(\d+)\n$/)
+      #expect(k.count == 1)
+
+      if k.count == 1 {
+        #expect(Int(k[0].output.1)! == 4)
+      }
+      #expect(po.error.matches(of: /Illegal byte sequence/).count == 1)
     }
-    #expect(po.error.matches(of: /Illegal byte sequence/).count == 1)
   }
 
   @Test("Multiline, multibyte input") func multiline() async throws {
@@ -124,20 +120,20 @@ kom Terje Vigen nær.
       rm(f, f2)
     }
     
-    let p = ShellProcess(cmd, f, f2)
-    let po = try await p.run()
-    let ll = po.string.split(separator: "\n", omittingEmptySubsequences: true).last
+    try await run(args: f, f2) { po in
+      let ll = po.string.split(separator: "\n", omittingEmptySubsequences: true).last
 
-    // More than one line of output
-    #expect(ll != nil)
-    
-    if let ll {
-      let k = ll.matches(of: /^\s+(\d+)\s+(\d+)\s+(\d+)\s+total$/)
-      
-      try #require(!k.isEmpty)
-      #expect( Int((k.first!.output.1))! == 2 * tvl )
-      #expect( Int(k.first!.output.2)! == 2 * tvw )
-      #expect( Int(k.first!.output.3)! == 2 * tvc )
+      // More than one line of output
+      #expect(ll != nil)
+
+      if let ll {
+        let k = ll.matches(of: /^\s+(\d+)\s+(\d+)\s+(\d+)\s+total$/)
+
+        try #require(!k.isEmpty)
+        #expect( Int((k.first!.output.1))! == 2 * self.tvl )
+        #expect( Int(k.first!.output.2)! == 2 * self.tvw )
+        #expect( Int(k.first!.output.3)! == 2 * self.tvc )
+      }
     }
   }
 
@@ -146,10 +142,10 @@ kom Terje Vigen nær.
   }
 
   @Test("Trigger usage message") func usage() async throws {
-    let p = ShellProcess(cmd, "-?")
-    let po = try await p.run()
-    #expect(po.code == 1)
-    #expect( po.error.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )
+    try await run(args: "-?") { po in
+      #expect(po.code == 1)
+      #expect( po.error.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )
+    }
   }
 
   @Test("Input containing only whitespace and newlines") func whitespace() async throws {
@@ -157,3 +153,6 @@ kom Terje Vigen nær.
   }
 
 }
+
+
+

@@ -100,13 +100,13 @@ z b m f
   @Test("Tests with files containing non-printable/extended characters")
   func any_char() async throws {
     let a = try inFile("d_any_char_in.txt")
-    let b = try ShellProcess.fileData(suiteBundle, "d_any_char_dflag_out.txt")
+    let b = try geturl("d_any_char_dflag_out.txt").readAllBytes()
     try await run(output:b, args: "-d", "-k", "2", a, env: ["LANG":"C","LC_ALL":""])
     
-    let c = try ShellProcess.fileData(suiteBundle, "d_any_char_fflag_out.txt")
+    let c = try geturl("d_any_char_fflag_out.txt").readAllBytes()
     try await run(output: c, args: "-f", "-k", "2", a, env: ["LANG":"C","LC_ALL":""])
     
-    let d = try ShellProcess.fileData(suiteBundle, "d_any_char_iflag_out.txt")
+    let d = try geturl("d_any_char_iflag_out.txt").readAllBytes()
     try await run(output: d, args: "-i", "-k", "2", a, env: ["LC_ALL":""])
   }
   
@@ -118,8 +118,9 @@ z b m f
     let inf = try tmpfile("in", inp)
     try await run(output: inp, args: "-b", inf)
     try await run(withStdin: inp, output: inp, args: "-b")
-    let po = try await ShellProcess(cmd, inf).run()
-    try await run(withStdin: po.string, status: 1, error: /disorder/, args: "-c", "-r")
+    try await run(args: inf) { po in
+      try await self.run(withStdin: po.string, status: 1, error: /disorder/, args: "-c", "-r")
+    }
     rm(inf)
   }
   
@@ -288,9 +289,10 @@ a 1
 24:17:05:07:05:11:05:20    ba
 
 """)
-    let po = try await ShellProcess(cmd, cols + [inf]).run()
-    #expect(po.code == 0)
-    try await run(withStdin: po.string, args: "-c", "-t:", "-k\(n)n")
+    try await run(args: cols + [inf]) { po in
+      #expect(po.code == 0)
+      try await self.run(withStdin: po.string, args: "-c", "-t:", "-k\(n)n")
+    }
   }
   
   @Test("Test the -k flag with a field without end")
@@ -458,7 +460,8 @@ x
 
 """
     try await run(args: "-u", "-o", inf, inf)
-    let zz = try String(contentsOf: inf, encoding: .utf8)
+    let za = try await inf.readAllBytes()
+    let zz = String(decoding: za, as: UTF8.self)
     #expect(zz == outp)
   }
   
@@ -467,7 +470,7 @@ x
     let oo = try tmpfile("out", "")
     rm(oo)
     try await run(args: "/dev/null", "-o", oo)
-    #expect(FileManager.default.fileExists(atPath: oo.path))
+    let _ = try FileMetadata(for: oo.string)
   }
   
   @Test("Tests the -r flag")
@@ -729,9 +732,7 @@ x a n g
   
   @Test("Tests +- addressing: using -T caused a 'No such file or directory' error")
   func plus_tflag() async throws {
-    let t = FileManager.default.temporaryDirectory
-    let tp = URL(fileURLWithPath: "+", relativeTo: t)
-    try FileManager.default.createDirectory(at: tp, withIntermediateDirectories: true)
+    let tp = try tmpdir("+")
     try await run(withStdin: Array(repeating: "y\n", count: 200000).joined(), args: "-T", "+" )
     rm(tp)
   }

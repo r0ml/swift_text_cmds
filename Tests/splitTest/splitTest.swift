@@ -230,41 +230,38 @@ dog:
 
   @Test func continue_test() async throws {
     let i = "hello\n"
-    let p = ShellProcess(cmd)
-    let po = try await p.run(i)
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xaa"), encoding: .utf8   )
-    #expect( i == o1)
-    
-    let o2f = FileManager.default.temporaryDirectory.appendingPathComponent("xab")
-    #expect( !FileManager.default.fileExists(atPath: o2f.path) )
+    try await run(withStdin: i, status: 0) { po in
+      let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xaa"), encoding: .utf8   )
+      #expect( i == o1)
 
-    let p2 = ShellProcess(cmd, "-c")
-    let po2 = try await p2.run(i)
-    #expect( po2.code == 0)
-    let o2 = try String(contentsOf: o2f, encoding: .utf8)
+      let o2f = FileManager.default.temporaryDirectory.appendingPathComponent("xab")
+      #expect( !FileManager.default.fileExists(atPath: o2f.path) )
 
-    #expect( i == o2 )
-    deleteTempFiles(["xaa", "xab"])
+      let p2 = ShellProcess(cmd, "-c")
+      let po2 = try await p2.run(i)
+      #expect( po2.code == 0)
+      let o2 = try String(contentsOf: o2f, encoding: .utf8)
+
+      #expect( i == o2 )
+      deleteTempFiles(["xaa", "xab"])
+    }
   }
 
   @Test func undocumented_kludge() async throws {
     let i = ((1...5000).map { String($0)+"\n" }).joined()
-    let p = ShellProcess(cmd, "-1000")
-    let po = try await p.run(i)
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xae"), encoding: .utf8   )
-    let i2 = ((4001...5000).map { String($0)+"\n" }).joined()
-    #expect( i2 == o1 )
-    
-    deleteTempFiles(["xaa", "xab", "xac", "xad", "xae"])
-    
-    let p2 = ShellProcess(cmd, "-d1000")
-    let po2 = try await p2.run(i)
-    #expect( po2.code == 0 )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("x04"), encoding: .utf8   )
-    #expect( i2 == o2)
-    deleteTempFiles(["x00", "x01", "x02", "x03", "x04"])
+    try await run(withStdin: i, status: 0, args: "-1000") { po in
+      let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xae"), encoding: .utf8   )
+      let i2 = ((4001...5000).map { String($0)+"\n" }).joined()
+      #expect( i2 == o1 )
+
+      deleteTempFiles(["xaa", "xab", "xac", "xad", "xae"])
+
+      try await run(withStdin: i, status: 0, args: "-d1000") { po2 in
+        let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("x04"), encoding: .utf8   )
+        #expect( i2 == o2)
+        deleteTempFiles(["x00", "x01", "x02", "x03", "x04"])
+      }
+    }
   }
 
   @Test(arguments: [

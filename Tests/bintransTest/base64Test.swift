@@ -135,8 +135,8 @@ o=
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
     try await run( args: args)
     rm(t)
-    let j = URL(filePath: "outfile", directoryHint: .notDirectory,  relativeTo: FileManager.default.temporaryDirectory)
-    let oo = try String(contentsOf: j, encoding: .utf8)
+    let j = try tmpfile("outfile")
+    let oo = try j.readAsString()
     #expect( oo == sampoutb20+"\n")
     rm(t, j)
   }
@@ -148,8 +148,8 @@ o=
     let t = try tmpfile("inFile", sampinp+"\n")
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
     try await run(withStdin: t, args: args)
-    let j = URL(filePath: "outfile", directoryHint: .notDirectory,  relativeTo: FileManager.default.temporaryDirectory)
-    let oo = try String(contentsOf: j, encoding: .utf8)
+    let j = try tmpfile("outfile")
+    let oo = try j.readAsString()
     #expect( oo == sampoutb20+"\n")
     rm(t, j)
   }
@@ -162,9 +162,9 @@ o=
 
   @Test("unreadable input file") func unreadable() async throws {
     let t = try tmpfile("unreadable", sampinp+"\n")
-    let a = try FileManager.default.attributesOfItem(atPath: t.path)
-    let k = a[.posixPermissions]
-    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
+//    let a = try FileManager.default.attributesOfItem(atPath: t.path)
+    var j = try FileMetadata(for: t.string).permissions
+//    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.groupRead, .otherRead, .ownerRead])
     try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
     try await run(status: 1, error: /denied/, args: "base64", "-i", t)
@@ -173,9 +173,7 @@ o=
   
   @Test("unwriteable output file") func unwritable() async throws {
     let t = try tmpfile("unwriteable", "")
-    let a = try FileManager.default.attributesOfItem(atPath: t.path)
-    let k = a[.posixPermissions]
-    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
+    var j = try FileMetadata(for: t.string).permissions
     j.remove([.ownerWrite, .groupWrite, .otherWrite] )
     try FileManager.default.setAttributes([.posixPermissions: j.rawValue], ofItemAtPath: t.path)
     try await run(status: 1, error: /denied/, args: "base64", "-o", t)
@@ -192,7 +190,8 @@ o=
     let t = try tmpfile("inFile", inp)
     let tt = try tmpfile("outfile", "")
     try await run(args: "base64", "-i", t, "-o", tt)
-    let oo = try String(contentsOf: tt, encoding: .utf8).split(separator: "\n")
+    let sa = try tt.readAsString()
+    let oo = sa.split(separator: "\n")
     #expect( oo.count == 1)
     try await run(output: inp, args: "base64", "-d", "-i", tt)
     rm(t, tt)
