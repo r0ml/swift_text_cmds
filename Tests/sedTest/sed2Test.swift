@@ -38,22 +38,27 @@ import ShellTesting
   @Test("Verify -i works with a hard linked source file")
   func inplace_hardlink_src() async throws {
     let a = try tmpfile("a", "foo\n")
-    let d = FileManager.default.temporaryDirectory
-    let e3 = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
-    rm(e3.filter { $0.lastPathComponent.hasPrefix(".!")})
-    
-    let b = d.appending(path: "b")
+    let d = try tmpdir("")
+
+    // delete all files with prefix ".!"
+    let e3 = try d.listDirectory().filter { $0.hasPrefix(".!") }
+    rm( e3.map { d.appending($0) })
+
+    let b = try tmpfile("b")
     rm(b)
-    
+
+    Issue.record("need to implement hard links")
+    /*
     try FileManager.default.linkItem(at: a, to: b)
     try await run(args: "-i", "", "-e", "s,foo,bar,g", b)
-    let m = try String(contentsOf: b, encoding: .utf8)
+    let m = try b.readAsString()
     #expect(m == "bar\n")
-    let n = try String(contentsOf: b, encoding: .utf8)
+    let n = try b.readAsString()
     #expect(n == "bar\n")
 
-    let e = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
-    #expect( (e.filter { $0.lastPathComponent.hasPrefix(".!") }).count == 0  )
+    let e = try d.listDirectory()
+    #expect( (e.filter { $0.hasPrefix(".!") }).count == 0  )
+     */
     rm(a)
     rm(b)
   }
@@ -61,39 +66,38 @@ import ShellTesting
   @Test("Verify -i does not work with a symlinked source file")
   func inplace_symlink_src() async throws {
     let a = try tmpfile("a", "foo\n")
-    let b = FileManager.default.temporaryDirectory.appending(path: "b")
+    let b = try tmpfile("b")
     rm(b)
-    try FileManager.default.createSymbolicLink(at: b, withDestinationURL: a)
+    try b.createSymbolicLink(to: a)
     try await run(status: 1, error: /in-place editing only works for regular files/, args: "-i", "", "-e", "s,foo,bar,g", b)
 
-    let d = FileManager.default.temporaryDirectory
-    let e = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
-    #expect( (e.filter { $0.lastPathComponent.hasPrefix(".!") }).count == 0  )
-    rm(a)
-    rm(b)
+    let d = try tmpdir("")
+    let e = try d.listDirectory()
+    #expect( (e.filter { $0.hasPrefix(".!") }).count == 0  )
+    rm(a, b)
   }
   
   @Test("Verify -i works correctly with the 'q' command")
   func inplace_command_q() async throws {
-    let d = FileManager.default.temporaryDirectory
-    let e3 = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
-    rm( e3.filter { $0.lastPathComponent.hasPrefix(".!") })
-    
+    let d = try tmpdir("")
+    let e3 = try d.listDirectory().filter { $0.hasPrefix(".!") }
+    rm( e3.map { d.appending($0) })
+
     let a = try tmpfile("a", "1\n2\n3\n")
     try await run(output: "1\n2\n", args: "2q", a)
     try await run(args: "-i.bak", "2q", a)
 
-    let j2 = try String(contentsOf: a, encoding: .utf8)
+    let j2 = try a.readAsString()
     #expect(j2 == "1\n2\n")
-    
-    let j3 = try String(contentsOf: a.appendingPathExtension("bak"), encoding: .utf8)
+
+    let aa = FilePath(a.string + ".bak")
+    let j3 = try aa.readAsString()
     #expect(j3 == "1\n2\n3\n")
     
-    let e = try FileManager.default.contentsOfDirectory(at: d, includingPropertiesForKeys: nil, options: [])
-    #expect( (e.filter { $0.lastPathComponent.hasPrefix(".!") }).count == 0  )
+    let e = try d.listDirectory().filter { $0.hasPrefix(".!") }
+    #expect( ( e.filter { $0.hasPrefix(".!") }).count == 0  )
 
-    rm(a)
-    rm(a.appendingPathExtension("bak"))
+    rm(a, aa)
   }
   
   @Test("Verify functional escaping of \\n, \\r, and \\t",

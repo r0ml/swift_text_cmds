@@ -57,7 +57,8 @@ import ShellTesting
   deinit {
     rm(flines1, flines2)
   }
-  
+
+  /*
   func check( _ p : DarwinProcess, _ f : String, _ inp : [UInt8]) async throws {
     let res = try fileContents("\(f).out")
     let po = try await p.run(inp)
@@ -75,6 +76,7 @@ import ShellTesting
     let res = try fileContents("\(f).out" )
     #expect(po.string == res)
   }
+  */
   
   @Test("Argument parsing - first type", arguments: [
     ("1.1", ["s/^/e1_/p"]),
@@ -591,18 +593,19 @@ p
   @Test("Print and file routines (7.7)") func test_print_77() async throws {
     let res = try fileContents("multi.7.7.out")
     let d = FilePath("/usr/share/dict/words")
-    let wwo = try await d.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
+    let dd = try FileDescriptor.open(d, .readOnly)
+    let wwo = try await dd.bytes.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
 
     // FIXME: the original test failed because some dictionary entries are
     // duplicates if ignoring case, and the file system is not case sensitive.
     let ww = Set(wwo.map { $0.lowercased() })
     try await run(withStdin: (ww.map { $0+"\n" } ).joined(), args: "s$.*$s/^/&/w tmpdir/&$") { po in
       #expect(po.code == 0)
-      let tt = try tmpdir("tmpdir")
-      defer { rm(tt) }
-      let script1 = try tmpfile("script1", po.string)
-      defer { rm(script1) }
-      try await run(args:  "-f", script1, flines1) { po2 in
+      let tt = try self.tmpdir("tmpdir")
+      defer { self.rm(tt) }
+      let script1 = try self.tmpfile("script1", po.string)
+      defer { self.rm(script1) }
+      try await self.run(args:  "-f", script1, self.flines1) { po2 in
         #expect(po2.code == 0)
         let kk = try tt.listDirectory()
         #expect( kk.count == ww.count)

@@ -49,31 +49,29 @@ import ShellTesting
   }
   
   @Test("Checks recursive searching") func recurse() async throws {
+    let d = try tmpdir("recurse")
     _ = try tmpfile("recurse/d/fish", "cod\ndover sole\nhaddock\nhalibut\npilchard\n")
     _ = try tmpfile("recurse/a/f/favourite-fish", "cod\nhaddock\nplaice\n")
     let expected = try fileContents("d_recurse.out")
     
     try await run(output: expected, args: "-r", "haddock", "recurse")
     
-    rm( FileManager.default.temporaryDirectory.appending(path: "recurse", directoryHint: .isDirectory))
+    rm( d )
   }
   
   @Test("Checks symbolic link recursion") func recurse_symlink() async throws {
-    let dir = FileManager.default.temporaryDirectory.appending(path: "test", directoryHint: .isDirectory)
+    let dir = try tmpdir("test")
     rm(dir)
     let _ = try tmpfile("test/c/match", "Test string\n")
-    let f2 = FileManager.default.temporaryDirectory.appending(path: "test/c/d")
-    try FileManager.default.createDirectory(at: f2, withIntermediateDirectories: true)
-    
-    rm(f2.appending(path: "d", directoryHint: .isDirectory))
-    try FileManager.default.createSymbolicLink(at: f2.appending(path: "d", directoryHint: .isDirectory), withDestinationURL: f2)
-    
+    let f2 = try tmpdir("test/c/d")
+
+    let ddd = f2.appending("d")
+    rm(ddd)
+    try ddd.createSymbolicLink(to: f2)
+
     let expected = try fileContents("d_recurse_symlink.out")
     let exp2 = try fileContents("d_recurse_symlink.err")
-    let po = try await ShellProcess(cmd, "-rS", "string", "test").run()
-    #expect(po.code == 0)
-    #expect( po.string == expected)
-    #expect( po.error == exp2)
+    try await run(status: 0, output: expected, error: exp2, args: "-rS", "string", "test")
     rm(dir)
   }
   
@@ -126,8 +124,8 @@ import ShellTesting
           ("c", "-B4", "Whig"),
         ]) func context(_ ex : String, _ opt : String, _ srch : String) async throws {
     let dd = try geturl()
-    let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
-    
+          let inf = dd.appending("d_context_a.in")
+
     let expected = try fileContents("d_context_\(ex).out")
     try await run(output: expected, args: opt, srch, inf)
     
@@ -141,9 +139,9 @@ import ShellTesting
   @Test("More checks displaying context with -A, -B and -C flags") func context3() async throws {
     // this command needs to be run from the directory containing the input files
     let dd = try geturl()
-    let inf = URL(fileURLWithPath: "d_context_a.in", relativeTo: dd)
-    let inf2 = URL(filePath: "d_context_b.in", relativeTo: dd)
-    
+    let inf = dd.appending("d_context_a.in")
+    let inf2 = dd.appending("d_context_b.in")
+
     let expected4 =  try fileContents("d_context_d.out")
     try await run(output: expected4, args: "-C1", "pig", inf, inf2, cd: dd)
   }
@@ -163,7 +161,7 @@ import ShellTesting
   @Test("Checks reading expressions from file") func file_exp() async throws {
     let inf = try inFile("d_file_exp.in")
     let expected = try fileContents("d_file_exp.out")
-    let inp = stride(from: -1, to: 1, by: 0.1).map { String(format: "%.2lf",$0)+"\n" }
+    let inp = stride(from: -1.0, to: 1.0, by: 0.1).map { cFormat("%.2lf",$0)+"\n" }
     try await run(withStdin: inp.joined(), output: expected, args: "-f", inf)
   }
   
@@ -186,13 +184,13 @@ import ShellTesting
     
     try await run(output: "foo bar\n", args: "-Z", "-we", "foo", inf)
     
-    try await run(withStdin: FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null")), output: "foo bar\n", args: "-Z", "-wefoo", inf)
+    try await run(withStdin: FileDescriptor(forReading: "/dev/null"), output: "foo bar\n", args: "-Z", "-wefoo", inf)
     rm(inf)
   }
   
   @Test("Checks for zgrep wrapper problems with -e PATTERN (PR 247126)") func zgrep_eflag() async throws {
     let inf = try tmpfile("test4", "foo bar\n")
-    let null = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
+    let null = try FileDescriptor(forReading: "/dev/null")
     try await run(withStdin: null, output: "foo bar\n", args: "-Z", "-e", "foo bar", inf)
     
     try await run(withStdin: null, output: "foo bar\n", args: "-Z", "--regexp=foo bar",  inf)
@@ -202,9 +200,9 @@ import ShellTesting
   @Test("Checks for zgrep wrapper problems with -f FILE (PR 247126)", arguments: [false, true]) func zgrep_fflag(_ lo : Bool) async throws {
     let inf = try tmpfile("test5", "foobar\n")
     let inf2 = try tmpfile("pattern", "foo\n")
-    let null = try FileHandle(forReadingFrom: URL(fileURLWithPath: "/dev/null"))
+    let null = try FileDescriptor(forReading: "/dev/null")
     try await run(withStdin: null, output: "foobar\n", args:
-                    lo ? ["-Z","--file=\(inf2.path)", inf]
+                    lo ? ["-Z","--file=\(inf2.string)", inf]
                   : ["-Z", "-f", inf2, inf])
     rm(inf, inf2)
   }
@@ -351,15 +349,15 @@ import ShellTesting
     let fc = try fileContents("COPYRIGHT")
     let lines = fc.count { $0 == "\n"}
     
-    let po1 = try await ShellProcess(cmd, "-Fxc", "").run(fc)
-    let po2 = try await ShellProcess(cmd, "-Fvxc", "").run(fc)
-    #expect(po1.code == 0)
-    #expect(po2.code == 0)
-    let n = Int(po1.string.dropLast() ) // remove trailing newline
-    let n2 = Int(po2.string.dropLast()) // remove trailing newline
-    #expect(n != lines)
-    #expect(n2 != lines)
-    #expect(n != n2)
+    try await run(withStdin: fc, status: 0, args: "-Fxc", "") { po1 in
+      try await run(withStdin: fc, status: 0, args: "-Fvxc", "") { po2 in
+        let n = Int(po1.string.dropLast() ) // remove trailing newline
+        let n2 = Int(po2.string.dropLast()) // remove trailing newline
+        #expect(n != lines)
+        #expect(n2 != lines)
+        #expect(n != n2)
+      }
+    }
   }
   
   @Test("More checks for handling empty patterns with -x", arguments: Array(1...5)) func xflag_emptypat_plus(_ n : Int) async throws {
@@ -391,13 +389,12 @@ import ShellTesting
   
   @Test("Check for proper handling of lines with excessive matches (PR 218811") func excessive_matches() async throws {
     let intest = String(repeating: "x", count: 4096)
-    let po1 = try await ShellProcess(cmd, "-o", "x").run(intest)
-    #expect(po1.code == 0)
-    #expect( (po1.string.count { $0 == "\n" }) == intest.count)
-    let po2 = try await ShellProcess(cmd, "-on", "x").run(intest)
-    #expect(po2.code == 0)
-    let po3 = try await ShellProcess(cmd, "-v", "1:x").run(po2.string)
-    #expect(po3.code == 1)
+    try await run(withStdin: intest, status: 0, args: "-o", "x") { po1 in
+      #expect( (po1.string.count { $0 == "\n" }) == intest.count)
+      try await run(withStdin: intest, status: 0, args: "-on", "x") { po2 in
+        try await run(withStdin: po2.string, status: 1, args: "-v", "1:x")
+      }
+    }
   }
   
   @Test("Check for fgrep sanity, literal expressions only") func fgrep_sanity() async throws {

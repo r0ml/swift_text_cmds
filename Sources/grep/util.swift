@@ -318,7 +318,7 @@ class grepDoer {
         // sbp = psbp
       }
       else {
-        if let sbp = try? FileMetadata(for: fn) {
+        if let sbp = try? FileMetadata(for: FilePath(fn)) {
 //        if stat(fn, &sbp) == 0 {
           // Check if we need to process the file
           if options.dirbehave == .SKIP && sbp.filetype == .directory {

@@ -287,7 +287,7 @@ public func mmapFileReadOnly(at path: FilePath) throws -> UnsafeRawBufferPointer
     let fd = try FileDescriptor.open(path, .readOnly)
 
     // Get file size
-  let statBuf = try FileMetadata(for: path.string)
+  let statBuf = try FileMetadata(for: path)
 //  var statBuf = Darwin.stat()
 //    let statResult = path.string.withCString { cPath in
 //        stat(cPath, &statBuf)

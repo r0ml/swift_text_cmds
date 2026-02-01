@@ -163,7 +163,7 @@ o=
   @Test("unreadable input file") func unreadable() async throws {
     let t = try tmpfile("unreadable", sampinp+"\n")
 //    let a = try FileManager.default.attributesOfItem(atPath: t.path)
-    var j = try FileMetadata(for: t.string).permissions
+    var j = try FileMetadata(for: t).permissions
 //    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.groupRead, .otherRead, .ownerRead])
     try t.setPermissions(j)
@@ -173,7 +173,7 @@ o=
   
   @Test("unwriteable output file") func unwritable() async throws {
     let t = try tmpfile("unwriteable", "")
-    var j = try FileMetadata(for: t.string).permissions
+    var j = try FileMetadata(for: t).permissions
     j.remove([.ownerWrite, .groupWrite, .otherWrite] )
     try t.setPermissions(j)
     try await run(status: 1, error: /denied/, args: "base64", "-o", t)

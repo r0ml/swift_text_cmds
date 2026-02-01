@@ -470,7 +470,7 @@ x
     let oo = try tmpfile("out", "")
     rm(oo)
     try await run(args: "/dev/null", "-o", oo)
-    let _ = try FileMetadata(for: oo.string)
+    let _ = try FileMetadata(for: oo)
   }
   
   @Test("Tests the -r flag")
@@ -724,7 +724,7 @@ y c o e
 x a n h
 x a n g
 
-""".replacingOccurrences(of:"\n", with: "+")
+""".replacing("\n", with: "+")
     let inf = try tmpfile("in", inp)
     try await run(output: "x a n g+z a n h+z b m f+y c o e+", args: "-R", "+", "-k2", inf)
     rm(inf)

@@ -422,7 +422,7 @@ extension bintrans {
     else {
       var flags = FileDescriptor.OpenOptions.create.union(.exclusiveCreate)
       do {
-        var st = try FileMetadata(for: d.outFile)
+        var st = try FileMetadata(for: FilePath(d.outFile))
 //      if (Darwin.lstat(d.outFile, &st) == 0) {
         if d.options.iflag && st.filetype != .fifo {
           warnc(errno_h.EEXIST, "\(d.inFile): \(d.outFile)")

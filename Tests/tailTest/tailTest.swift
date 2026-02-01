@@ -49,7 +49,7 @@ This is the third line
 """
     let i = try tmpfile("inFile", d)
     defer { rm(i) }
-    let op = d.split(separator: "\n").reversed().joined(separator: "\n").appending("\n")
+    let op = String(d.split(separator: "\n").reversed().joined(separator: "\n")) + "\n"
     try await run(output: op, args: "-r", i)
   }
   
