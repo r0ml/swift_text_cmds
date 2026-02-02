@@ -13,7 +13,7 @@ import ShellTesting
 @Suite() class uniqTest : ShellTest {
 
   let cmd = "uniq"
-  let suiteBundle = "uniqTest"
+  let suiteBundle = "text_cmds_uniqTest"
 
   @Test("basic test without options") func basic() async throws {
     let input = "a\na\nb\nb\na\na\n"

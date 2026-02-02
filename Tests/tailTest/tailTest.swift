@@ -125,6 +125,8 @@ line
   }
   
   @Test("Reverse a long file") func longfile_r() async throws {
+    Issue.record("need to sort NumberFormatter and also a way to set the standard output of a ShellProcess")
+    /*
     let k = NumberFormatter()
     k.paddingCharacter = "0"
     k.formatWidth = 511
@@ -139,7 +141,7 @@ line
     let p2 = ShellProcess(ex, "-r", i)
     
     // FIXME: how come it doesn't work if I pipe output to stdout
-    let of = try tmpfile("outfile", Data())
+    let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p2.setOutput(ofh)
     let _ = try await p2.run()
@@ -158,38 +160,42 @@ line
     #expect( bb2 )
     
     [of, of2, i].forEach { rm($0) }
+     */
   }
-  
+
+  func gx(_ x : Int, _ y : Int) -> String {
+    let t = String(x)
+    let r = String(repeating: "0", count: 1023-t.count)
+    return r+t
+  }
+
+
   @Test("Reverse a file that's too long to store in RAM", .disabled("with virtual memory and inability to set ulimit, this doesn't test anything")) func longfile_r_enomem() async throws {
     /* When we reverse a file that's too long for RAM, tail should drop the
      first part and just print what it can.  We'll check that the last
      part is ok
      */
-    
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 1023
+
     let p = 0..<32768
-    let d = (p.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
-    
+    let d = (p.map { gx($0, 1023)+"\n" }).joined()
+
     let q = stride(from: 32767, through: 0, by: -1)
-    let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
-    
+    let o = (q.map { gx($0, 1023)+"\n" }).joined()
+
     try await run(withStdin: d, output: o, args: "-r")
   }
   
   @Test("Reverse a long file with extremely long lines") func longfile_r_longlines() async throws {
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 7
     let lines : [String] = [
-      ((0 ..< 18000).map { k.string(from: NSNumber(value: $0))! }).joined(separator: " ")+"\n",
-      ((18000 ..< 36000).map { k.string(from: NSNumber(value: $0))! }).joined(separator: " ")+"\n",
-      ((36000 ..< 54000).map { k.string(from: NSNumber(value: $0))! }).joined(separator: " ")+"\n",
+      ((0 ..< 18000).map { gx($0, 7) }).joined(separator: " ")+"\n",
+      ((18000 ..< 36000).map { gx($0, 7) }).joined(separator: " ")+"\n",
+      ((36000 ..< 54000).map { gx($0, 7) }).joined(separator: " ")+"\n",
     ]
-    
+
+    Issue.record("test needs to be able to set output of shell command")
+    /*
     // FIXME: why didn't this work with pipe?
-    let p = ShellProcess(ex, "-r")
+    try await run(args: "-r", setOutput: ofh)
     let of = try tmpfile("outfile", "")
     let ofh = try FileHandle(forWritingTo: of)
     await p.setOutput(ofh)
@@ -197,28 +203,22 @@ line
     #expect(po.code == 0)
     let j = try String(contentsOf: of, encoding: .utf8)
     #expect( j == lines.reversed().joined() )
+     */
   }
 
   @Test("Reverse a long file and print the last 135782 bytes") func longfile_rc135782() async throws {
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 63
-    let i = ((0 ..< 9000).map { k.string(from: NSNumber(value: $0))!+"\n" }).joined()
+    let i = ((0 ..< 9000).map { gx($0, 63)+"\n" }).joined()
     /*
      let inf = FileManager.default.temporaryDirectory.appendingPathComponent("inFile")
      try i.write(to: inf, atomically: true, encoding: .utf8)
      */
 
     // FIXME: doesnt work with pipe output -- would work with file
-    let o = ((stride(from: 8999, to: 0, by: -1).prefix(2121)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined() + "0000000000000000000000000000000006878\n"
+    let o = ((stride(from: 8999, to: 0, by: -1).prefix(2121)).map { gx($0, 63)+"\n"}).joined() + "0000000000000000000000000000000006878\n"
     try await run(withStdin: i, output: o, args: "-rc135782")
   }
   
   @Test("Reverse a long file with extremely long lines and print the last 145,782 bytes") func longfile_rc145782_longlines() async throws {
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 7
-
 /*    let lines : [String] = [
       ((0 ..< 18000).map { k.string(from: NSNumber(value: $0))! }).joined(separator: " ")+"\n",
       ((18000 ..< 36000).map { k.string(from: NSNumber(value: $0))! }).joined(separator: " ")+"\n",
@@ -227,12 +227,12 @@ line
   */
     
     let lines : [String] = [
-      ((0..<18000).map { String(format: "%07d", $0)} ).joined(separator: " ")+"\n",
-      ((18000..<36000).map { String(format: "%07d", $0)}).joined(separator: " ")+"\n",
-        ((36000..<54000).map { String(format: "%07d", $0)}).joined(separator: " ") + "\n",
+      ((0..<18000).map { gx($0, 7) } ).joined(separator: " ")+"\n",
+      ((18000..<36000).map { gx($0, 7) }).joined(separator: " ")+"\n",
+        ((36000..<54000).map { gx($0, 7) }).joined(separator: " ") + "\n",
     ]
     
-    let ro = ((35778..<(35778+222)).map { String(format: "%07d", $0) }).joined(separator: " ")
+    let ro = ((35778..<(35778+222)).map { gx($0, 7) } ).joined(separator: " ")
     //    let ro = ((35778..<(35778+222)).map { k.string(from: NSNumber(value: $0) )!}).joined(separator: " ")+"\n"
 
     let o = lines[2] + "35777 " + ro + "\n"
@@ -241,11 +241,10 @@ line
   }
 
   @Test("Reverse a long file and print the last 2,500 lines") func longfile_rn2500() async throws {
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 63
-    let i = ((0 ..< 9000).map { k.string(from: NSNumber(value: $0))!+"\n" }).joined()
-    
+    let i = ((0 ..< 9000).map { gx($0, 63)+"\n" }).joined()
+
+    Issue.record("need to be able to set output handle")
+    /*
     // FIXME: why didn't this work with pipe
     let p = ShellProcess(ex, "-rn2500")
     let of = try tmpfile("outfile", "")
@@ -258,19 +257,23 @@ line
     let o = ((stride(from: 8999, to: 0, by: -1).prefix(2500)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined()
     print(j.count, o.count)
     #expect( j == o )
+     */
   }
   
   @Test("Do not print bogus errno based output on short writes", .disabled("not implemented")) func broken_pipe() async throws {
     // Not yet implemented
-    #expect(false)
+    Issue.record("not yet implemented")
   }
   
   @Test("Check basic operations on standard input", .disabled("all the operations use standard input")) func stdin() async throws {
     // Not yet implemented
-    #expect(false)
+    Issue.record("Not yet implemented")
   }
   
   @Test("Basic regression test for -f") func follow() async throws {
+
+    Issue.record("test needs midCapture re-implemented to work")
+    /*
     let inf = try tmpfile("inFile",  "1\n2\n3\n")
     let inh = try FileHandle(forWritingTo: inf)
 
@@ -292,19 +295,21 @@ line
     }
     await p.interrupt()
     rm(inf)
+     */
   }
   
   @Test("Verify that -f works with files piped to standard input") func follow_stdin() async throws {
-    let p = ShellProcess(ex, "-f")
 
-    let inf = try tmpfile("inFile", "1\n2\n3\n")
+    Issue.record("test needs midCapture re-implemented to work")
 
+    /*
     Task.detached {
-      let fh = try FileHandle(forReadingFrom: inf)
-      try await p.run(fh)
-      
-      
-//        AsyncDataActor([ "1\n2\n3\n".data(using: .utf8)!, "4\n5\n".data(using: .utf8)!]).stream)
+      let inf = try self.tmpfile("inFile", "1\n2\n3\n")
+    let fh = try FileDescriptor.open(inf, .readOnly)
+      try await self.run(withStdin: fh, args: "-f")
+
+
+        //        AsyncDataActor([ "1\n2\n3\n".data(using: .utf8)!, "4\n5\n".data(using: .utf8)!]).stream)
     }
 
     try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.1))
@@ -324,11 +329,13 @@ line
     await p.interrupt()
     
     rm(inf)
-
+*/
   }
 
   @Test("Verify that -F works when a file is created") func follow_create() async throws {
 
+    Issue.record("test needs midCapture re-implemented to work")
+    /*
     let inf = try tmpfile("inFile", Data())
     rm(inf)
     
@@ -348,10 +355,14 @@ line
     
     #expect(k == "1\n2\n3\n4\n5\n")
     await p.interrupt()
+     */
   }
 
   @Test("Verify that -F works when a file is replaced") func follow_rename() async throws {
 
+    Issue.record("task needs midCapture re-implemented to work")
+
+    /*
     let inf = try tmpfile("inFile", "1\n2\n3\n")
     let p = ShellProcess(ex, "-F", inf)
 
@@ -376,7 +387,7 @@ line
     await p.interrupt()
     
     [inf, inf2, inf3].forEach { rm($0) }
-
+*/
   }
 
   @Test("Test tail(1)'s silent header feature") func silent_header() async throws {
@@ -398,7 +409,7 @@ line
     let f1 = ((1...11).map { String($0)+"\n" }).joined()
     let inf = try tmpfile("file1", f1)
     defer { rm(inf) }
-    let o = "==> \(inf.relativePath) <==\n"+f1.dropFirst(2)
+    let o = "==> \(inf.string) <==\n"+f1.dropFirst(2)
     try await run(output: o, args: "-v", inf)
   }
 
@@ -412,7 +423,8 @@ line
     try await run(output: o, args: "-c", "1k", inf)
 
     let f2 = ((1...1025).map { String($0)+"\n" }).joined()
-    try f2.write(to: inf, atomically: true, encoding: .utf8)
+    let infh = try FileDescriptor.open(inf, .writeOnly)
+    try infh.write( f2.utf8)
 
     let o2 = ((2...1025).map { String($0)+"\n" }).joined()
     try await run(output: o2, args: "-n", "1k", inf)
@@ -435,19 +447,17 @@ line
     let f1 = "first line\nsecond line\n"
     let inf = try tmpfile("blkbof.in", f1)
     defer { rm(inf) }
-    var buf : stat = stat()
-    let s = stat(inf.path, &buf)
-    
-    let blksiz = buf.st_blksize
-    let cursize = buf.st_size
-        
+    let buf = try FileMetadata(for: inf)
+    let blksiz = buf.blockSize
+    let cursize = buf.size
+
     let sizeleft = Int(blksiz) - Int(cursize) - 1
     let f2 = String(repeating: "1", count: sizeleft) + "\n"
     
-    let infh = try FileHandle(forWritingTo: inf)
-    infh.seekToEndOfFile()
-    infh.write( f2.data(using: .utf8)!)
-    
+    let infh = try FileDescriptor.open(inf, .writeOnly)
+    try infh.seek(offset: 0, from: .end)
+    try infh.write( f2.utf8 )
+
     try await run(output: f1 + f2, args: "-n", "3", inf)
 /*    let p = ShellProcess(ex, "-n", "3", inf)
     let po = try await p.run()
@@ -461,9 +471,8 @@ line
     
     let inf = try tmpfile("blkbof.in", "")
     defer { rm(inf) }
-    var buf : stat = stat()
-    let _ = stat(inf.path, &buf)
-    let blksiz = buf.st_blksize
+    let buf = try FileMetadata(for: inf)
+    let blksiz = buf.blockSize
 //    let cursize = buf.st_size
 
     let linelen = Int(blksiz) * 3 / 2
@@ -472,10 +481,10 @@ line
     let f2 = String(repeating: "a", count: linelen) + "\n" +
     String(repeating: "b", count: linelen) + "\n"
     
-    let infh = try FileHandle(forWritingTo: inf)
-    try infh.seekToEnd()
-    infh.write( f2.data(using: .utf8)!)
-    
+    let infh = try FileDescriptor.open(inf, .writeOnly)
+    try infh.seek(offset: 0, from: .end)
+    try infh.write( f2.utf8 )
+
     try await run(status: 0, args: "-1", inf) { po in
       #expect( (po.string.count { $0 == "\n"}) == 1)
     }

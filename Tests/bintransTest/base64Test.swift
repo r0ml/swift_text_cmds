@@ -47,7 +47,7 @@ o=
   
   @Test func encode() async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
-    try await run(output: sampout+"\n", args: "base64", "-i", "inFile")
+    try await run(output: sampout+"\n", args: "base64", "-i", t)
     rm(t)
   }
   
@@ -112,9 +112,9 @@ o=
         ["-iinFile", "-i inFile", "--input=inFile"]
   ) func in_out(_ o : String, _ i : String) async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
+    defer { rm(t) }
     let args = ["base64", i, o].flatMap { $0.split(separator: " ") }
-    try await run(output: sampout+"\n", args: args)
-    rm(t)
+    try await run(output: sampout+"\n", args: args, cd: tmpdir() )
   }
   
   @Test("different ways of specifying input and output(2)", arguments:
@@ -122,6 +122,7 @@ o=
         ["", "-i-", "-i -", "--input=-"]
   ) func in_out2(_ o : String, _ i : String) async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
+    defer { rm(t) }
     let args = ["base64", i, o].flatMap { $0.split(separator: " ") }
     try await run(withStdin: t, output: sampout+"\n", args: args)
   }
@@ -132,13 +133,14 @@ o=
         ["-iinFile", "-i inFile", "--input=inFile"],
   ) func in_out3(_ o : String, _ i : String) async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
+    defer { rm(t) }
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
-    try await run( args: args)
+    try await run( args: args, cd: tmpdir())
     rm(t)
     let j = try tmpfile("outfile")
+    defer { rm(j) }
     let oo = try j.readAsString()
     #expect( oo == sampoutb20+"\n")
-    rm(t, j)
   }
 
   @Test("different ways of specifying input and output(4)", .serialized, arguments:
@@ -146,42 +148,44 @@ o=
         ["", "-i-", "-i -", "--input=-"]
   ) func in_out4(_ o : String, _ i : String) async throws {
     let t = try tmpfile("inFile", sampinp+"\n")
+    defer { rm(t) }
     let args = ["base64", "-b", "20", i, o].flatMap { $0.split(separator: " ") }
-    try await run(withStdin: t, args: args)
+    try await run(withStdin: t, args: args, cd: tmpdir())
     let j = try tmpfile("outfile")
+    defer { rm(j) }
     let oo = try j.readAsString()
     #expect( oo == sampoutb20+"\n")
-    rm(t, j)
   }
 
 @Test("check that we don't break the output when decoding") func decode_break() async throws {
     let t = try tmpfile("inFile", sampout+"\n")
+  defer { rm(t) }
   try await run(output: sampinp+"\n", args: "base64", "-d", "-b", "20", "-i", t)
-  rm (t)
   }
 
   @Test("unreadable input file") func unreadable() async throws {
     let t = try tmpfile("unreadable", sampinp+"\n")
+    defer { rm(t) }
 //    let a = try FileManager.default.attributesOfItem(atPath: t.path)
     var j = try FileMetadata(for: t).permissions
 //    var j = CMigration.FilePermissions(rawValue: k as! CModeT)
     j.remove([.groupRead, .otherRead, .ownerRead])
     try t.setPermissions(j)
     try await run(status: 1, error: /denied/, args: "base64", "-i", t)
-    rm(t)
   }
   
   @Test("unwriteable output file") func unwritable() async throws {
     let t = try tmpfile("unwriteable", "")
+    defer { rm(t) }
     var j = try FileMetadata(for: t).permissions
     j.remove([.ownerWrite, .groupWrite, .otherWrite] )
     try t.setPermissions(j)
     try await run(status: 1, error: /denied/, args: "base64", "-o", t)
-    rm(t)
   }
   
   @Test("unterminated input") func unterminated() async throws {
     let t = try tmpfile("inFile", sampinp)
+    defer { rm(t) }
     try await run(output: sampoutnonl+"\n", args: "base64", "-i", t)
   }
   
@@ -189,18 +193,18 @@ o=
     let inp = ((1...1024).map { String($0)+"\n"}).joined()
     let t = try tmpfile("inFile", inp)
     let tt = try tmpfile("outfile", "")
+    defer { rm(t, tt) }
     try await run(args: "base64", "-i", t, "-o", tt)
     let sa = try tt.readAsString()
     let oo = sa.split(separator: "\n")
     #expect( oo.count == 1)
     try await run(output: inp, args: "base64", "-d", "-i", tt)
-    rm(t, tt)
   }
   
   @Test("test URL encoding") func url() async throws {
     let t = try tmpfile("inFile", "MCM_MA==\n")
+    defer { rm(t) }
     try await run(output: "0#?0", args: "base64", "-d", "-i", t)
-    rm(t)
   }
   
 }

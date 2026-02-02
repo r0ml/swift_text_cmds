@@ -34,25 +34,15 @@ import ShellTesting
   let suiteBundle = "splitTest"
 
   let MAXBSIZE = 256 * 4096
-  
-  func deleteTempFiles(_ a : [String]) {
-    a.forEach {
-      try? FileManager.default.removeItem(at: FileManager.default.temporaryDirectory.appendingPathComponent($0))
-    }
-  }
-  
+
   @Test func bytes1() async throws {
-    let p = ShellProcess(cmd, "-b", "4", "-", "split-")
-    let po = try await p.run("aaaabb\ncccc\n")
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
-    #expect( "aaaa" == o1 )
-    #expect( "bb\nc" == o2 )
-    #expect( "ccc\n" == o3 )
-    
-    deleteTempFiles(["split-aa", "split-ab", "split-ac"])
+    try await run(withStdin: "aaaabb\ncccc\n", status: 0, args: "-b", "4", "-", "split-")
+    let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
+    defer { rm(fs) }
+    let os = try fs.map { try $0.readAsString() }
+    #expect( "aaaa" == os[0] )
+    #expect( "bb\nc" == os[1] )
+    #expect( "ccc\n" == os[2] )
   }
   
   @Test func bytes2() async throws {
@@ -62,17 +52,14 @@ import ShellTesting
       String(repeating: "c", count: 12),
       ]
     
-    let p2 = ShellProcess(cmd, "-b", String(MAXBSIZE+12), "-", "split-")
-    let po2 = try await p2.run( pieces.joined() )
-    #expect( po2.code == 0 )
-    let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o5 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-   let o6 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
-    #expect( pieces[0] == o4 )
-    #expect( pieces[1] == o5 )
-    #expect( pieces[2] == o6 )
-    deleteTempFiles(["split-aa", "split-ab", "split-ac"])
+    try await run(withStdin: pieces.joined(), status: 0, args: "-b", String(MAXBSIZE+12), "-", "split-")
 
+    let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)")}
+    let os = try fs.map { try $0.readAsString() }
+    defer { rm(fs) }
+    #expect( pieces[0] == os[0] )
+    #expect( pieces[1] == os[1] )
+    #expect( pieces[2] == os[2] )
   }
 
   @Test func chunks() async throws {
@@ -81,21 +68,17 @@ import ShellTesting
     String(repeating: "c", count: 4104)
     
     // The -n option can't work on stdin, so I need a file input
-    let i1 = FileManager.default.temporaryDirectory.appending(path: "foo", directoryHint: .notDirectory)
-    try i.write(to: i1, atomically: true, encoding: .utf8)
-    let p = ShellProcess(cmd, "-n", "3", i1, "split-")
-    
-    let po = try await p.run(i)
-    #expect( po.code == 0 )
+    let i1 = try tmpfile("foo", i)
+    try await run(args: "-n", "3", i1, "split-")
 
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-   let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
-    #expect( o1 == String(repeating: "a", count: 4096) + String(repeating: "b", count: 2))
-    #expect( o2  == String(repeating: "b", count: 4094) + String(repeating: "c", count: 4))
-    #expect( o3  == String(repeating: "c", count: 4100))
-    
-    deleteTempFiles(["foo", "split-aa", "split-ab", "split-ac"])
+//    let po = try await p.run(i)
+    let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)")}
+    let os = try fs.map { try $0.readAsString() }
+    defer { rm(fs) }
+
+    #expect( os[0] == String(repeating: "a", count: 4096) + String(repeating: "b", count: 2))
+    #expect( os[1] == String(repeating: "b", count: 4094) + String(repeating: "c", count: 4))
+    #expect( os[2] == String(repeating: "c", count: 4100))
   }
 
   
@@ -106,17 +89,13 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    let p = ShellProcess(cmd, "-l", "1", "-", "split-")
-    let po = try await p.run( pieces.joined() )
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-    let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
-    #expect( pieces[0] == o1 )
-    #expect( pieces[1] == o2 )
-    #expect( pieces[2] == o3 )
-    
-    deleteTempFiles(["split-aa", "split-ab", "split-ac"])
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-")
+    let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
+    let os = try fs.map { try $0.readAsString() }
+    defer { rm(fs) }
+    #expect( pieces[0] == os[0] )
+    #expect( pieces[1] == os[1] )
+    #expect( pieces[2] == os[2] )
   }
   
   @Test func sensible_lines2() async throws {
@@ -126,14 +105,15 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    let p2 = ShellProcess(cmd, "-l", "2", "-", "split-")
-    let po2 = try await p2.run( pieces.joined() )
-    #expect( po2.code == 0 )
-    let o4 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o5 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-    #expect( o4 == pieces[0]+pieces[1])
-    #expect( o5 == pieces[2])
-    deleteTempFiles(["split-aa", "split-ab"])
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "2", "-", "split-")
+    let f0 = try tmpfile("split-aa")
+    let f1 = try tmpfile("split-ab")
+    defer { rm(f0, f1) }
+
+    let o0 = try f0.readAsString()
+    let o1 = try f1.readAsString()
+    #expect( o0 == pieces[0]+pieces[1])
+    #expect( o1 == pieces[2])
   }
 
   @Test func long_lines() async throws {
@@ -143,16 +123,13 @@ import ShellTesting
       String(repeating: "c", count: MAXBSIZE) + "\n",
       String(repeating: "d", count: 1024)+"\n"
     ]
-    let p = ShellProcess(cmd, "-l", "1", "-", "split-")
-    let po = try await p.run( pieces.joined())
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-   let o3 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ac"), encoding: .utf8   )
-    #expect( pieces[0] == o1 )
-    #expect( pieces[1] == o2 )
-    #expect( pieces[2] == o3 )
-    deleteTempFiles(["split-aa", "split-ab", "split-ac"])
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-")
+    let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
+    let os = try fs.map { try $0.readAsString() }
+    defer { rm(fs) }
+    #expect( pieces[0] == os[0] )
+    #expect( pieces[1] == os[1] )
+    #expect( pieces[2] == os[2] )
   }
 
   @Test func numeric_suffix() async throws {
@@ -161,31 +138,26 @@ import ShellTesting
         "jumps over\n",
         "the lazy dog\n",
         ]
-    let p = ShellProcess(cmd, "-d", "-l", "1", "-", "split-")
-    let po = try await p.run( pieces.joined() )
-    #expect( po.code == 0 )
+    try await run(withStdin: pieces.joined(), status: 0, args: "-d", "-l", "1", "-", "split-")
     for i in 0..<pieces.count {
-      let j = String(format: "%02d", i)
-      let u = FileManager.default.temporaryDirectory.appendingPathComponent("split-\(j)")
-      let o1 = try String(contentsOf: u, encoding: .utf8)
+      let j = cFormat("%02d", i)
+      let u = try tmpfile("split-\(j)")
+      defer { rm(u) }
+      let o1 = try u.readAsString()
       #expect( o1 == pieces[i])
-      try? FileManager.default.removeItem(at: u)
     }
 
   }
 
   @Test func larger_suffix_length() async throws {
     let pieces = (0...11).map { String(repeating: "a", count: $0)+"\n" }
-    let p = ShellProcess(cmd, "-a", "3", "-d", "-l", "1", "-", "split-")
-    let po = try await p.run( pieces.joined() )
-    #expect( po.code == 0 )
-
+    try await run(withStdin: pieces.joined(), status: 0, args: "-a", "3", "-d", "-l", "1", "-", "split-")
     for i in 0...11 {
-      let j = String(format: "%03d", i)
-      let u = FileManager.default.temporaryDirectory.appendingPathComponent("split-\(j)")
-      let o1 = try String(contentsOf: u, encoding: .utf8)
+      let j = cFormat("%03d", i)
+      let u = try tmpfile("split-\(j)")
+      defer { rm(u) }
+      let o1 = try u.readAsString()
       #expect( o1 == pieces[i] )
-      try? FileManager.default.removeItem(at: u)
     }
   }
 
@@ -205,63 +177,62 @@ dog:
 
 """
     
-    let p = ShellProcess(cmd, "-p", "^[^[:space:]]+:", "-", "split-")
-    let po = try await p.run(i1+i2)
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-aa"), encoding: .utf8   )
-    let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("split-ab"), encoding: .utf8   )
-    #expect( i1 == o1 )
-    #expect( i2 == o2 )
-    deleteTempFiles(["split-aa", "split-ab"])
+    try await run(withStdin: i1+i2, status: 0, args: "-p", "^[^[:space:]]+:", "-", "split-")
+    let f0 = try tmpfile("split-aa")
+    let f1 = try tmpfile("split-ab")
+    defer { rm(f0, f1) }
+    let o0 = try f0.readAsString()
+    let o1 = try f1.readAsString()
+    #expect( i1 == o0 )
+    #expect( i2 == o1 )
   }
 
   @Test func noautoextend() async throws {
     let m = 26*26
     let i = ((1...m).map { String($0)+"\n"}).joined()
-    let p = ShellProcess(cmd, "-a2", "-l1")
-    let po = try await p.run(i)
-    #expect( po.code == 0 )
-    let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xzz"), encoding: .utf8   )
+    try await run(withStdin: i, status: 0, args: "-a2", "-l1")
+    let f0 = try tmpfile("xzz")
+    let o1 = try f0.readAsString()
     #expect( (String(m)+"\n") == o1 )
     let az = "abcdefghijklmnopqrstuvwxyz"
     let a2z = az.flatMap {a in az.map {b in "x"+String(a)+String(b) }}
-    deleteTempFiles(a2z)
+    try rm( a2z.map { try tmpfile($0) } )
   }
 
   @Test func continue_test() async throws {
     let i = "hello\n"
-    try await run(withStdin: i, status: 0) { po in
-      let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xaa"), encoding: .utf8   )
-      #expect( i == o1)
+    try await run(withStdin: i, status: 0)
+    let f1 = try tmpfile("xaa")
+    defer { rm(f1) }
+    let o1 = try f1.readAsString()
+    #expect( i == o1)
 
-      let o2f = FileManager.default.temporaryDirectory.appendingPathComponent("xab")
-      #expect( !FileManager.default.fileExists(atPath: o2f.path) )
+      let o2f = try tmpfile("xab")
+    defer { rm(o2f) }
+      #expect( o2f.exists )
 
-      let p2 = ShellProcess(cmd, "-c")
-      let po2 = try await p2.run(i)
-      #expect( po2.code == 0)
-      let o2 = try String(contentsOf: o2f, encoding: .utf8)
-
+    try await run(withStdin: i, status: 0, args: "-c")
+    let o2 = try o2f.readAsString()
       #expect( i == o2 )
-      deleteTempFiles(["xaa", "xab"])
-    }
   }
 
   @Test func undocumented_kludge() async throws {
     let i = ((1...5000).map { String($0)+"\n" }).joined()
-    try await run(withStdin: i, status: 0, args: "-1000") { po in
-      let o1 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("xae"), encoding: .utf8   )
-      let i2 = ((4001...5000).map { String($0)+"\n" }).joined()
-      #expect( i2 == o1 )
+    try await run(withStdin: i, status: 0, args: "-1000")
+    let f1 = try tmpfile("xae")
+    defer { rm(f1) }
+    let o1 = try f1.readAsString()
+    let i2 = ((4001...5000).map { String($0)+"\n" }).joined()
+    #expect( i2 == o1 )
 
-      deleteTempFiles(["xaa", "xab", "xac", "xad", "xae"])
+    try rm(["xaa", "xab", "xac", "xad", "xae"].map { try tmpfile($0) } )
 
-      try await run(withStdin: i, status: 0, args: "-d1000") { po2 in
-        let o2 = try String(contentsOf: FileManager.default.temporaryDirectory.appendingPathComponent("x04"), encoding: .utf8   )
-        #expect( i2 == o2)
-        deleteTempFiles(["x00", "x01", "x02", "x03", "x04"])
-      }
-    }
+    try await run(withStdin: i, status: 0, args: "-d1000")
+    let f2 = try tmpfile("x04")
+    let o2 = try f2.readAsString()
+    #expect( i2 == o2)
+    try rm(["x00", "x01", "x02", "x03", "x04"].map { try tmpfile($0) } )
+
   }
 
   @Test(arguments: [

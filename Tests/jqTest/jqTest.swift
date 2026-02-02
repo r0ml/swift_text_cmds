@@ -6,7 +6,7 @@ import ShellTesting
 
 @Suite("jq") class jqTest : ShellTest {
   let cmd = "jq"
-  let suiteBundle = "jqTest"
+  let suiteBundle = "text_cmds_jqTest"
 
   @Test("Not yet implemented") func placeHolder() async throws {
     Issue.record("Not implemented yet")

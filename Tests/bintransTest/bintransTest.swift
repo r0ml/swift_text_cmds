@@ -24,8 +24,8 @@ import ShellTesting
     ("This_ is a line", "This_ is a line"),
   ]) func decode_qp(_ inp : String, _ outp : String) async throws {
     let t = try tmpfile("test", inp)
+    defer { rm(t) }
     try await run(output: outp, args: "qp", "-u", t)
-    rm(t)
   }
 
   @Test func decode_qp_f() async throws {
