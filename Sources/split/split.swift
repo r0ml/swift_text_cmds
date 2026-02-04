@@ -418,7 +418,7 @@ Usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]
       
       do {
         if !options.clobber {
-          if FilePath(state.fname+fpnt).exists {
+          if let _ = try? FileMetadata(for: FilePath(state.fname+fpnt)) {
             continue
           }
         }
