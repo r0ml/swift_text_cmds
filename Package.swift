@@ -24,6 +24,11 @@ import Foundation
 
 // run tests like this:
 // PATH=/usr/bin:/bin:/sbin TEST_ORIGINAL=1 swift test --no-parallel
+private func packageRoot() -> URL {
+  let manifestURL = URL(fileURLWithPath: #filePath)
+  return manifestURL.deletingLastPathComponent()
+
+}
 
 let package = Package(
   name: "text_cmds",
@@ -49,7 +54,8 @@ let package = Package(
 
 func generateTargets() -> [Target] {
     var res = [Target]()
-    let cd = try! FileManager.default.contentsOfDirectory(atPath: "Sources")
+  let sourceURL = packageRoot().appendingPathComponent("Sources")
+  let cd = try! FileManager.default.contentsOfDirectory(atPath: sourceURL.path)
 
   let skipForNow = ["ed", "look", "md5", "sort"]
 
@@ -74,13 +80,18 @@ func generateTargets() -> [Target] {
 func generateTestTargets() -> [Target] {
   var res = [Target]()
   let skipTestsForNow : [String] = ["edTest", "lookTest", "md5Test", "sortTest"]
-  
-  let cd = try! FileManager.default.contentsOfDirectory(atPath: "Tests")
+
+  let testurl = packageRoot().appendingPathComponent("Tests")
+  let cd = try! FileManager.default.contentsOfDirectory(atPath: testurl.path)
   for i in cd {
     if i == ".DS_Store" { continue }
     if skipTestsForNow.contains(i) { continue }
-    let r = FileManager.default.fileExists(atPath: "Tests/\(i)/Resources")
-    let x = try! FileManager.default.contentsOfDirectory(atPath: "Tests/\(i)").filter { $0.hasSuffix(".xctestplan") }
+    let r = FileManager.default.fileExists(
+      atPath: testurl
+        .appendingPathComponent(i)
+        .appendingPathComponent("Resources").path
+    )
+    let x = try! FileManager.default.contentsOfDirectory(atPath: testurl.appendingPathComponent(i).path).filter { $0.hasSuffix(".xctestplan") }
     let rr = r ? [Resource.copy("Resources")] : []
     let t = Target.testTarget(name: i,
                               dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
