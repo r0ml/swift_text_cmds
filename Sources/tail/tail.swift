@@ -77,7 +77,7 @@ Usage: tail [-F | -f | -r] [-q] [-b # | -c # | -n #] [file ...]
     //    var args = CommandLine.arguments.dropFirst() // Ignore the first argument (executable name)
     var options = CommandOptions()
     let supportedFlags = "+Fb:c:fn:qrv"
-    let longOptions : [CMigration.option] = [
+    let longOptions : [LongOption] = [
       .init("blocks", .required_argument),
       .init("bytes", .required_argument),
       .init("lines", .required_argument),

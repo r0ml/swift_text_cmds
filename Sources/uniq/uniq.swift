@@ -42,14 +42,14 @@ import CMigration
 
   var usage : String = "Not yet implemented"
   
-  var long_opts : [CMigration.option] = [
-    option("all-repeated", .optional_argument),
-    option("count",  .no_argument),
-    option("repeated", .no_argument),
-    option("skip-fields", .required_argument),
-    option("ignore-case", .no_argument),
-    option("skip-chars", .required_argument),
-    option("unique", .no_argument),
+  var long_opts : [LongOption] = [
+    .init("all-repeated", .optional_argument),
+    .init("count",  .no_argument),
+    .init("repeated", .no_argument),
+    .init("skip-fields", .required_argument),
+    .init("ignore-case", .no_argument),
+    .init("skip-chars", .required_argument),
+    .init("unique", .no_argument),
   ]
   struct CommandOptions {
     var Dflag : Dflag = .DF_NONE

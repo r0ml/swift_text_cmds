@@ -94,9 +94,9 @@ extension FileDescriptor {
   func parseOptions() throws(CmdErr) -> CommandOptions {
     var opts = CommandOptions()
     
-    let oo : [CMigration.option] = [
-      CMigration.option.init("bytes", .required_argument),
-      CMigration.option.init("lines", .required_argument),
+    let oo : [LongOption] = [
+      .init("bytes", .required_argument),
+      .init("lines", .required_argument),
     ]
     
     let go = BSDGetopt_long("c:n:", oo)

@@ -167,7 +167,7 @@ usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
     let flags =
     "0123456789A:B:C:D:EFGHIJLMOSRUVXZabcd:e:f:hilm:nopqrsuvwxyz"
 //    "0123456789A:aB:bC:cD:d:Ee:Ff:GhHIiJlLm:MnoqrsUuVvwxXzZ"
-    let long_options : [CMigration.option] = [
+    let long_options : [LongOption] = [
       .init("binary-files",  .required_argument),
       .init("help",    .no_argument),
       .init("mmap",    .no_argument),

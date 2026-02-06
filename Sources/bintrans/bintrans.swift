@@ -102,7 +102,7 @@ usage: [bintrans] <uuencode | uudecode> ...
     
   func parseOptions_base64_encode_or_decode(_ options : inout CommandOptions, _ bintflag : Bool) throws(CmdErr) {
 
-    let oo : [CMigration.option] = [
+    let oo : [LongOption] = [
       .init("decode", .no_argument),
       .init("break", .required_argument),
       .init("breaks", .required_argument),
