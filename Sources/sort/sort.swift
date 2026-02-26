@@ -662,18 +662,18 @@ Usage: %s [-bcCdfigMmnrsuz] [-kPOS1[,POS2] ... ]
   func set_hw_params() {
 
     ncpu = 1
-    var pages = sysconf(_SC_PHYS_PAGES);
+    var pages = Sysconf.scPhysPages
     if (pages < 1) {
       perror("sysconf pages");
       pages = 1;
     }
-    var psize = sysconf(_SC_PAGESIZE);
+    var psize = Sysconf.scPagesize
     if (psize < 1) {
       perror("sysconf psize");
       psize = 4096;
     }
     
-    ncpu = sysconf(_SC_NPROCESSORS_ONLN)
+    ncpu = Sysconf.scNprocessorsOnln
     if (ncpu < 1) {
       ncpu = 1
     }
