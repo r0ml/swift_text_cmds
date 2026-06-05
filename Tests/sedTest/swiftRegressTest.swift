@@ -9,26 +9,33 @@ import ShellTesting
 
   let cmd = "sed"
   let suiteBundle = "text_cmds_sedTest"
-  
+
+  // NOTE: I cannot create the URL for "regress.in" in the test initialization,
+  // because during initialization the "test" url is for the suite not the test -- and I need it
+  // for the test
   var i : String!
-  
+
   init() {
+    try! print(geturl("regress.in"))
     i = try! self.fileContents("regress.in")
   }
-  
+
   @Test(arguments: ["G", "P"]) func GP(_ s : String) async throws {
     let expected = try fileContents("regress.\(s).out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: s)
   }
   
   @Test func psl() async throws {
     let expected = try fileContents("regress.psl.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: "$!g;P;D")
   }
   
   @Test func bcb() async throws {
     let k = String(repeating: "x", count: 2043)
     let expected = try fileContents("regress.bcb.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: "s/X/\(k)\\\\zz/")
   }
   
@@ -50,6 +57,7 @@ foo
 """
     
     let expected = try fileContents("regress.c0.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: k)
   }
   
@@ -60,6 +68,7 @@ foo
 
 """
     let expected = try fileContents("regress.c1.out")
+//    let i = try! self.fileContents("regress.in")
     try await run( withStdin: i, output: expected, args: k)
   }
   
@@ -70,6 +79,7 @@ foo
 
 """
     let expected = try fileContents("regress.c2.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: k)
   }
   
@@ -80,12 +90,14 @@ foo
 
 """
     let expected = try fileContents("regress.c3.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: k)
   }
   
   @Test func b2a() async throws {
     let k = "2,3b\n1,2d"
     let expected = try fileContents("regress.b2a.out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: k)
   }
   
@@ -140,6 +152,7 @@ foo
                     ("4", "s/SED/Foo/i"),
                    ]) func icase(_ n : String, s : String) async throws {
     let expected = try fileContents("regress.icase\(n).out")
+//    let i = try! self.fileContents("regress.in")
     try await run(withStdin: i, output: expected, args: s)
   }
   

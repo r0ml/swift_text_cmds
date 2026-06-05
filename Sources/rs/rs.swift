@@ -4,33 +4,33 @@
 
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
- 
-  Copyright (c) 1993
-   The Regents of the University of California.  All rights reserved.
- 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-  1. Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-  2. Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
-  3. Neither the name of the University nor the names of its contributors
-     may be used to endorse or promote products derived from this software
-     without specific prior written permission.
- 
-  THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
-  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
-  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-  SUCH DAMAGE.
+
+ Copyright (c) 1993
+ The Regents of the University of California.  All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 1. Redistributions of source code must retain the above copyright
+ notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+ notice, this list of conditions and the following disclaimer in the
+ documentation and/or other materials provided with the distribution.
+ 3. Neither the name of the University nor the names of its contributors
+ may be used to endorse or promote products derived from this software
+ without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
  */
 
 
@@ -42,7 +42,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
 @main final class rs : ShellCommand {
 
   var usage : String = "usage: rs [-[csCS][x][kKgGw][N]tTeEnyjhHmz] [rows [cols]]"
-  
+
   struct CommandOptions {
     var colwidths: [Int16] = []
     var cord: [Int16] = []
@@ -73,16 +73,16 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     var options = CommandOptions()
     let supportedFlags = "Ttc::s::C::S::w:K::k::mg::G::eEjnyHhzpo:b:B:"
     let go = BSDGetopt(supportedFlags)
-    
+
     if CommandLine.arguments.count == 1 {
       options.flags.insert([.NOARGS,.TRANSPOSE])
     }
-    
+
     while let (k, v) = try go.getopt() {
       switch k {
         case "T":
           options.flags.insert(.MTRANSPOSE)
-            fallthrough
+          fallthrough
         case "t":
           options.flags.insert(.TRANSPOSE)
         case "c":
@@ -106,7 +106,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
           }
         case "K":
           options.flags.insert(.SKIPPRINT)
-            fallthrough
+          fallthrough
         case "k":
           if v.isEmpty {
             options.skip = 1
@@ -141,14 +141,14 @@ let LINE_MAX: Int = 1024 // Adjust as needed
           options.flags.insert(.RECYCLE)
         case "H":
           options.flags.insert(.DETAILSHAPE)
-            fallthrough
+          fallthrough
         case "h":
           options.flags.insert(.SHAPEONLY)
         case "z":
           options.flags.insert(.SQUEEZE)
         case "o":
           try getlist(&options.cord, v)
-            // Adjust p based on returned newP if necessary
+          // Adjust p based on returned newP if necessary
         case "b":
           options.flags.insert(.ICOLBOUNDS)
           try getlist(&options.icbd, v)
@@ -159,36 +159,36 @@ let LINE_MAX: Int = 1024 // Adjust as needed
       }
     }
     options.args = go.remaining
-    
+
     switch options.args.count {
-    case 2:
+      case 2:
         if let cols = Int(options.args[1]), cols >= 0 {
           options.ocols = cols
         } else {
           options.ocols = 0
         }
         fallthrough
-    case 1:
+      case 1:
         if let rows = Int(options.args.first!), rows >= 0 {
           options.orows = rows
         } else {
           options.orows = 0
         }
-    case 0:
+      case 0:
         break
-    default:
+      default:
         throw CmdErr(1, "too many arguments")
     }
     return options
   }
-  
+
   func runCommand() async throws(CmdErr) {
     do {
       try await getfile()
     } catch {
       throw CmdErr(1, "reading input: \(error)")
     }
-    
+
     if options.flags.contains(.SHAPEONLY) {
       print("\(options.irows) \(options.icols)")
     } else {
@@ -201,7 +201,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
 
   struct RSFlag : OptionSet {
     let rawValue : Int
-    
+
     static let TRANSPOSE = RSFlag(rawValue: 0o000001)
     static let MTRANSPOSE = RSFlag(rawValue: 0o000002)
     static let ONEPERLINE = RSFlag(rawValue: 0o000004)
@@ -220,18 +220,18 @@ let LINE_MAX: Int = 1024 // Adjust as needed
     static let ONEPERCHAR = RSFlag(rawValue: 0o0100000)
     static let NOARGS = RSFlag(rawValue: 0o0200000)
   }
-  
+
 
   // FIXME: does the options modification need to be fixed?
   func getfile() async throws {
     // FIXME: add a test case to check this.
     let multisep = !options.flags.contains(.ONEISEPONLY)
     let nullpad = options.flags.contains(.NULLPAD)
-    
-    
+
+
     var flines = FileDescriptor.standardInput.bytes.lines.makeAsyncIterator()
     var curline : String = ""
-    
+
     for _ in 0..<options.skip {
       if let curline = try await get_line(false, &flines, curline) {
         //   try await flines.next() {
@@ -242,27 +242,27 @@ let LINE_MAX: Int = 1024 // Adjust as needed
         return
       }
     }
-    
+
     // For my money, this construction is bad logic -- but an empty file -- rather
     // than produce an empty file, runs the below loop one time with a "first line" of
     // "".  The logic would be cleaner if it just produced an empty file for an in input
     // of empty file -- but that's not how the original worked -- and so doing it what
     // appears to be the right way will fail some tests.
-    
+
     let firstline = try await get_line(false, &flines, "") // flines.next()
     curline = firstline ?? ""
-    
+
     if options.flags.contains(.NOARGS) && curline.count < options.owidth {
       options.flags.insert(.ONEPERLINE)
     }
-    
+
     if options.flags.contains(.ONEPERLINE) {
       options.icols = 1
     } else {
       let m = curline.split(separator: options.isep, omittingEmptySubsequences: multisep )          // Count columns on first line
       options.icols = m.count
     }
-    
+
     // I need to go through this code once if firstline is nil -- but not try
     // to get the next line.
     repeat {
@@ -274,7 +274,7 @@ let LINE_MAX: Int = 1024 // Adjust as needed
         options.irows += 1
         continue
       }
-      
+
       if !curline.isEmpty {
         let components = curline.split(separator: options.isep, omittingEmptySubsequences: multisep).map { String($0) }
         for component in components {
@@ -288,16 +288,16 @@ let LINE_MAX: Int = 1024 // Adjust as needed
           }
         }
       }
-      
+
       options.irows += 1
-      
+
       if nullpad {
         while options.elem.count < options.irows * options.icols {
           options.elem.append(options.blank)
         }
       }
     } while try await gnl(firstline != nil, &flines, &curline)
-    
+
     options.nelem = options.elem.count
   }
 
@@ -314,34 +314,34 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   }
 
   func getlist(_ list: inout [Int16], _ p: String) throws(CmdErr) {
-      let components = p.split(separator: ",")
-      for component in components {
-          if let num = Int16(component) {
-              list.append(num)
-          } else {
-            throw CmdErr(1, "option requires a list of unsigned numbers separated by commas")
-          }
+    let components = p.split(separator: ",")
+    for component in components {
+      if let num = Int16(component) {
+        list.append(num)
+      } else {
+        throw CmdErr(1, "option requires a list of unsigned numbers separated by commas")
       }
+    }
   }
 
   func getnum(_ num: inout Int, _ p: String, _ strict: Bool) -> String {
-      if let parsedNum = Int(p) {
-          num = parsedNum
-      } else {
-          if strict {
-              fatalError("option \(p.prefix(1)) requires an unsigned integer")
-          }
-          num = 0
+    if let parsedNum = Int(p) {
+      num = parsedNum
+    } else {
+      if strict {
+        fatalError("option \(p.prefix(1)) requires an unsigned integer")
       }
-      return "" // Placeholder
+      num = 0
+    }
+    return "" // Placeholder
   }
-  
+
   /*
-  func getptrs(_ sp: [String]) -> [String] {
-      allocsize *= 2
-      elem.reserveCapacity(allocsize)
-      return elem
-  }
+   func getptrs(_ sp: [String]) -> [String] {
+   allocsize *= 2
+   elem.reserveCapacity(allocsize)
+   return elem
+   }
    */
 
 
@@ -368,12 +368,12 @@ let LINE_MAX: Int = 1024 // Adjust as needed
   func prepfile() {
     var opts = self.options!
     if opts.nelem == 0 {
-          return
-      }
-      
+      return
+    }
+
     opts.gutter += Int(Double(opts.maxlen) * Double(opts.propgutter) / 100.0)
     let colw = opts.maxlen + opts.gutter
-      
+
     if opts.flags.contains(.MTRANSPOSE) {
       opts.orows = opts.icols
       opts.ocols = opts.irows
@@ -382,93 +382,94 @@ let LINE_MAX: Int = 1024 // Adjust as needed
       if opts.ocols == 0 {
         warnx("display width \(opts.owidth) is less than column width \(colw)")
         opts.ocols = 1
-          }
+      }
       opts.ocols = min(opts.ocols, opts.nelem)
       opts.orows = opts.nelem / opts.ocols + (opts.nelem % opts.ocols > 0 ? 1 : 0)
     } else if opts.orows == 0 {
       opts.orows = opts.nelem / opts.ocols + (opts.nelem % opts.ocols > 0 ? 1 : 0)
     } else if opts.ocols == 0 {
       opts.ocols = opts.nelem / opts.orows + (opts.nelem % opts.orows > 0 ? 1 : 0)
-      }
-      
+    }
+
     let lp = opts.orows * opts.ocols
     while opts.elem.count < lp {
       if opts.flags.contains(.RECYCLE) {
         opts.elem.append(contentsOf: opts.elem)
-          } else {
-            opts.elem.append(opts.blank)
-          }
+      } else {
+        opts.elem.append(opts.blank)
       }
-      
+    }
+
     if opts.flags.contains(.RECYCLE) {
       opts.nelem = lp
-      }
-      
+    }
+
     if opts.flags.contains(.SQUEEZE) {
       opts.colwidths = Array(repeating: 0, count: opts.ocols)
       if opts.flags.contains(.TRANSPOSE) {
         for i in 0..<opts.ocols {
-                  var max = 0
+          var max = 0
           for j in 0..<opts.orows {
             let index = j * opts.ocols + i
             if index < opts.nelem {
               let length = opts.elem[index].count
-                          if length > max {
-                              max = length
-                          }
-                      }
-                  }
-          opts.colwidths[i] = Int16(max + opts.gutter)
+              if length > max {
+                max = length
               }
-          } else {
-            for i in 0..<opts.ocols {
-                  var max = 0
-              for j in stride(from: i, to: opts.nelem, by: opts.ocols) {
-                    let length = opts.elem[j].count
-                      if length > max {
-                          max = length
-                      }
-                  }
-              opts.colwidths[i] = Int16(max + opts.gutter)
-              }
+            }
           }
+          opts.colwidths[i] = Int16(max + opts.gutter)
+        }
       } else {
-        opts.colwidths = Array(repeating: Int16(colw), count: opts.ocols)
+        for i in 0..<opts.ocols {
+          var max = 0
+          for j in stride(from: i, to: opts.nelem, by: opts.ocols) {
+            let length = opts.elem[j].count
+            if length > max {
+              max = length
+            }
+          }
+          opts.colwidths[i] = Int16(max + opts.gutter)
+        }
       }
-      
+    } else {
+      opts.colwidths = Array(repeating: Int16(colw), count: opts.ocols)
+    }
+
     if !opts.flags.contains(.NOTRIMENDCOL) {
       if opts.flags.contains(.RIGHTADJUST) {
         opts.colwidths[0] -= Int16(opts.gutter)
       } else if opts.ocols > 0 {
         opts.colwidths[opts.ocols - 1] = 0
-          }
       }
-      
+    }
+
     let n = opts.orows * opts.ocols
     if n > opts.nelem && opts.flags.contains(.RECYCLE) {
       opts.nelem = n
-      }
+    }
+    self.options = opts
   }
 
   func prints(_ s: String, _ col: Int) {
-      let n: Int
+    let n: Int
     if options.flags.contains(.ONEOSEPONLY) {
-          n = 1
-      } else {
-        n = Int(options.colwidths[col]) - s.count
-      }
-      
+      n = 1
+    } else {
+      n = Int(options.colwidths[col]) - s.count
+    }
+
     if options.flags.contains(.RIGHTADJUST) {
-          for _ in 0..<n {
-            print(String(options.osep), terminator: "")
-          }
-      }
-      
-      print(s, terminator: "")
-      
       for _ in 0..<n {
         print(String(options.osep), terminator: "")
       }
+    }
+
+    print(s, terminator: "")
+
+    for _ in 0..<n {
+      print(String(options.osep), terminator: "")
+    }
   }
 
   func putfile() {
@@ -476,21 +477,20 @@ let LINE_MAX: Int = 1024 // Adjust as needed
       for i in 0..<options.orows {
         for j in stride(from: i, to: options.nelem, by: options.orows) {
           prints(options.elem[j], j / options.orows)
-              }
-              print("")
-          }
-      } else {
-          var k = 0
-        for _ in 0..<options.orows {
-          for j in 0..<options.ocols {
-            if k < options.nelem {
-              prints(options.elem[k], j)
-                      k += 1
-                  }
-              }
-              print("")
-          }
+        }
+        print("")
       }
+    } else {
+      var k = 0
+      for _ in 0..<options.orows {
+        for j in 0..<options.ocols {
+          if k < options.nelem {
+            prints(options.elem[k], j)
+            k += 1
+          }
+        }
+        print("")
+      }
+    }
   }
-
 }
