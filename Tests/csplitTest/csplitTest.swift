@@ -56,27 +56,25 @@ six
     ]
 
     let inp = "one\ntwo\nxxx 1\nthree\nfour\nxxx 2\nfive\nsix\n"
-    try await run(withStdin: inp, args: "-k", "-", "/xxx/", "{10}") { po in
-
-      let cd = try self.tmpdir("")
-      let ffx = [0,1,2].map { cd.appending("xx0\($0)") }
-
-      #expect(po.code == 1, Comment(rawValue: po.error))
+    let cd = try self.tmpdir()
+    defer { self.rm(xf) }
+    try await run(withStdin: inp, status: 1, args: "-k", "-", "/xxx/", "{10}", cd: cd) { po in
+      let ffx = try [0,1,2].map { try self.tmpfile("xx0\($0)") }
+      defer { self.rm(ffx) }
       for i in [0,1,2] {
         let aa = try xf[i].readAsString()
         let bb = try ffx[i].readAsString()
         #expect(aa == bb)
       }
-      self.rm(xf + ffx)
     }
   }
   
   @Test("Basic regular expression split") func bre() async throws {
     let a = try tmpfile("sample.txt", "apple\nbanana\ncherry\ndate\n")
-    try await run(status: 0, args: a, "/cherry/") { po in
-      let cd = try self.tmpdir("")
-      let aa = try cd.appending("xx00").readAsString()
-      let bb = try cd.appending("xx01").readAsString()
+    let cd = try self.tmpdir()
+    try await run(args: a, "/cherry/", cd: cd) { po in
+      let aa = try self.tmpfile("xx00").readAsString()
+      let bb = try self.tmpfile("xx01").readAsString()
       #expect(aa == "apple\nbanana\n")
       #expect(bb == "cherry\ndate\n")
     }
