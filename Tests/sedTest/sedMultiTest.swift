@@ -593,29 +593,42 @@ p
   @Test("Print and file routines (7.7)") func test_print_77() async throws {
     let res = try fileContents("multi.7.7.out")
     let d = FilePath("/usr/share/dict/words")
-    let dd = try FileDescriptor.open(d, .readOnly)
-    let wwo = try await dd.bytes.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
 
-    // FIXME: the original test failed because some dictionary entries are
-    // duplicates if ignoring case, and the file system is not case sensitive.
-    let ww = Set(wwo.map { $0.lowercased() })
-    try await run(withStdin: (ww.map { $0+"\n" } ).joined(), args: "s$.*$s/^/&/w tmpdir/&$") { po in
-      #expect(po.code == 0)
-      let tt = try self.tmpdir("tmpdir")
-      defer { self.rm(tt) }
-      let script1 = try self.tmpfile("script1", po.string)
-      defer { self.rm(script1) }
-      try await self.run(args:  "-f", script1, self.flines1) { po2 in
-        #expect(po2.code == 0)
-        let kk = try tt.listDirectory()
-        #expect( kk.count == ww.count)
+    let td = try tmpdir()
+
+    try await run(args: "200q", d) { o in
+      let oo = o.string.split(separator: "\n")
+      #expect(oo.count == 200)
+
+      //    let dd = try FileDescriptor.open(d, .readOnly)
+      //    let wwo = try await dd.bytes.lines.prefix(200).reduce(into: [String]()) { $0.append($1) }
+
+
+      // FIXME: the original test failed because some dictionary entries are
+      // duplicates if ignoring case, and the file system is not case sensitive.
+      //    let ww = Set(wwo.map { $0.lowercased() })
+
+      try await self.run(withStdin: o.string, args: "s$.*$s/^/&/w \(td.string)/&$") { script1 in
+        #expect(script1.code == 0)
+        self.rm(td)
+        defer { self.rm(td) }
+        try await self.run(withStdin: script1.string, args: "-f", "-", self.flines1) { po2 in
+          #expect(po2.code == 0)
+//          let kk = try tt.listDirectory()
+          //        #expect( kk.count == ww.count)
+          let aa = oo.reversed().joined()
+          let bb = po2.string.split(separator: "\n")
+          for (i, b) in bb.enumerated() {
+            #expect( (aa+"l1_\(i+1)") == b)
+          }
+        }
       }
+      //  FIXME: the stored result file 7.7 depends on the contents of
+      //      /usr/share/dict/words -- which varies across versions
+      //    let res = try fileContents("sedTest", "7.7", withExtension: "out" )
+      //    let jj = (try kk.map { try String(contentsOf: $0, encoding: .utf8) }).joined()
+      //    #expect(jj == res)
     }
-//  FIXME: the stored result file 7.7 depends on the contents of
-//      /usr/share/dict/words -- which varies across versions
-//    let res = try fileContents("sedTest", "7.7", withExtension: "out" )
-//    let jj = (try kk.map { try String(contentsOf: $0, encoding: .utf8) }).joined()
-//    #expect(jj == res)
   }
 
   @Test("Print and file routines (7.8)") func test_print_78() async throws {

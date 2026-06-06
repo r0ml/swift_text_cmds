@@ -47,9 +47,8 @@ import ShellTesting
     let b = try tmpfile("b")
     rm(b)
 
-    Issue.record("need to implement hard links")
-    /*
-    try FileManager.default.linkItem(at: a, to: b)
+    try b.createHardLink(to: a)
+    defer { rm(a, b); }
     try await run(args: "-i", "", "-e", "s,foo,bar,g", b)
     let m = try b.readAsString()
     #expect(m == "bar\n")
@@ -58,9 +57,6 @@ import ShellTesting
 
     let e = try d.listDirectory()
     #expect( (e.filter { $0.hasPrefix(".!") }).count == 0  )
-     */
-    rm(a)
-    rm(b)
   }
              
   @Test("Verify -i does not work with a symlinked source file")
@@ -69,12 +65,12 @@ import ShellTesting
     let b = try tmpfile("b")
     rm(b)
     try b.createSymbolicLink(to: a)
+    defer { rm(a, b) }
     try await run(status: 1, error: /in-place editing only works for regular files/, args: "-i", "", "-e", "s,foo,bar,g", b)
 
     let d = try tmpdir("")
     let e = try d.listDirectory()
     #expect( (e.filter { $0.hasPrefix(".!") }).count == 0  )
-    rm(a, b)
   }
   
   @Test("Verify -i works correctly with the 'q' command")
@@ -84,6 +80,7 @@ import ShellTesting
     rm( e3.map { d.appending($0) })
 
     let a = try tmpfile("a", "1\n2\n3\n")
+    defer { rm(a) }
     try await run(output: "1\n2\n", args: "2q", a)
     try await run(args: "-i.bak", "2q", a)
 
@@ -91,14 +88,13 @@ import ShellTesting
     #expect(j2 == "1\n2\n")
 
     let aa = FilePath(a.string + ".bak")
+    defer { rm(aa) }
     let j3 = try aa.readAsString()
     #expect(j3 == "1\n2\n3\n")
     
     let e = try d.listDirectory().filter { $0.hasPrefix(".!") }
     #expect( ( e.filter { $0.hasPrefix(".!") }).count == 0  )
-
-    rm(a, aa)
-  }
+a  }
   
   @Test("Verify functional escaping of \\n, \\r, and \\t",
         .serialized,
@@ -155,8 +151,8 @@ import ShellTesting
     "s/b/c/\n"
     let dash = try tmpfile("-", "s/c/d/\n")
     // the `./-` would ordinarily be `dash` -- but the dash means something special in this instance
-    try await run(withStdin: b_to_c, output: "d\n", args: "-f", a_to_b, "-f", "-", "-f" , "./-", a )
-    
+    try await run(withStdin: b_to_c, output: "d\n", args: "-f", a_to_b, "-f", "-", "-f" , dash, a )
+
     // Verify that nothing is printed if there are no input files provided
     
     try await run(withStdin: "i\\\nx", output: "", args: "-f", "-")
