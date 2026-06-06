@@ -151,13 +151,13 @@ usage: \(progname) script [-EHalnru] [-i extension] [file ...]
   
   func runCommand() async throws(CmdErr) {
     
-    var cs : CompileState
+//    var cs : CompileState
     
     // FIXME: this is because somewhere in the bowels, nflag might be set.
 //    var options = optionsx
     // compile() the sed commands
     do {
-      cs = try await compile(&options)
+      let cs = try await compile(options)
       // Process
       let p = SedProcess(cs, options)
       try await p.process()

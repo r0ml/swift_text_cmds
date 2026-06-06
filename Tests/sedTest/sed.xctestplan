@@ -14,8 +14,8 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E76971AA2CF62C8200F3903F",
+        "containerPath" : "container:",
+        "identifier" : "sedTest",
         "name" : "sedTest"
       }
     }

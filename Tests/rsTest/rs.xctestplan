@@ -14,8 +14,8 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E769719C2CF62C7800F3903F",
+        "containerPath" : "container:",
+        "identifier" : "rsTest",
         "name" : "rsTest"
       }
     }

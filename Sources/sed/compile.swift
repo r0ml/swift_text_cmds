@@ -58,15 +58,19 @@ public struct CompileErr : Error {
 }
 
 extension sed {
-  struct CompileState {
+  class CompileState {
+    var options : CommandOptions
     var st : ScriptReader
     var prog : [s_command] = []
     var maxnsub : Int = 0
     // labels are represented as an array of command indices
     var labels: [String : ArraySlice<Int> ] = [:]
-    
-    init(_ script : [s_compunit]) {
-      st = ScriptReader(script)
+
+    var needClosing : Int = 0
+
+    init(_ options : CommandOptions) {
+      self.options = options
+      st = ScriptReader(options.script)
     }
   }
   
@@ -110,13 +114,12 @@ extension sed {
   ]
   
   // 'FIXME: all of these inout CommandOptions are because deep in the bowels, the nflag could be set 
-  func compile(_ options : inout CommandOptions) async throws -> CompileState {
-    var cs = CompileState(options.script)
+  func compile(_ options : CommandOptions?) async throws -> CompileState {
+    var cs = CompileState(options!)
 //    cs.st.script = options.script
     
     var pp = Substring("")
-    var needClosing = 0
-    cs.prog = try await compile_stream(&pp, &cs, &options, &needClosing)
+    cs.prog = try await compile_stream(&pp, &cs)
     
     // Now resolve all the labels
     definelabels(cs.prog, [], &cs)
@@ -130,12 +133,12 @@ extension sed {
   func EATSPACE(_ p: inout Substring) {
     p = p.drop(while: \.isWhitespace)
   }
-  
+
   /**
    * compile_stream: parse the script lines into the array of s_command.
    */
   // FIXME: can throw CompileError or CmdErr
-  func compile_stream(_ p : inout Substring, _ cs : inout CompileState, _ options : inout CommandOptions, _ needClosing : inout Int ) async throws -> [s_command] {
+  func compile_stream(_ p : inout Substring, _ cs : inout CompileState) async throws -> [s_command] {
     
     var prog: [s_command] = []
 
@@ -144,13 +147,13 @@ extension sed {
         if let pp = try await cs.st.cu_fgets(&options) {
           p = Substring(pp)
         } else {
-          if needClosing > 0 {
+          if cs.needClosing > 0 {
             throw CompileErr("unexpected EOF (pending }'s)")
           }
           return prog
         }
       }
-      let c = try await compile_line(&p, &options, &cs, &needClosing)
+      let c = try await compile_line(&p, &cs)
 //      if c.last?.code == "}" {
 //          break
 //      } else {
@@ -169,7 +172,7 @@ extension sed {
       return prog
   }
   
-  func compile_line(_ p : inout Substring, _ options : inout CommandOptions, _ cs : inout CompileState, _ needClosing : inout Int) async throws -> [s_command] {
+  func compile_line(_ p : inout Substring, _ cs : inout CompileState) async throws -> [s_command] {
     
     var pro = [s_command]()
     
@@ -205,14 +208,14 @@ extension sed {
       if p.isEmpty {
         throw CompileErr("command expected")
       }
-      try await compile_postaddr(&p, &options, &cmd, &cs, &needClosing)
+      try await compile_postaddr(&p, &cmd, &cs)
       pro.append(cmd)
       if cmd.code == "}" { break }
     }
     return pro
   }
   
-  func compile_postaddr(_ p : inout Substring, _ options : inout CommandOptions, _ cmd : inout s_command, _ cs : inout  CompileState, _ needClosing : inout Int) async throws {
+  func compile_postaddr(_ p : inout Substring, _ cmd : inout s_command, _ cs : inout  CompileState) async throws {
     // ======================================
     // Parsing the command(s) for the address
     // ======================================
@@ -241,8 +244,8 @@ extension sed {
         case .GROUP:
           // '{'
           EATSPACE(&p)
-          needClosing += 1
-          let c = try await compile_stream(&p, &cs, &options, &needClosing)
+          cs.needClosing += 1
+          let c = try await compile_stream(&p, &cs)
           cmd.u = .c(c)
           
           if !p.isEmpty {
@@ -251,10 +254,10 @@ extension sed {
           
         case .ENDGROUP:
           // '}'
-          if ( needClosing == 0 ) {
+          if ( cs.needClosing == 0 ) {
             throw CompileErr("unexpected }")
           }
-          needClosing -= 1
+          cs.needClosing -= 1
           cmd.nonsel = true
           return
           
@@ -282,7 +285,7 @@ extension sed {
           if !p.isEmpty {
             throw CompileErr("extra characters after \\ at the end of \(cmd.code) command")
           }
-          cmd.t = try await compile_text(&cs, &options)
+          cmd.t = try await compile_text(&cs)
           
         case .COMMENT:
           // '\0' or '#' => do nothing
@@ -362,7 +365,7 @@ extension sed {
           // compile_subst => produce the s->new
  */
           //FIXME: this should be used
-          let ns = try await compile_subst(&p, &mysubst, &cs.st, &options )
+          let ns = try await compile_subst(&p, &mysubst, &cs.st )
           // compile_flags => sets s->n, s->p, s->wfile, etc.
           try compile_flags(&p, &mysubst, options.aflag)
           
@@ -676,7 +679,7 @@ extension sed {
    * point to a saved copy of it.  Nsub is the number of parenthesized regular
    * expressions.
    */
-  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout ScriptReader, _ options : inout CommandOptions) async throws -> String? {
+  func compile_subst(_ p : inout Substring, _ s : inout s_subst, _ st : inout ScriptReader) async throws -> String? {
     guard !p.isEmpty else { return nil }
 
     s.maxbref = 0
@@ -909,7 +912,7 @@ extension sed {
   /**
    * compile_text: gather lines until an unescaped newline.
    */
-  func compile_text(_ cs : inout CompileState, _ options: inout CommandOptions) async throws -> String {
+  func compile_text(_ cs : inout CompileState) async throws -> String {
     
     var text = ""
     

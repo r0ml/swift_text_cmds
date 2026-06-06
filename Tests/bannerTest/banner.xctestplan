@@ -14,8 +14,8 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:swift_text_cmds.xcodeproj",
-        "identifier" : "E73E81DE2F2A9AAA00E62103",
+        "containerPath" : "container:",
+        "identifier" : "bannerTest",
         "name" : "bannerTest"
       }
     }
