@@ -8,7 +8,7 @@ import ShellTesting
   let cmd = "lam"
   let suiteBundle = "text_cmds_lamTest"
 
-  @Test func basic() async throws {
+  @Test(.disabled("No tests have been implemented")) func basic() async throws {
 /*    let input = "The merit of all things\nlies\nin their difficulty\n"
     let op = """
                      The merit of all things
@@ -19,6 +19,6 @@ import ShellTesting
     try await run(withStdin: input, output: op, args: "-c")
  */
     // FIXME: I have no tests
-    #expect(Bool(false), "I have no tests")
+    Issue.record("I have no tests")
   }
 }

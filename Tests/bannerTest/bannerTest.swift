@@ -11,7 +11,7 @@ import ShellTesting
   let cmd = "banner"
   let suiteBundle = "bannerTest"
 
-  @Test("placeholder") func placeHolder() async throws {
+  @Test("placeholder", .disabled("No tests implemented yet")) func placeHolder() async throws {
     Issue.record("Tests not implemented yet")
   }
 

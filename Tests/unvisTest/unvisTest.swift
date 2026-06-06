@@ -8,8 +8,8 @@ import ShellTesting
   let cmd = "unvis"
   let suiteBundle = "text_cmds_unvisTest"
   
-    @Test func basic1() async throws {
-      #expect(Bool(false), "I have no tests")
+    @Test(.disabled("No tests have been implemented")) func basic1() async throws {
+      Issue.record("I have no tests")
     }
 }
 

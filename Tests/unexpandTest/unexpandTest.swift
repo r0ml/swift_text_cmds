@@ -8,7 +8,7 @@ import ShellTesting
   let cmd = "unexpand"
   let suiteBundle = "text_cmds_unexpandTest"
 
-  @Test func basic() async throws {
+  @Test(.disabled("No tests have been implemented")) func basic() async throws {
     Issue.record("No tests have been implemented")
   }
 }

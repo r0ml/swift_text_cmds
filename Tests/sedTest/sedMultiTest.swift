@@ -567,7 +567,7 @@ p
     let res = try fileContents("multi.7.3.out")
     let f = try tmpfile("lines4")
     rm(f)
-    try await run(args: "-e", "3,12w lines4", flines1) { po in
+    try await run(args: "-e", "3,12w "+f.string, flines1) { po in
       #expect(po.code == 0)
       let k = try f.readAsString()
       #expect(po.string + k == res)
@@ -577,7 +577,7 @@ p
   
   @Test("Print and file routines (7.4)") func test_print_74() async throws {
     let res = try fileContents("multi.7.4.out")
-    try await run(output: res, args: "-e", "4r lines2", flines1)
+    try await run(output: res, args: "-e", "4r "+flines2.string, flines1)
   }
   
   @Test("Print and file routines (7.5)") func test_print_75() async throws {
@@ -651,7 +651,7 @@ p
   @Test("Substitution command (8.11)") func test_subst_811() async throws {
     let l4 = try tmpfile("lines4")
     rm(l4)
-    try await run(args: "-e", "s/1/X/w lines4", flines1) { po in
+    try await run(args: "-e", "s/1/X/w "+l4.string, flines1) { po in
       #expect(po.code == 0)
       let res = try self.fileContents("multi.8.11.out" )
       let jj = try l4.readAsString()
