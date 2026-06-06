@@ -129,7 +129,7 @@ extension FileDescriptor {
     opts.args = go.remaining
     
     
-    if let lineCount = options.lineCount, let byteCount = options.byteCount {
+    if let lineCount = opts.lineCount, let byteCount = opts.byteCount {
       throw CmdErr(1, "Cannot combine line and byte counts")
     }
     return opts
