@@ -136,7 +136,7 @@ class grepDoer {
       case .DEFAULT, .SKIP:
         fts_flags.insert(.PHYSICAL)
       default:
-        fts_flags.insert([.LOGICAL, .NOSTAT])
+        fts_flags.insert([.LOGICAL])
     }
     
     let vv = argv.isEmpty ? ["."] : argv
