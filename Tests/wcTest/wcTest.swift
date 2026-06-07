@@ -41,17 +41,17 @@ kom Terje Vigen nær.
               Int(k[0].output.2)! == b &&
               Int(k[0].output.3)! == c )
     }
-    try await run(args: "-l") { po in
+    try await run(withStdin: i, args: "-l") { po in
       let k1 = po.string.matches(of: /^ +(\d+)\n$/)
       #expect(k1.count == 1 &&
               Int(k1[0].output.1)! == a )
     }
-    try await run(args: "-w") { po2 in
+    try await run(withStdin: i, args: "-w") { po2 in
       let k2 = po2.string.matches(of: /^ +(\d+)\n$/)
       #expect(k2.count == 1 &&
               Int(k2[0].output.1)! == b)
     }
-    try await run(args: "-c") { po3 in
+    try await run(withStdin: i, args: "-c") { po3 in
       let k3 = po3.string.matches(of: /^ +(\d+)\n$/)
       #expect(k3.count == 1 &&
               Int(k3[0].output.1)! == c, "\(c)")
@@ -142,8 +142,7 @@ kom Terje Vigen nær.
   }
 
   @Test("Trigger usage message") func usage() async throws {
-    try await run(args: "-?") { po in
-      #expect(po.code == 1)
+    try await run(status: 1, args: "-?") { po in
       #expect( po.error.split(separator: "\n", omittingEmptySubsequences: true).map { $0.hasPrefix("usage:") }.contains(true) )
     }
   }
