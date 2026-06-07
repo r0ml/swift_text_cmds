@@ -36,7 +36,7 @@ import ShellTesting
   let MAXBSIZE = 256 * 4096
 
   @Test func bytes1() async throws {
-    try await run(withStdin: "aaaabb\ncccc\n", status: 0, args: "-b", "4", "-", "split-")
+    try await run(withStdin: "aaaabb\ncccc\n", status: 0, args: "-b", "4", "-", "split-", cd: tmpdir() )
     let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
     defer { rm(fs) }
     let os = try fs.map { try $0.readAsString() }
@@ -52,7 +52,7 @@ import ShellTesting
       String(repeating: "c", count: 12),
       ]
     
-    try await run(withStdin: pieces.joined(), status: 0, args: "-b", String(MAXBSIZE+12), "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-b", String(MAXBSIZE+12), "-", "split-", cd: tmpdir() )
 
     let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)")}
     let os = try fs.map { try $0.readAsString() }
@@ -69,7 +69,7 @@ import ShellTesting
     
     // The -n option can't work on stdin, so I need a file input
     let i1 = try tmpfile("foo", i)
-    try await run(args: "-n", "3", i1, "split-")
+    try await run(args: "-n", "3", i1, "split-", cd: tmpdir() )
 
 //    let po = try await p.run(i)
     let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)")}
@@ -89,7 +89,7 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-", cd: tmpdir() )
     let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
     let os = try fs.map { try $0.readAsString() }
     defer { rm(fs) }
@@ -105,7 +105,7 @@ import ShellTesting
       "the lazy dog\n",
     ]
     
-    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "2", "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "2", "-", "split-", cd: tmpdir() )
     let f0 = try tmpfile("split-aa")
     let f1 = try tmpfile("split-ab")
     defer { rm(f0, f1) }
@@ -123,7 +123,7 @@ import ShellTesting
       String(repeating: "c", count: MAXBSIZE) + "\n",
       String(repeating: "d", count: 1024)+"\n"
     ]
-    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-l", "1", "-", "split-", cd: tmpdir() )
     let fs = try ["aa", "ab", "ac"].map { try tmpfile("split-\($0)") }
     let os = try fs.map { try $0.readAsString() }
     defer { rm(fs) }
@@ -138,7 +138,7 @@ import ShellTesting
         "jumps over\n",
         "the lazy dog\n",
         ]
-    try await run(withStdin: pieces.joined(), status: 0, args: "-d", "-l", "1", "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-d", "-l", "1", "-", "split-", cd: tmpdir() )
     for i in 0..<pieces.count {
       let j = cFormat("%02d", i)
       let u = try tmpfile("split-\(j)")
@@ -151,7 +151,7 @@ import ShellTesting
 
   @Test func larger_suffix_length() async throws {
     let pieces = (0...11).map { String(repeating: "a", count: $0)+"\n" }
-    try await run(withStdin: pieces.joined(), status: 0, args: "-a", "3", "-d", "-l", "1", "-", "split-")
+    try await run(withStdin: pieces.joined(), status: 0, args: "-a", "3", "-d", "-l", "1", "-", "split-", cd: tmpdir() )
     for i in 0...11 {
       let j = cFormat("%03d", i)
       let u = try tmpfile("split-\(j)")
@@ -177,7 +177,7 @@ dog:
 
 """
     
-    try await run(withStdin: i1+i2, status: 0, args: "-p", "^[^[:space:]]+:", "-", "split-")
+    try await run(withStdin: i1+i2, status: 0, args: "-p", "^[^[:space:]]+:", "-", "split-", cd: tmpdir() )
     let f0 = try tmpfile("split-aa")
     let f1 = try tmpfile("split-ab")
     defer { rm(f0, f1) }
@@ -190,7 +190,7 @@ dog:
   @Test func noautoextend() async throws {
     let m = 26*26
     let i = ((1...m).map { String($0)+"\n"}).joined()
-    try await run(withStdin: i, status: 0, args: "-a2", "-l1")
+    try await run(withStdin: i, status: 0, args: "-a2", "-l1", cd: tmpdir() )
     let f0 = try tmpfile("xzz")
     let o1 = try f0.readAsString()
     #expect( (String(m)+"\n") == o1 )
@@ -201,7 +201,7 @@ dog:
 
   @Test func continue_test() async throws {
     let i = "hello\n"
-    try await run(withStdin: i, status: 0)
+    try await run(withStdin: i, status: 0, cd: tmpdir() )
     let f1 = try tmpfile("xaa")
     defer { rm(f1) }
     let o1 = try f1.readAsString()
@@ -209,16 +209,16 @@ dog:
 
       let o2f = try tmpfile("xab")
     defer { rm(o2f) }
-      #expect( o2f.exists )
 
-    try await run(withStdin: i, status: 0, args: "-c")
+    try await run(withStdin: i, status: 0, args: "-c", cd: tmpdir() )
+    #expect( o2f.exists )
     let o2 = try o2f.readAsString()
       #expect( i == o2 )
   }
 
   @Test func undocumented_kludge() async throws {
     let i = ((1...5000).map { String($0)+"\n" }).joined()
-    try await run(withStdin: i, status: 0, args: "-1000")
+    try await run(withStdin: i, status: 0, args: "-1000", cd: tmpdir() )
     let f1 = try tmpfile("xae")
     defer { rm(f1) }
     let o1 = try f1.readAsString()
@@ -227,7 +227,7 @@ dog:
 
     try rm(["xaa", "xab", "xac", "xad", "xae"].map { try tmpfile($0) } )
 
-    try await run(withStdin: i, status: 0, args: "-d1000")
+    try await run(withStdin: i, status: 0, args: "-d1000", cd: tmpdir() )
     let f2 = try tmpfile("x04")
     let o2 = try f2.readAsString()
     #expect( i2 == o2)
