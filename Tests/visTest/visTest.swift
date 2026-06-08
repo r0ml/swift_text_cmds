@@ -70,7 +70,9 @@ import ShellTesting
     let input : [UInt8] = [0xC3, 0x28] // Invalid UTF-8
 //    let expected = "\\xC3\\x28"
     let expected = "\\M-C("
-    try await run(withStdin: input, output: expected)
+    try await run(withStdin: input, output: expected) { po in
+      print(po)
+    }
   }
   
   

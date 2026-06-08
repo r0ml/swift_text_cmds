@@ -28,6 +28,7 @@
  */
 
 import ShellTesting
+import SystemPackage
 import Darwin
 
 @Suite(.serialized) class tailTest : ShellTest {
@@ -125,47 +126,29 @@ line
   }
   
   @Test("Reverse a long file") func longfile_r() async throws {
-    Issue.record("need to sort NumberFormatter and also a way to set the standard output of a ShellProcess")
-    /*
-    let k = NumberFormatter()
-    k.paddingCharacter = "0"
-    k.formatWidth = 511
+    //    Issue.record("need to sort NumberFormatter and also a way to set the standard output of a ShellProcess")
     let p = 0..<1030
-    let d = (p.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
+    let d = (p.map { gx($0, 511) + "\n" } ).joined()
     let i = try tmpfile("inFile", d)
 
     let q = stride(from: 1029, through: 0, by: -1)
-    let o = (q.map { (k.string(from: NSNumber(value: $0) ))!+"\n" }).joined()
-    
+    let o = (q.map { gx($0, 511) + "\n" } ).joined()
+
     defer { rm(i) }
-    let p2 = ShellProcess(ex, "-r", i)
-    
-    // FIXME: how come it doesn't work if I pipe output to stdout
-    let of = try tmpfile("outfile", "")
-    let ofh = try FileHandle(forWritingTo: of)
-    await p2.setOutput(ofh)
-    let _ = try await p2.run()
-    let j = try String(contentsOf: of, encoding: .utf8)
-    let bb = j == o
-    #expect( j.count == o.count)
-    #expect( bb )
-    
-    let of2 = try tmpfile("outpipe", Data())
-    let ofh2 = try FileHandle(forWritingTo: of2)
-    let p3 = ShellProcess(ex, "-r")
-    await p3.setOutput(ofh2)
-    let _ = try await p3.run(d)
-    let j2 = try String(contentsOf: of2, encoding: .utf8)
-    let bb2 = j2 == o
-    #expect( bb2 )
-    
-    [of, of2, i].forEach { rm($0) }
-     */
+    try await run(args: "-r", i) { po in
+      let bb = po.string == o
+      #expect( po.string.count == o.count)
+      #expect( bb )
+    }
+      try await self.run(withStdin: d, args: "-r") { po in
+        let bb2 = po.string == o
+        #expect( bb2 )
+      }
   }
 
   func gx(_ x : Int, _ y : Int) -> String {
     let t = String(x)
-    let r = String(repeating: "0", count: 1023-t.count)
+    let r = String(repeating: "0", count: y-t.count)
     return r+t
   }
 
@@ -192,18 +175,12 @@ line
       ((36000 ..< 54000).map { gx($0, 7) }).joined(separator: " ")+"\n",
     ]
 
-    Issue.record("test needs to be able to set output of shell command")
-    /*
     // FIXME: why didn't this work with pipe?
-    try await run(args: "-r", setOutput: ofh)
-    let of = try tmpfile("outfile", "")
-    let ofh = try FileHandle(forWritingTo: of)
-    await p.setOutput(ofh)
-    let po = try await p.run( lines.joined() )
-    #expect(po.code == 0)
-    let j = try String(contentsOf: of, encoding: .utf8)
-    #expect( j == lines.reversed().joined() )
-     */
+    let infile = try tmpfile("infile", lines.joined() )
+    defer { rm(infile) }
+    try await run(args: "-r", infile) { po in
+      #expect( po.string == lines.reversed().joined() )
+    }
   }
 
   @Test("Reverse a long file and print the last 135782 bytes") func longfile_rc135782() async throws {
@@ -242,22 +219,8 @@ line
 
   @Test("Reverse a long file and print the last 2,500 lines") func longfile_rn2500() async throws {
     let i = ((0 ..< 9000).map { gx($0, 63)+"\n" }).joined()
-
-    Issue.record("need to be able to set output handle")
-    /*
-    // FIXME: why didn't this work with pipe
-    let p = ShellProcess(ex, "-rn2500")
-    let of = try tmpfile("outfile", "")
-    let ofh = try FileHandle(forWritingTo: of)
-    await p.setOutput(ofh)
-    let po = try await p.run(i)
-    let j = try String(contentsOf: of, encoding: .utf8)
-    
-    #expect(po.code == 0)
-    let o = ((stride(from: 8999, to: 0, by: -1).prefix(2500)).map { k.string(from: NSNumber(value: $0))!+"\n"}).joined()
-    print(j.count, o.count)
-    #expect( j == o )
-     */
+    let o = ((stride(from: 8999, to: 0, by: -1).prefix(2500)).map { gx($0, 63) + "\n" } ).joined()
+    try await run(withStdin: i, output: o, args: "-rn2500")
   }
   
   @Test("Do not print bogus errno based output on short writes", .disabled("not implemented")) func broken_pipe() async throws {
