@@ -28,7 +28,6 @@
  */
 
 import ShellTesting
-import SystemPackage
 import Darwin
 
 @Suite(.serialized) class tailTest : ShellTest {
