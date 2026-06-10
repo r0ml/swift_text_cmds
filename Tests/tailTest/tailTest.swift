@@ -233,31 +233,19 @@ line
   }
   
   @Test("Basic regression test for -f") func follow() async throws {
-
-    Issue.record("test needs midCapture re-implemented to work")
-    /*
     let inf = try tmpfile("inFile",  "1\n2\n3\n")
-    let inh = try FileHandle(forWritingTo: inf)
-
-    let p = ShellProcess(ex, "-F", inf)
-    try await p.theLaunch()
-
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.1))
-    let m = await p.midCapture()
-    let k = String(data: m, encoding: .utf8)!
-    try inh.seekToEnd()
-    try inh.write(contentsOf: "4\n5\n".data(using:.utf8)! )
-
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.2))
+    defer { rm(inf) }
+    let p = try await DarwinProcess.launch(cmd, args: "-f", inf)
+    try await Task.sleep(for: .milliseconds(100))
+    let k = await String(bytes: p.getOutput(), encoding: .utf8)!
     #expect(k == "1\n2\n3\n")
-    if let k2 = String(data: await p.midCapture(), encoding: .utf8) {
-      #expect(k2 == "4\n5\n")
-    } else {
-      #expect(false)
-    }
-    await p.interrupt()
-    rm(inf)
-     */
+    let inh = try FileDescriptor(forWriting: inf.string)
+    try inh.seek(offset: 0, from: .end)
+    try inh.write("4\n5\n".data(using:.utf8)! )
+    try await Task.sleep(for: .milliseconds(200))
+    let k2 = await String(bytes: p.getOutput(), encoding: .utf8)
+    #expect(k2 == "4\n5\n")
+    await p.kill()
   }
   
   @Test("Verify that -f works with files piped to standard input") func follow_stdin() async throws {
@@ -295,29 +283,20 @@ line
   }
 
   @Test("Verify that -F works when a file is created") func follow_create() async throws {
-
-    Issue.record("test needs midCapture re-implemented to work")
-    /*
-    let inf = try tmpfile("inFile", Data())
+    let inf = try tmpfile("inFile", "")
     rm(inf)
-    
-    let p = ShellProcess(ex, "-F", inf)
+    let p = try await DarwinProcess.launch(cmd, args: "-F", inf)
+    try tmpfile("inFile", "1\n2\n3\n")
+    try await Task.sleep(for: .milliseconds(1100))
+    let z = await p.getOutput()
+    #expect(String(bytes: z, encoding: .utf8)! == "1\n2\n3\n")
 
-    Task.detached {
-       try await p.run()
-    }
-
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
-
-    try "1\n2\n3\n4\n5\n".write(to: inf, atomically: true, encoding: .utf8)
-
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
-    let m = await p.midCapture()
-    let k = String(data: m, encoding: .utf8)!
-    
-    #expect(k == "1\n2\n3\n4\n5\n")
-    await p.interrupt()
-     */
+    rm(inf)
+    let _ = try tmpfile("inFile", "4\n5\n")
+    try await Task.sleep(for: .milliseconds(1100))
+    let y = await p.getOutput()
+    #expect(String(bytes: y, encoding: .utf8)! == "4\n5\n")
+    await p.kill()
   }
 
   @Test("Verify that -F works when a file is replaced") func follow_rename() async throws {
