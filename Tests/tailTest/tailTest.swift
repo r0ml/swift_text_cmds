@@ -29,6 +29,7 @@
 
 import ShellTesting
 import Darwin
+import System
 
 @Suite(.serialized) class tailTest : ShellTest {
   let cmd = "tail"
@@ -250,36 +251,28 @@ line
   
   @Test("Verify that -f works with files piped to standard input") func follow_stdin() async throws {
 
-    Issue.record("test needs midCapture re-implemented to work")
-
-    /*
-    Task.detached {
       let inf = try self.tmpfile("inFile", "1\n2\n3\n")
     let fh = try FileDescriptor.open(inf, .readOnly)
-      try await self.run(withStdin: fh, args: "-f")
+    let p = try await DarwinProcess.launch(self.cmd, withStdin: fh, args: "-f")
 
-
+    defer { rm(inf) }
+    
         //        AsyncDataActor([ "1\n2\n3\n".data(using: .utf8)!, "4\n5\n".data(using: .utf8)!]).stream)
-    }
+   // }
 
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.1))
-    let m = await p.midCapture()
-    let k = String(data: m, encoding: .utf8)!
+    try await Task.sleep(for: .milliseconds(1100))
+    let k = await String(bytes: p.getOutput(), encoding: .utf8)!
+
+    let fh2 = try FileDescriptor(forWriting: inf.string)
+  try fh2.seek(offset: 0, from: .end)
+    try fh2.write("4\n5\n".data(using: .utf8)!)
     
-    let fh2 = try FileHandle(forWritingTo: inf)
-    try fh2.seekToEnd()
-    try fh2.write(contentsOf: "4\n5\n".data(using: .utf8)!)
-    
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 0.1))
-    let m2 = await p.midCapture()
-    let k2 = String(data: m2, encoding: .utf8)!
+    try await Task.sleep(for: .milliseconds(100))
+    let k2 = await String(bytes: p.getOutput(), encoding: .utf8)!
 
     #expect(k == "1\n2\n3\n")
     #expect(k2 == "4\n5\n")
-    await p.interrupt()
-    
-    rm(inf)
-*/
+    await p.kill()
   }
 
   @Test("Verify that -F works when a file is created") func follow_create() async throws {
@@ -300,35 +293,24 @@ line
   }
 
   @Test("Verify that -F works when a file is replaced") func follow_rename() async throws {
-
-    Issue.record("task needs midCapture re-implemented to work")
-
-    /*
     let inf = try tmpfile("inFile", "1\n2\n3\n")
-    let p = ShellProcess(ex, "-F", inf)
-
-    Task.detached {
-       try await p.run()
-    }
-
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
+    let p = try await DarwinProcess.launch(cmd, args: "-F", inf)
+    try await Task.sleep(for: .milliseconds(1100))
+    let z = await p.getOutput()
+    #expect(String(bytes: z, encoding: .utf8)! == "1\n2\n3\n")
 
     let inf2 = try tmpfile("infile_new", "4\n5\n")
-    let inf3 = try tmpfile("infile_old", Data())
+    let inf3 = try tmpfile("infile_old", "")
     rm(inf3)
-    try FileManager.default.moveItem(at: inf, to: inf3)
-    try FileManager.default.moveItem(at: inf2, to: inf)
-    
-    try await Task.sleep(nanoseconds: UInt64(Double(NSEC_PER_SEC) * 1))
 
-    let m = await p.midCapture()
-    let k = String(data: m, encoding: .utf8)!
-    
-    #expect(k == "1\n2\n3\n4\n5\n")
-    await p.interrupt()
-    
-    [inf, inf2, inf3].forEach { rm($0) }
-*/
+    try inf.rename(to: inf3)
+    try inf2.rename(to: inf)
+    try await Task.sleep(for: .milliseconds(1100))
+
+    defer { rm(inf, inf2, inf3) }
+    let k = await p.getOutput()
+    #expect(String(bytes: k, encoding: .utf8) == "4\n5\n")
+    await p.kill()
   }
 
   @Test("Test tail(1)'s silent header feature") func silent_header() async throws {
