@@ -91,13 +91,13 @@ func generateTestTargets() -> [Target] {
         .appendingPathComponent(i)
         .appendingPathComponent("Resources").path
     )
-    let x = try! FileManager.default.contentsOfDirectory(atPath: testurl.appendingPathComponent(i).path).filter { $0.hasSuffix(".xctestplan") }
+//    let x = try! FileManager.default.contentsOfDirectory(atPath: testurl.appendingPathComponent(i).path).filter { $0.hasSuffix(".xctestplan") }
     let rr = r ? [Resource.copy("Resources")] : []
-    let t = Target.testTarget(name: i,
+    let t = Target.testTarget(name: i
                               dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
                                              .target(name: i.replacingOccurrences(of: "Test", with: ""))],
-                              path: nil,
-                              exclude: x
+                              , path: nil
+  //                            exclude: x
                               , resources: rr
     )
     res.append(t)
