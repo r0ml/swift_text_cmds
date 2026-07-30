@@ -38,7 +38,13 @@ import SwiftUI
           }
         case "f":
           args.fontName = v
-          if nil == NSFont(name: args.fontName, size: 50) {
+
+#if (!os(macOS)) || targetEnvironment(macCatalyst)
+          let k = UIFont(name: args.fontName, size: 50)
+          #else
+          let k = NSFont(name: args.fontName, size: 50)
+          #endif
+          if k == nil {
             throw CmdErr(1, "font not found: \(v)")
           }
           

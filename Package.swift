@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.4
 
 /*
   The MIT License (MIT)
@@ -33,7 +33,7 @@ private func packageRoot() -> URL {
 let package = Package(
   name: "text_cmds",
   // Mutex is only available in v15 or newer
-  platforms: [.macOS(.v15)],
+  platforms: [.macOS(.v15), .macCatalyst(.v18), .iOS(.v18) ],
   dependencies: [
     .package(name: "libxo", path: "../libxo"),
 //    .package(name: "ShellTesting", path: "../ShellTesting"),
@@ -93,10 +93,10 @@ func generateTestTargets() -> [Target] {
     )
 //    let x = try! FileManager.default.contentsOfDirectory(atPath: testurl.appendingPathComponent(i).path).filter { $0.hasSuffix(".xctestplan") }
     let rr = r ? [Resource.copy("Resources")] : []
-    let t = Target.testTarget(name: i
+    let t = Target.testTarget(name: i,
                               dependencies: [.product(name: "ShellTesting", package: "ShellTesting"),
                                              .target(name: i.replacingOccurrences(of: "Test", with: ""))],
-                              , path: nil
+                              path: nil
   //                            exclude: x
                               , resources: rr
     )

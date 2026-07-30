@@ -35,6 +35,7 @@
 import CMigration
 import Atomics
 
+// FIXME: ios cannot resolve libxo
 import libxo
 // import Synchronization
 
