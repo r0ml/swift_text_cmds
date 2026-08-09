@@ -240,7 +240,12 @@ line
     try await Task.sleep(for: .milliseconds(100))
     let k = await String(bytes: p.getOutput(), encoding: .utf8)!
     #expect(k == "1\n2\n3\n")
-    let inh = try FileDescriptor(forWriting: inf.string)
+    var inh : FileDescriptor!
+    do {
+      inh = try FileDescriptor(forWriting: inf.string)
+    } catch(let e ) {
+      print(e)
+    }
     try inh.seek(offset: 0, from: .end)
     try inh.write("4\n5\n".data(using:.utf8)! )
     try await Task.sleep(for: .milliseconds(200))
