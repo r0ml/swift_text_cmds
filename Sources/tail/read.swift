@@ -72,10 +72,11 @@ extension tail {
     var kk = Array(prev.split(separator: 10, omittingEmptySubsequences: false).reversed())
     if kk.first?.isEmpty == true { kk.removeFirst() }
     for j in kk {
-      if let m = String(validating: j, as: UTF8.self) {
+      if let m = try? IEncoding.utf8.toString(Array(j)) {
         print(m)
       } else {
-        print(String(decoding: j, as: ISOLatin1.self))
+        let k = try! IEncoding.utf8.toString(Array(j))
+        print(k)
       }
     }
 

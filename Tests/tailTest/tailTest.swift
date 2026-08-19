@@ -136,12 +136,12 @@ line
 
     defer { rm(i) }
     try await run(args: "-r", i) { po in
-      let bb = po.string == o
-      #expect( po.string.count == o.count)
+      let bb = try po.string(encoded: .utf8) == o
+      #expect( try po.string(encoded: .utf8).count == o.count)
       #expect( bb )
     }
       try await self.run(withStdin: d, args: "-r") { po in
-        let bb2 = po.string == o
+        let bb2 = try po.string(encoded: .utf8) == o
         #expect( bb2 )
       }
   }
@@ -179,7 +179,8 @@ line
     let infile = try tmpfile("infile", lines.joined() )
     defer { rm(infile) }
     try await run(args: "-r", infile) { po in
-      #expect( po.string == lines.reversed().joined() )
+      let s = try po.string(encoded: .utf8)
+      #expect( s == lines.reversed().joined() )
     }
   }
 
@@ -414,7 +415,8 @@ line
     try infh.write( f2.utf8 )
 
     try await run(status: 0, args: "-1", inf) { po in
-      #expect( (po.string.count { $0 == "\n"}) == 1)
+      let s = try po.string(encoded: .utf8)
+      #expect( (try s.count { $0 == "\n"}) == 1)
     }
 
   }

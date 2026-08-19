@@ -104,10 +104,11 @@ extension tail {
       let fp = k[k.endIndex.advanced(by: -min(Int(off), k.count))..<k.endIndex-1]
       let m = fp.split(separator: 10, omittingEmptySubsequences: false).reversed()
       for mm in m {
-        if let j = String(validating: mm, as: UTF8.self) {
+        if let j = try? IEncoding.utf8.toString(Array(mm)) {
           print(j)
         } else {
-          print(String(decoding: mm, as: ISOLatin1.self))
+          let k = try! IEncoding.latin1.toString(Array(mm))
+          print(k)
         }
 
       }
