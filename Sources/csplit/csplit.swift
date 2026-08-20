@@ -272,7 +272,7 @@ let filesToClean = Mutex<[String]>([])
   /// zero–padded to the requested width.
   func newfile() throws(CmdErr) -> FileDescriptor {
     // Construct the file name.
-    let numStr = cFormat("%0\(options.sufflen)d", nfiles)
+    let numStr = "%0\(options.sufflen)d".cFormat(nfiles)
     currfile = options.prefix + numStr
     filesToClean.withLock { $0.append(currfile) }
     do {

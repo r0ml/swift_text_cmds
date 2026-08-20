@@ -46,14 +46,15 @@ import ShellTesting
   @Test("Test head(1)'s -n option") func line_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
     try await run(withStdin: i, args: "-n", "50") { po in
-      #expect( po.string.split(separator: "\n", omittingEmptySubsequences: true).count == 50)
+      let pp = try po.string(encoded: .utf8).split(separator: "\n", omittingEmptySubsequences: true)
+      #expect( pp.count == 50)
     }
   }
 
   @Test("Test head(1)'s -c option") func byte_count() async throws {
     let i = Array(repeating: "test\n", count: 100).joined()
     try await run(withStdin: i, args: "-c", "50") { po in
-      #expect( po.string.count == 50)
+      #expect( po.data.count == 50)
     }
   }
 

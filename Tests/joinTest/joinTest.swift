@@ -45,7 +45,7 @@ struct joinTest : ShellTest {
       let inp3 = try inFile("regress.5.in")
       let expected = try fileContents("regress.6.out")
       
-      let po2 = try await DarwinProcess().run("/usr/bin/sort", withStdin: po1.string, args: ["-k2", "-t,"] )
+      let po2 = try await DarwinProcess().run("/usr/bin/sort", withStdin: po1.data, args: ["-k2", "-t,"] )
       try await run(withStdin: po2.data, output: expected, args: "-t,", "-e", "<<NULL>>", "-1", "2", "-o", "1.1 2.2", "-", inp3)
     }
   }

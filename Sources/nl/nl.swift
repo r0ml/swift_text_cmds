@@ -285,7 +285,7 @@ usage: nl [-p] [-b type] [-d delim] [-f type] [-h type] [-i incr] [-l num]
         if donumber {
           
           // print(String(fmtcheck(options.format, "%*d"), options.width, line), terminator: "")
-          print(cFormat(options.format.rawValue, options.width, line), terminator: "")
+          print(options.format.rawValue.cFormat(options.width, line), terminator: "")
           
           line += options.incr
         } else {

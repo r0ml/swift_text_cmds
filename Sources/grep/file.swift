@@ -226,10 +226,10 @@ class file {
       binary = true
     }
     
-    let ss =
-    binary ? String(validating: str, as: ISOLatin1.self)! : String(validating: str, as: UTF8.self) ??
-    String(validating: str, as: ISOLatin1.self)!
-    pc.ln.dat = ss
+    let ss = try?
+    binary ? IEncoding.latin1.toString(Array(str)) : (try? IEncoding.utf8.toString(Array(str))) ??
+    (try? IEncoding.latin1.toString(Array(str)))!
+    pc.ln.dat = ss!
     return ss
   }
   

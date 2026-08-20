@@ -140,7 +140,7 @@ import ShellTesting
         ]
     try await run(withStdin: pieces.joined(), status: 0, args: "-d", "-l", "1", "-", "split-", cd: tmpdir() )
     for i in 0..<pieces.count {
-      let j = cFormat("%02d", i)
+      let j = "%02d".cFormat(i)
       let u = try tmpfile("split-\(j)")
       defer { rm(u) }
       let o1 = try u.readAsString()
@@ -153,7 +153,7 @@ import ShellTesting
     let pieces = (0...11).map { String(repeating: "a", count: $0)+"\n" }
     try await run(withStdin: pieces.joined(), status: 0, args: "-a", "3", "-d", "-l", "1", "-", "split-", cd: tmpdir() )
     for i in 0...11 {
-      let j = cFormat("%03d", i)
+      let j = "%03d".cFormat(i)
       let u = try tmpfile("split-\(j)")
       defer { rm(u) }
       let o1 = try u.readAsString()

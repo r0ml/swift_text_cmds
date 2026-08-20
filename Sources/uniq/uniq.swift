@@ -179,7 +179,7 @@ import CMigration
   
   func show(_ s : String) {
     if options.cflag {
-      print( cFormat("%4ld ", repeats+1) + s)
+      print( "%4ld ".cFormat(repeats+1) + s)
     } else {
       print(s)
     }

@@ -756,7 +756,7 @@ class SedProcess {
             col = 0
           }
           for kk in k {
-            let z = cFormat("\\%03o", kk)
+            let z = "\\%03o".cFormat(kk)
             outfile.write(z)
           }
           col += 4 * k.count

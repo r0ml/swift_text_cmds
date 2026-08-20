@@ -116,7 +116,7 @@ let DEFLINEWIDTH = 80
         }
         
         do {
-          let input = try readFileAsString(at: file)
+          let input = try FilePath(file).readAsString(encoding: .utf8)
 //          let input = try String(contentsOfFile: file, encoding: .utf8)
           let folded = fold(width: options.width, input: input)
           print(folded, terminator: "")

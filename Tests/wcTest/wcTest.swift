@@ -35,24 +35,28 @@ kom Terje Vigen nær.
 
   func check(_ i : String, _ a : Int, _ b : Int, _ c : Int, _ d : Int? = nil) async throws {
     try await run(withStdin: i) { o in
-      let k = o.string.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
+      let oo = try o.string(encoded: .utf8)
+      let k = oo.matches(of: /^ +(\d+) +(\d+) +(\d+)\n$/)
       #expect(k.count == 1 &&
               Int(k[0].output.1)! == a &&
               Int(k[0].output.2)! == b &&
               Int(k[0].output.3)! == c )
     }
     try await run(withStdin: i, args: "-l") { po in
-      let k1 = po.string.matches(of: /^ +(\d+)\n$/)
+      let oo = try po.string(encoded: .utf8)
+      let k1 = oo.matches(of: /^ +(\d+)\n$/)
       #expect(k1.count == 1 &&
               Int(k1[0].output.1)! == a )
     }
     try await run(withStdin: i, args: "-w") { po2 in
-      let k2 = po2.string.matches(of: /^ +(\d+)\n$/)
+      let oo = try po2.string(encoded: .utf8)
+      let k2 = oo.matches(of: /^ +(\d+)\n$/)
       #expect(k2.count == 1 &&
               Int(k2[0].output.1)! == b)
     }
     try await run(withStdin: i, args: "-c") { po3 in
-      let k3 = po3.string.matches(of: /^ +(\d+)\n$/)
+      let oo = try po3.string(encoded: .utf8)
+      let k3 = oo.matches(of: /^ +(\d+)\n$/)
       #expect(k3.count == 1 &&
               Int(k3[0].output.1)! == c, "\(c)")
     }
@@ -77,10 +81,11 @@ kom Terje Vigen nær.
   }
 
   @Test("Invalid multibye input") func invalid() async throws {
-    let i = try "a\u{ff}b\n".isoLatin1()
+    let i = try IEncoding.latin1.toBytes("a\u{ff}b\n")
 
     try await run(withStdin: i, args: "-m", env: ["LC_ALL":"UTF-8"]) {po in
-      let k = po.string.matches(of: /^ +(\d+)\n$/)
+      let oo = try po.string(encoded: .utf8)
+      let k = oo.matches(of: /^ +(\d+)\n$/)
       #expect(k.count == 1)
 
       if k.count == 1 {
@@ -121,7 +126,8 @@ kom Terje Vigen nær.
     }
     
     try await run(args: f, f2) { po in
-      let ll = po.string.split(separator: "\n", omittingEmptySubsequences: true).last
+      let oo = try po.string(encoded:.utf8)
+      let ll = oo.split(separator: "\n", omittingEmptySubsequences: true).last
 
       // More than one line of output
       #expect(ll != nil)

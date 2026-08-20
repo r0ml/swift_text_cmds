@@ -154,7 +154,7 @@ import CMigration
     var buffer = [UInt8]()
     while let data = try? fileHandle.readUpToCount(1), !data.isEmpty {
       buffer.append(contentsOf: data)
-      guard var current = String(decoding: data, as: ISOLatin1.self).first else { continue }
+      guard var current = try? IEncoding.latin1.toString(data).first else { continue }
 
       if prev == "\n" {
         if options.flags.contains(.sflag) {
@@ -168,7 +168,7 @@ import CMigration
 
         if options.flags.contains(.nflag) {
           if !options.flags.contains(.bflag) || current != "\n" {
-            writeToStdout(cFormat("%6d\t", line + 1))
+            writeToStdout("%6d\t".cFormat(line + 1))
             line += 1
           } else if options.flags.contains(.eflag) {
             writeToStdout("      \t")

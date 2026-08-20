@@ -161,7 +161,7 @@ import ShellTesting
   @Test("Checks reading expressions from file") func file_exp() async throws {
     let inf = try inFile("d_file_exp.in")
     let expected = try fileContents("d_file_exp.out")
-    let inp = stride(from: -1.0, to: 1.0, by: 0.1).map { cFormat("%.2lf",$0)+"\n" }
+    let inp = stride(from: -1.0, to: 1.0, by: 0.1).map { "%.2lf".cFormat($0)+"\n" }
     try await run(withStdin: inp.joined(), output: expected, args: "-f", inf)
   }
 
@@ -351,8 +351,8 @@ import ShellTesting
 
     try await run(withStdin: fc, status: 0, args: "-Fxc", "") { po1 in
       try await run(withStdin: fc, status: 0, args: "-Fvxc", "") { po2 in
-        let n = Int(po1.string.dropLast() ) // remove trailing newline
-        let n2 = Int(po2.string.dropLast()) // remove trailing newline
+        let n = try Int(po1.string(encoded: .utf8).dropLast() ) // remove trailing newline
+        let n2 = try Int(po2.string(encoded: .utf8).dropLast()) // remove trailing newline
         #expect(n != lines)
         #expect(n2 != lines)
         #expect(n != n2)
@@ -390,9 +390,9 @@ import ShellTesting
   @Test("Check for proper handling of lines with excessive matches (PR 218811") func excessive_matches() async throws {
     let intest = String(repeating: "x", count: 4096)
     try await run(withStdin: intest, status: 0, args: "-o", "x") { po1 in
-      #expect( (po1.string.count { $0 == "\n" }) == intest.count)
+      #expect( (po1.data.count { $0 == "\n".first!.asciiValue! }) == intest.count)
       try await run(withStdin: intest, status: 0, args: "-on", "x") { po2 in
-        try await run(withStdin: po2.string, status: 1, args: "-v", "1:x")
+        try await run(withStdin: po2.data, status: 1, args: "-v", "1:x")
       }
     }
   }
@@ -454,15 +454,15 @@ import ShellTesting
     let check_expr = "^[^:]*[0-9][^:]*:[^:]+$"
     try await run(withStdin: test1, args: "-Eon", "x|y|z|f") { po1 in
       #expect(po1.code == 0)
-      try await run(withStdin: po1.string, status: 1, args: "-Ev", check_expr)
+      try await run(withStdin: po1.data, status: 1, args: "-Ev", check_expr)
     }
     try await run(withStdin: test1, args: "-En", "x|y|z|f", "--color=always") {po2 in
       #expect(po2.code == 0)
-      try await run(withStdin: po2.string, status: 1, args: "-Ev", check_expr)
+      try await run(withStdin: po2.data, status: 1, args: "-Ev", check_expr)
     }
     try await run(withStdin: test1, args: "-Eon", "x|y|z|f", "--color=always") { po3 in
       #expect(po3.code == 0)
-      try await run(withStdin: po3.string, status: 1, args: "-Ev", check_expr)
+      try await run(withStdin: po3.data, status: 1, args: "-Ev", check_expr)
     }
   }
 

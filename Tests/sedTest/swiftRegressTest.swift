@@ -120,7 +120,8 @@ foo
         inns.append(u)
         let _u = try self.tmpfile("lines._in.\(n)", k)
         _inns.append(_u)
-        linesout.append(po.string)
+        let tt = try po.string(encoded: .utf8)
+        linesout.append(tt)
       }
     }
     
@@ -137,7 +138,8 @@ foo
           }
 
 
-          #expect(po.string == li.joined() )
+          let oo = try po.string(encoded: .utf8)
+          #expect(oo == li.joined() )
         }
       }
     }

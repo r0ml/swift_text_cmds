@@ -174,7 +174,7 @@ let MB_CUR_MAX = 4
         return String(UnicodeScalar(char))
       } else {
         // Example: encode non-ASCII characters
-        return "\\x" + cFormat("%02x", char)
+        return "\\x" + "%02x".cFormat(char)
       }
     }
     

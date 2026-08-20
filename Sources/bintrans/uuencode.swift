@@ -209,7 +209,7 @@ extension bintrans {
     //    size_t rv, written;
     
     if (!d.options.raw) {
-      d.outHandle.write("begin-base64 \(cFormat("%lo", mode.rawValue)) \(av)\n");
+      d.outHandle.write("begin-base64 \("%lo".cFormat(mode.rawValue)) \(av)\n");
     }
     
     var carry = 0
@@ -264,7 +264,7 @@ extension bintrans {
 //    char buf[80];
     
     if (!d.options.raw) {
-      d.outHandle.write("begin \(cFormat("%lo", mode.rawValue)) \(av)\n")
+      d.outHandle.write("begin \("%lo".cFormat(mode.rawValue)) \(av)\n")
     }
     do {
       while true {

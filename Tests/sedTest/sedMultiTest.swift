@@ -570,7 +570,8 @@ p
     try await run(args: "-e", "3,12w "+f.string, flines1) { po in
       #expect(po.code == 0)
       let k = try f.readAsString()
-      #expect(po.string + k == res)
+      let oo = try po.string(encoded: .utf8)
+      #expect(oo + k == res)
       self.rm(f)
     }
   }
@@ -597,7 +598,8 @@ p
     let td = try tmpdir()
 
     try await run(args: "200q", d) { o in
-      let oo = o.string.split(separator: "\n")
+      let kk = try o.string(encoded: .utf8)
+      let oo = kk.split(separator: "\n")
       #expect(oo.count == 200)
 
       //    let dd = try FileDescriptor.open(d, .readOnly)
@@ -608,16 +610,17 @@ p
       // duplicates if ignoring case, and the file system is not case sensitive.
       //    let ww = Set(wwo.map { $0.lowercased() })
 
-      try await self.run(withStdin: o.string, args: "s$.*$s/^/&/w \(td.string)/&$") { script1 in
+      try await self.run(withStdin: o.data, args: "s$.*$s/^/&/w \(td.string)/&$") { script1 in
         #expect(script1.code == 0)
         self.rm(td)
         defer { self.rm(td) }
-        try await self.run(withStdin: script1.string, args: "-f", "-", self.flines1) { po2 in
+        try await self.run(withStdin: script1.data, args: "-f", "-", self.flines1) { po2 in
           #expect(po2.code == 0)
 //          let kk = try tt.listDirectory()
           //        #expect( kk.count == ww.count)
           let aa = oo.reversed().joined()
-          let bb = po2.string.split(separator: "\n")
+          let cc = try po2.string(encoded: .utf8)
+          let bb = cc.split(separator: "\n")
           for (i, b) in bb.enumerated() {
             #expect( (aa+"l1_\(i+1)") == b)
           }
@@ -668,7 +671,8 @@ p
       #expect(po.code == 0)
       let res = try self.fileContents("multi.8.11.out" )
       let jj = try l4.readAsString()
-      #expect(po.string + jj == res)
+      let kk = try po.string(encoded: .utf8)
+      #expect(kk + jj == res)
     }
   }
   
@@ -696,7 +700,7 @@ p
     let res = try fileContents("multi.8.19.out")
     try await run(args: "-e", "s/l/[/", flines1) { po in
       #expect(po.code == 0)
-      try await self.run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X[")
+      try await self.run(withStdin: po.data, output: res, args: "-e", "s[\\[.[X[")
     }
   }
   
@@ -704,7 +708,7 @@ p
     let res = try fileContents("multi.8.20.out")
     try await run(args: "-e", "s/l/[/", flines1) {po in
       #expect(po.code == 0)
-      try await self.run(withStdin: po.string, output: res, args: "-e", "s[\\[.[X\\[[")
+      try await self.run(withStdin: po.data, output: res, args: "-e", "s[\\[.[X\\[[")
     }
   }
   

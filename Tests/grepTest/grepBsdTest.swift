@@ -41,7 +41,7 @@ class grepBsdTest : ShellTest {
       
       try await self.run(args: "-r", "--exclude=*.out", "-e", "test", cd: rd) { po2 in
         #expect(po2.code == 0)
-        #expect(po1.string == po2.string)
+        #expect(po1.data == po2.data)
       }
     }
   }

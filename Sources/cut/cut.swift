@@ -428,7 +428,7 @@ usage: cut -b list [-n] [file ...]
 //    ch = 0;
     
     do {
-      for try await line in fh.bytes.lines(encoding: ISOLatin1.self) {
+      for try await line in fh.bytes.lines(encoding: .latin1) {
         var k = zip(line,  options.positions).compactMap { $0.1 ? $0.0 : nil }
 //          if i.1 {
 //            FileDescriptor.standardOutput.write(String(i.0))
